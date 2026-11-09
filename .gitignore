@@ -1,0 +1,24 @@
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+*.log
+
+# Dependencies
+node_modules/
+vendor/
+
+# Test & build caches
+.phpunit.result.cache
+.phpunit.cache/
