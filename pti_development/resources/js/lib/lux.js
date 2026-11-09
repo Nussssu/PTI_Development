@@ -96,7 +96,11 @@ export function initLux(root, { skipIntro = false } = {}) {
 
     const chrome = $('.lx-chrome', root);
     const petalSrc = [1, 2, 3, 4, 5, 6].map((i) => `/images/botanical/petal-${i}.png`);
-    const petals = $$('.lx-petals', root).map((c) => new Petals(c, petalSrc, +c.dataset.count || 26));
+    const petals = $$('.lx-petals', root).map((c) => {
+        const requested = +c.dataset.count || 26;
+        const count = reduce ? 0 : (isDesktop() ? requested : Math.ceil(requested * 0.55));
+        return new Petals(c, petalSrc, count);
+    });
     cleanups.push(() => petals.forEach((p) => p.destroy()));
 
     const mm = gsap.matchMedia();
@@ -135,8 +139,10 @@ export function initLux(root, { skipIntro = false } = {}) {
             const mx = e.clientX / innerWidth - 0.5, my = e.clientY / innerHeight - 0.5;
             layers.forEach((l) => { l.x(mx * l.d * 40); l.y(my * l.d * 26); });
         };
-        window.addEventListener('mousemove', move);
-        cleanups.push(() => window.removeEventListener('mousemove', move));
+        if (isDesktop() && !reduce) {
+            window.addEventListener('mousemove', move);
+            cleanups.push(() => window.removeEventListener('mousemove', move));
+        }
 
         /* ---------- perpetual sway of every botanical layer ---------- */
         $$('.lx-flora .sway', root).forEach((el, i) => {
@@ -144,70 +150,56 @@ export function initLux(root, { skipIntro = false } = {}) {
             gsap.to(el, { rotation: amp, y: amp * 2, duration: 4.5 + (i % 3) * 1.3, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: -i * 0.9 });
         });
 
-        /* ---------- preloader + hero entrance ---------- */
-        const pre = $('.lx-pre', root);
+        /* ---------- hero: ERA-style arched aperture, then expand to full scene ---------- */
         const hero = $('.lx-hero', root);
-        const heroChars = new SplitText($$('.lx-hero .title .disp', root), { type: 'chars', charsClass: 'char' }).chars;
-        const heroFlora = $$('.lx-hero .lx-flora', root);
-        gsap.set(heroChars, { yPercent: 105, opacity: 0 });
-        gsap.set($('.lx-hero .sc', root), { clipPath: 'inset(0 100% 0 0)' });
-        gsap.set($$('.lx-hero [data-in]', root), { opacity: 0, y: 24 });
-        gsap.set($$('.lx-hot', root), { scale: 0, opacity: 0 });
-        heroFlora.forEach((f) => gsap.set(f, { clipPath: `circle(0% at ${f.dataset.anchor || '0% 0%'})`, scale: 0.86, rotation: +f.dataset.turn || 0 }));
-        gsap.set($('.lx-hero .media', root), { scale: 1.28 });
+        const heroWindow = $('.lx-hero .hero-window', root);
+        const scene = $('.lx-hero .scene-frame', root);
+        const portalOutline = $('.lx-hero .portal-outline', root);
+        const coverFrame = $('.lx-hero .cover-frame', root);
+        const coverGhost = $('.lx-hero .cover-ghost', root);
+        const heroCopy = $('.lx-hero .hero-copy', root);
+        const heroCta = $('.lx-hero .cta', root);
+        const heroScroll = $('.lx-hero .hero-scroll', root);
+        const closedAperture = 'inset(50% 50% 50% 50% round 50vw 50vw 0 0)';
+        const openAperture = isDesktop()
+            ? 'inset(18vh 34vw 0vh 34vw round 34vw 34vw 0 0)'
+            : 'inset(22vh 14vw 0vh 14vw round 50vw 50vw 0 0)';
+
+        gsap.set(heroWindow, { clipPath: closedAperture });
+        gsap.set(scene, { scale: isDesktop() ? 1.12 : 1.08, yPercent: isDesktop() ? 4 : 2 });
+        gsap.set([heroCopy, heroCta], { opacity: 0, y: 28 });
+        gsap.set(heroScroll, { opacity: 0, y: 18 });
+        gsap.set(portalOutline, { opacity: 0, scale: 0.82 });
+        gsap.set([coverFrame, coverGhost], { opacity: 0 });
 
         const heroIn = gsap.timeline({ paused: true, onComplete: () => lenis.start() });
         heroIn
-            .to($('.lx-hero .media', root), { scale: 1, duration: 3.2, ease: 'lux' }, 0)
-            .to(heroChars, { yPercent: 0, opacity: 1, duration: 1.6, stagger: { each: 0.045, from: 'center' }, ease: 'lux' }, 0.25)
-            .to($('.lx-hero .sc', root), { clipPath: 'inset(0 0% 0 0)', duration: 2.0, ease: 'luxSoft' }, 0.9)
-            .to(heroFlora, { clipPath: (i, el) => `circle(150% at ${el.dataset.anchor || '0% 0%'})`, scale: 1, rotation: 0, duration: 2.8, stagger: 0.18, ease: 'luxSoft' }, 0.2)
-            .to($$('.lx-hero [data-in]', root), { opacity: 1, y: 0, duration: 1.3, stagger: 0.08, ease: 'lux' }, 1.2)
-            .to($$('.lx-hot', root), { scale: 1, opacity: 1, duration: 1, stagger: 0.15, ease: 'back.out(2)' }, 1.8);
+            .to([coverFrame, coverGhost], { opacity: 1, duration: 0.9, ease: 'power1.out' }, 0)
+            .to(portalOutline, { opacity: 1, scale: 1, duration: 1.35, ease: 'lux' }, 0.25)
+            .to(heroWindow, { clipPath: openAperture, duration: 1.8, ease: 'luxInOut' }, 0.35)
+            .to(heroScroll, { opacity: 1, y: 0, duration: 0.8, ease: 'lux' }, 1.35);
 
-        if (pre && !skipIntro && !reduce) {
-            const t1 = new SplitText($$('.lx-pre .t1, .lx-pre .t2', pre), { type: 'chars', charsClass: 'char' }).chars;
-            const side = new SplitText($$('.lx-pre .side', pre), { type: 'chars', charsClass: 'char' }).chars;
-            const frame = $('.lx-pre .frame path', pre);
-            const len = frame.getTotalLength();
-            gsap.set(frame, { strokeDasharray: len, strokeDashoffset: len });
-            gsap.set(t1, { yPercent: 110, opacity: 0, scaleY: 1.4, transformOrigin: '50% 100%' });
-            gsap.set(side, { opacity: 0, y: 10 });
-            gsap.set($('.lx-pre .sc', pre), { clipPath: 'inset(0 100% 0 0)' });
-            gsap.set($('.lx-pre .vline', pre), { scaleY: 0 });
-            gsap.set([$('.lx-pre .emblem', pre), $('.lx-pre .cap', pre), $('.lx-pre .ghost', pre)], { opacity: 0 });
-            gsap.timeline()
-                .to($('.lx-pre .emblem', pre), { opacity: 1, duration: 1, ease: 'power2.out' }, 0.1)
-                .fromTo($('.lx-pre .emblem', pre), { rotate: -90, scale: 0.6 }, { rotate: 0, scale: 1, duration: 1.6, ease: 'lux' }, 0.1)
-                .to(frame, { strokeDashoffset: 0, duration: 2.4, ease: 'luxInOut' }, 0.2)
-                .to($('.lx-pre .ghost', pre), { opacity: 1, duration: 2.4, ease: 'power1.out' }, 0.3)
-                .fromTo($('.lx-pre .ghost', pre), { xPercent: -46 }, { xPercent: -54, duration: 3.6, ease: 'none' }, 0.3)
-                .to(t1, { yPercent: 0, opacity: 1, scaleY: 1, duration: 1.3, stagger: { each: 0.05, from: 'center' }, ease: 'lux' }, 0.5)
-                .to(side, { opacity: 1, y: 0, duration: 0.8, stagger: 0.06, ease: 'power2.out' }, 1.0)
-                .to($('.lx-pre .sc', pre), { clipPath: 'inset(0 0% 0 0)', duration: 1.6, ease: 'luxSoft' }, 1.3)
-                .to($('.lx-pre .vline', pre), { scaleY: 1, duration: 1.2, ease: 'lux' }, 1.5)
-                .to($('.lx-pre .cap', pre), { opacity: 1, duration: 0.8 }, 1.8)
-                .to(pre, { clipPath: 'inset(0% 0% 100% 0%)', duration: 1.5, ease: 'luxInOut' }, 3.5)
-                .to($('.lx-pre .center', pre), { yPercent: -40, opacity: 0, duration: 1.1, ease: 'luxInOut' }, 3.5)
-                .add(() => heroIn.play(), 3.75)
-                .add(() => { pre.style.display = 'none'; }, 5.1);
-        } else {
-            if (pre) pre.style.display = 'none';
-            heroIn.play(reduce ? heroIn.duration() : 0);
-            if (reduce) lenis.start();
-        }
+        if (reduce) heroIn.progress(1, false);
+        else heroIn.play(0);
+        const introFailSafe = window.setTimeout(() => {
+            if (heroIn.progress() < 0.98) heroIn.progress(1, false);
+            lenis.start();
+        }, reduce ? 80 : 3000);
+        cleanups.push(() => window.clearTimeout(introFailSafe));
 
-        /* ---------- hero scroll: pinned under the rising arch ---------- */
-        ScrollTrigger.create({ trigger: hero, start: 'top top', end: '+=100%', pin: true, pinSpacing: false });
-        const heroOut = gsap.timeline({ scrollTrigger: { trigger: hero, start: 'top top', end: '+=100%', scrub: true } });
+        ScrollTrigger.create({ trigger: hero, start: 'top top', end: '+=175%', pin: true, pinSpacing: false });
+        const heroOut = gsap.timeline({ scrollTrigger: { trigger: hero, start: 'top top', end: '+=175%', scrub: 1, invalidateOnRefresh: true } });
         heroOut
-            .to($('.lx-hero .media img.night', root), { scale: 1.18, ease: 'none' }, 0)
-            .to($('.lx-hero .media img.day', root), { scale: 1.18, ease: 'none' }, 0)
-            .to($('.lx-hero .title', root), { yPercent: -35, opacity: 0, ease: 'none' }, 0)
-            .to($('.lx-hero .claim', root), { y: -120, opacity: 0, ease: 'none' }, 0)
-            .to($('.lx-hero .f-corner', root), { yPercent: -30, ease: 'none' }, 0)
-            .to($('.lx-hero .f-rise', root), { yPercent: 18, ease: 'none' }, 0)
-            .to($('.lx-hero .f-near', root), { yPercent: -60, ease: 'none' }, 0);
+            .to(heroWindow, { clipPath: 'inset(0% 0% 0% 0% round 0vw 0vw 0 0)', ease: 'none', duration: 0.72 }, 0)
+            .to(portalOutline, { scale: 3.4, opacity: 0, ease: 'none', duration: 0.62 }, 0)
+            .to([coverFrame, coverGhost], { opacity: 0, ease: 'none', duration: 0.42 }, 0.08)
+            .to(scene, { scale: 1, yPercent: 0, ease: 'none', duration: 1 }, 0)
+            .fromTo(heroCopy, { opacity: 0, y: 34 }, { opacity: 1, y: 0, ease: 'power1.out', duration: 0.22 }, 0.14)
+            .to(heroCopy, { opacity: 0, y: -34, ease: 'power1.in', duration: 0.2 }, 0.68)
+            .fromTo(heroCta, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.18 }, 0.24)
+            .to(heroCta, { opacity: 0, y: -20, duration: 0.16 }, 0.72)
+            .to(heroScroll, { opacity: 0, duration: 0.16 }, 0)
+            .to($('.lx-hero .scene-grade', root), { opacity: 0.35, duration: 1 }, 0);
 
         /* ---------- arch: dome rises, curved text slides along it ---------- */
         const arch = $('.lx-arch', root);
@@ -232,6 +224,7 @@ export function initLux(root, { skipIntro = false } = {}) {
             const ringStart = c.conditions.desk ? { l: 36, t: 13.6, b: 8, r: 32 } : { l: 14, t: 16, b: 10, r: 40 };
             const win = $('.lx-portal .window', portal);
             gsap.set(win, { clipPath: start });
+            gsap.set($('.lx-portal .window img', portal), { scale: c.conditions.desk ? 1.35 : 1.22 });
             const tl = gsap.timeline({ scrollTrigger: { trigger: portal, start: 'top top', end: '+=220%', pin: true, scrub: 1 } });
             tl.to(win, { clipPath: 'inset(0vh 0vw 0vh 0vw round 0vw 0vw 0vw 0vw)', ease: 'luxSoft', duration: 1 }, 0)
                 .to($('.lx-portal .window img', portal), { scale: 1, ease: 'luxSoft', duration: 1 }, 0)
@@ -240,10 +233,14 @@ export function initLux(root, { skipIntro = false } = {}) {
                 .to($('.lx-portal .word.l', portal), { xPercent: -120, opacity: 0, ease: 'power2.in', duration: 0.6 }, 0)
                 .to($('.lx-portal .word.r', portal), { xPercent: 120, opacity: 0, ease: 'power2.in', duration: 0.6 }, 0)
                 .to($('.lx-portal .sub', portal), { opacity: 0, duration: 0.3 }, 0)
+                .to($('.lx-portal .portal-axis', portal), { opacity: 0, scaleY: 1.35, duration: 0.45, ease: 'power2.in' }, 0)
+                .to($('.lx-portal .portal-index', portal), { opacity: 0, duration: 0.35 }, 0)
                 .to($('.lx-portal .f-left', portal), { xPercent: -60, yPercent: 30, scale: 1.5, ease: 'power1.in', duration: 1 }, 0)
                 .to($('.lx-portal .f-right', portal), { xPercent: 60, yPercent: 25, scale: 1.5, ease: 'power1.in', duration: 1 }, 0)
                 .to($('.lx-portal .shade', portal), { opacity: 1, duration: 0.4 }, 0.85)
                 .fromTo($('.lx-portal .reveal', portal), { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' }, 0.95)
+                .to($('.lx-portal .threshold', portal), { opacity: 1, duration: 0.25 }, 1.02)
+                .to($$('.lx-portal .threshold i', portal), { scaleX: 1, duration: 0.35, stagger: 0.08, ease: 'lux' }, 1.04)
                 .to({}, { duration: 0.35 });
         });
 
@@ -297,10 +294,12 @@ export function initLux(root, { skipIntro = false } = {}) {
         const sky = $('.lx-sky', root);
         const st = gsap.timeline({ scrollTrigger: { trigger: sky, start: 'top top', end: '+=170%', pin: true, scrub: 1 } });
         st.fromTo($('.lx-sky .city img', sky), { scale: 1.25 }, { scale: 1, ease: 'none', duration: 1 }, 0)
+            .to($('.lx-sky .c0', sky), { yPercent: -68, scale: 1.35, opacity: 0, ease: 'power1.in', duration: 0.8 }, 0)
             .to($('.lx-sky .c1', sky), { xPercent: -85, yPercent: -10, ease: 'power1.in', duration: 0.8 }, 0)
             .to($('.lx-sky .c2', sky), { xPercent: 85, yPercent: -6, ease: 'power1.in', duration: 0.8 }, 0)
             .to($('.lx-sky .c3', sky), { scale: 2.2, yPercent: -40, opacity: 0, ease: 'power1.in', duration: 0.7 }, 0)
             .to($('.lx-sky .c4', sky), { xPercent: -50, yPercent: -60, opacity: 0, ease: 'power1.in', duration: 0.6 }, 0.05)
+            .fromTo($('.lx-sky .sky-glow', sky), { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'power1.out' }, 0.36)
             .fromTo($('.lx-sky .copy', sky), { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.35 }, 0.45)
             .to({}, { duration: 0.2 });
 

@@ -95,47 +95,28 @@ function Preloader({ show }) {
 }
 
 function Hero() {
-    const [day, setDay] = useState(false);
-    const dayRef = useRef(null);
-    const toggle = (toDay) => {
-        if (toDay === day) return;
-        setDay(toDay);
-        gsap.to(dayRef.current, { clipPath: toDay ? 'circle(150% at 50% 62%)' : 'circle(0% at 50% 62%)', duration: 1.8, ease: 'luxInOut' });
-    };
     return (
         <section className="lx-hero" data-tone="dark">
             <div className="media">
-                <img className="night" src="/images/hd/night-render.webp" alt="PTI tower at night" />
-                <img className="day" ref={dayRef} src="/images/hd/skyline.webp" alt="Dhaka skyline by day" />
-            </div>
-            <Flora src={`${B}krishnachura-corner.webp`} className="f-corner" style={{ top: '-3vh', left: '-7vw', width: '50vw' }} anchor="0% 0%" origin="0% 0%" depth={0.6} sway={1.4} turn={-8} />
-            <Flora src={`${B}krishnachura-rise.webp`} className="f-rise" style={{ right: '-7vw', bottom: '-16vh', width: '34vw' }} anchor="100% 100%" origin="100% 100%" depth={0.9} sway={1.8} turn={8} />
-            <Flora src={`${B}krishnachura-bloom.webp`} className="f-near" soft style={{ left: '-5vw', bottom: '-12vh', width: '30vw', zIndex: 7 }} anchor="0% 100%" origin="20% 100%" depth={2.2} sway={2.6} turn={-6} />
-            <canvas className="lx-petals" data-count="24" />
-
-            <div className="title">
-                <h1 className="sr-only">PTI Development: shaping dreams into homes in Dhaka</h1>
-                <div className="disp t1" aria-hidden="true">PTI</div>
-                <div className="disp t2" aria-hidden="true">Development</div>
-                <div className="script sc" aria-hidden="true">Dhaka</div>
-            </div>
-            <div className="claim">
-                <div className="disp" data-in>Shaping dreams</div>
-                <div className={`lx-toggle ${day ? 'day' : ''}`} data-in>
-                    <button className={!day ? 'on' : ''} onClick={() => toggle(false)}>BY NIGHT</button>
-                    <span className="line"><i /></span>
-                    <button className={day ? 'on' : ''} onClick={() => toggle(true)}>BY DAY</button>
+                <div className="hero-window">
+                    <div className="scene-frame">
+                        <img src="/images/hero-portal-v2.png" alt="PTI residential tower framed by an illuminated architectural entrance" />
+                        <div className="scene-grade" />
+                    </div>
+                    <div className="hero-copy">
+                        <div className="micro">PTI Development · Dhaka</div>
+                        <h1 className="disp">Shaping dreams<br />into homes</h1>
+                        <p>Invest in value. Live in trust.</p>
+                    </div>
+                    <div className="cta"><Circle href="/projects">View our<br />projects</Circle></div>
                 </div>
-                <div className="disp" data-in>Into homes</div>
             </div>
-            {!day && (
-                <>
-                    <button className="lx-hot" style={{ left: '61%', top: '44%' }}><span>Double-height glass lobby</span></button>
-                    <button className="lx-hot" style={{ left: '55%', top: '20%' }}><span>Planted balconies</span></button>
-                    <button className="lx-hot" style={{ left: '82%', top: '52%' }}><span>Full-height glazing</span></button>
-                </>
-            )}
-            <div className="cta" data-in><Circle href="/projects">View our<br />projects</Circle></div>
+            <div className="hero-cover" aria-hidden="true">
+                <div className="cover-frame" />
+                <div className="cover-ghost script">Shopno</div>
+                <div className="portal-outline"><i /><i /></div>
+            </div>
+            <div className="hero-scroll micro" aria-hidden="true"><span>Scroll to enter</span><i /></div>
         </section>
     );
 }
@@ -175,12 +156,15 @@ function Portal() {
                 <div className="shade" style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,26,48,0) 35%, rgba(7,26,48,.75))', opacity: 0 }} />
             </div>
             <div className="ring" />
+            <div className="portal-axis" aria-hidden="true"><i /><span>PTI</span><i /></div>
+            <div className="portal-index micro" aria-hidden="true"><span>Architecture</span><b>02</b><span>Dhaka</span></div>
             <div className="disp word l">Step</div>
             <div className="disp word r">Inside</div>
             <Flora src={`${B}krishnachura-spray.webp`} className="f-left" style={{ left: '8vw', bottom: '-6vh', width: '34vw', zIndex: 4 }} anchor="0% 100%" origin="0% 100%" depth={0.8} sway={1.6} />
             <Flora src={`${B}krishnachura-rise.webp`} className="f-right" style={{ right: '6vw', bottom: '-18vh', width: '26vw', zIndex: 4 }} anchor="100% 100%" origin="100% 100%" depth={1} sway={1.8} />
             <canvas className="lx-petals" data-count="14" />
             <div className="sub micro">A residential tower by PTI Development · Dhaka</div>
+            <div className="threshold" aria-hidden="true"><i /><span className="micro">Cross the threshold</span><i /></div>
             <div className="reveal">
                 <div className="micro">Our legacy</div>
                 <p className="disp">Every project is a milestone in our legacy of excellence.</p>
@@ -327,11 +311,14 @@ function Sky() {
     return (
         <section className="lx-sky" data-tone="dark">
             <div className="city"><img src="/images/hd/skyline.webp" alt="City skyline" /></div>
+            <div className="sky-glow" aria-hidden="true" />
+            <div className="cloud c0" style={{ left: '-8vw', top: '-34vh', width: '116vw', opacity: 0.82 }}><img src={`${B}cloud-2.webp`} alt="" /></div>
             <div className="cloud c4" style={{ left: '20vw', top: '-12vh', width: '70vw', opacity: 0.9 }}><img src={`${B}cloud-3.webp`} alt="" /></div>
             <div className="cloud c1" style={{ left: '-22vw', top: '8vh' }}><img src={`${B}cloud-1.webp`} alt="" /></div>
             <div className="cloud c2" style={{ right: '-26vw', top: '14vh' }}><img src={`${B}cloud-2.webp`} alt="" /></div>
             <div className="cloud c3" style={{ left: '5vw', top: '34vh', width: '95vw' }}><img src={`${B}cloud-3.webp`} alt="" /></div>
             <div className="copy">
+                <div className="micro">Homes with a wider horizon</div>
                 <div className="disp">Above the city</div>
                 <div className="script">a new skyline</div>
             </div>
@@ -468,19 +455,16 @@ function Footer({ site }) {
 export default function Home({ projects, stats, faqs, services = [], values = [] }) {
     const { site } = usePage().props;
     const root = useRef(null);
-    const [firstVisit] = useState(() => typeof window !== 'undefined' && sessionStorage.getItem('pti-lux-seen') !== '1');
 
     useEffect(() => {
-        sessionStorage.setItem('pti-lux-seen', '1');
         document.documentElement.classList.remove('has-motion', 'menu-open');
-        const destroy = initLux(root.current, { skipIntro: !firstVisit });
+        const destroy = initLux(root.current, { skipIntro: true });
         return destroy;
     }, []);
 
     return (
         <div className="lx" ref={root}>
             <Head title="Shaping Dreams into Homes" />
-            <Preloader show={firstVisit} />
             <Chrome />
             <Hero />
             <Arch values={values} site={site} />
