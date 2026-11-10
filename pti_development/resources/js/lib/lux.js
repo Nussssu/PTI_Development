@@ -7,6 +7,7 @@ import { CustomEase } from 'gsap/CustomEase';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import Lenis from 'lenis';
+import { createVine } from './vine3d';
 
 gsap.registerPlugin(ScrollTrigger, SplitText, CustomEase);
 CustomEase.create('lux', '0.19,1,0.22,1');
@@ -121,7 +122,9 @@ export function initLux(root, { skipIntro = false } = {}) {
             let tone = 'dark';
             for (const s of tones) {
                 const r = s.getBoundingClientRect();
-                if (r.top <= 90 && r.bottom > 90) { tone = s.dataset.tone; }
+                /* data-tone-offset="screen": the section's first screen is transparent (it overlaps the hero) */
+                const off = s.dataset.toneOffset === 'screen' ? innerHeight : 0;
+                if (r.top + off <= 90 && r.bottom > 90) { tone = s.dataset.tone; }
             }
             chrome.classList.toggle('on-light', tone === 'light');
             petals.forEach((pt) => { pt.wind += lenis.velocity * 0.004; });
@@ -150,58 +153,105 @@ export function initLux(root, { skipIntro = false } = {}) {
             gsap.to(el, { rotation: amp, y: amp * 2, duration: 4.5 + (i % 3) * 1.3, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: -i * 0.9 });
         });
 
-        /* ---------- hero: ERA-style arched aperture, then expand to full scene ---------- */
+        /* ---------- hero: navy cover -> gothic-arch portal reveal -> scene zooms to fit + centred title ----------
+           Plays by itself on load. The scene never scrolls; the hero only stays pinned while the next section
+           rises over it. */
         const hero = $('.lx-hero', root);
-        const heroWindow = $('.lx-hero .hero-window', root);
-        const scene = $('.lx-hero .scene-frame', root);
-        const portalOutline = $('.lx-hero .portal-outline', root);
-        const coverFrame = $('.lx-hero .cover-frame', root);
-        const coverGhost = $('.lx-hero .cover-ghost', root);
-        const heroCopy = $('.lx-hero .hero-copy', root);
-        const heroCta = $('.lx-hero .cta', root);
-        const heroScroll = $('.lx-hero .hero-scroll', root);
-        const closedAperture = 'inset(50% 50% 50% 50% round 50vw 50vw 0 0)';
-        const openAperture = isDesktop()
-            ? 'inset(18vh 34vw 0vh 34vw round 34vw 34vw 0 0)'
-            : 'inset(22vh 14vw 0vh 14vw round 50vw 50vw 0 0)';
+        const stage = $('.lx-hero .hero-stage', root);
+        const tower = $('.lx-hero .hero-tower', root);
+        const titleMain = $('.lx-hero .t-main', root);
+        const titleChars = $$('.lx-hero .t-main .char', root);
+        const subWords = $$('.lx-hero .t-sub .word', root);
+        const eyebrowLines = $$('.lx-hero .t-eyebrow i', root);
+        const eyebrowWord = $('.lx-hero .t-eyebrow .word', root);
+        const vw = () => hero.clientWidth;
+        const vh = () => hero.clientHeight;
+        const desk = isDesktop();
+        CustomEase.create('heroDive', '0.6,0,0,1');
 
-        gsap.set(heroWindow, { clipPath: closedAperture });
-        gsap.set(scene, { scale: isDesktop() ? 1.12 : 1.08, yPercent: isDesktop() ? 4 : 2 });
-        gsap.set([heroCopy, heroCta], { opacity: 0, y: 28 });
-        gsap.set(heroScroll, { opacity: 0, y: 18 });
-        gsap.set(portalOutline, { opacity: 0, scale: 0.82 });
-        gsap.set([coverFrame, coverGhost], { opacity: 0 });
+        /* Pointed (gothic) arch, proportioned on the reference door: straight jambs up to the springing
+           line, then two circular arcs that meet in a point. Arch rise = 0.58 x span, so each arc's
+           radius r = (span^2/4 + rise^2) / span (~0.56 x span), centred on the springing line.
+           The shape is described by its span (w, in vw) and the height of its apex (y, in vh); the jambs
+           always run past the bottom of the screen. */
+        const RISE = 0.58;
+        const archPath = (wPx, apexPx) => {
+            const cx = vw() / 2, half = wPx / 2, rise = wPx * RISE;
+            const spring = apexPx + rise;
+            const bottom = Math.max(vh(), spring) + 4;
+            const r = (wPx * wPx / 4 + rise * rise) / wPx;
+            const L = cx - half, R = cx + half, f = (n) => n.toFixed(2);
+            return `M${f(L)} ${f(bottom)} L${f(L)} ${f(spring)} A${f(r)} ${f(r)} 0 0 1 ${f(cx)} ${f(apexPx)} A${f(r)} ${f(r)} 0 0 1 ${f(R)} ${f(spring)} L${f(R)} ${f(bottom)} Z`;
+        };
+        const heroArch = { w: desk ? 22 : 44, y: 104 };          // starts hidden below the screen
+        const drawArch = () => {
+            const w = (heroArch.w / 100) * vw(), apex = (heroArch.y / 100) * vh();
+            stage.style.clipPath = `path('${archPath(w, apex)}')`;
+        };
+        drawArch();
+        const onResize = () => drawArch();
+        window.addEventListener('resize', onResize);
+        cleanups.push(() => { window.removeEventListener('resize', onResize); stage.style.clipPath = ''; });
 
-        const heroIn = gsap.timeline({ paused: true, onComplete: () => lenis.start() });
-        heroIn
-            .to([coverFrame, coverGhost], { opacity: 1, duration: 0.9, ease: 'power1.out' }, 0)
-            .to(portalOutline, { opacity: 1, scale: 1, duration: 1.35, ease: 'lux' }, 0.25)
-            .to(heroWindow, { clipPath: openAperture, duration: 1.8, ease: 'luxInOut' }, 0.35)
-            .to(heroScroll, { opacity: 1, y: 0, duration: 0.8, ease: 'lux' }, 1.35);
+        /* arch stages: rises to a portal in the middle of the screen, then dives past every edge
+           (end span 135vw, apex high enough that the springing line clears the top). */
+        const ARCH_MID = desk ? { w: 34, y: 17 } : { w: 64, y: 22 };
+        const archEndY = () => -((RISE * 1.35 * vw()) / vh()) * 100 - 6;
 
-        if (reduce) heroIn.progress(1, false);
-        else heroIn.play(0);
-        const introFailSafe = window.setTimeout(() => {
-            if (heroIn.progress() < 0.98) heroIn.progress(1, false);
+        gsap.set(tower, { scale: 1.5, transformOrigin: '50% 50%' });
+        gsap.set(titleChars, { yPercent: 115, opacity: 0 });
+        gsap.set(subWords, { yPercent: 120, opacity: 0 });
+        gsap.set(titleMain, { letterSpacing: '0.12em' });
+        gsap.set(eyebrowLines, { scaleX: 0 });
+        gsap.set(eyebrowWord, { yPercent: 120, opacity: 0 });
+
+        /* INTRO (scroll is locked meanwhile):
+           0     arch rises from the bottom centre (scene inside, zoomed in)
+           1.3   the arch opens past the screen edges, and IN THE SAME MOMENT the scene eases from zoomed-in to
+                 exactly fitted while the eyebrow, the headline (letter by letter, tracking closing in) and the
+                 subtext (word by word) reveal — one combined transition */
+        const ZOOM_AT = 1.3;
+        let heroPinned = false;
+        const heroIntro = gsap.timeline({ paused: true });
+        heroIntro
+            .to(heroArch, { ...ARCH_MID, ease: 'power2.out', duration: 1.5, onUpdate: drawArch }, 0)
+            .to(heroArch, { w: 135, y: archEndY, ease: 'heroDive', duration: 2.2, onUpdate: drawArch }, 1.3)
+            .to(tower, { scale: 1.36, ease: 'power2.out', duration: ZOOM_AT }, 0)
+            .to(tower, { scale: 1, ease: 'heroDive', duration: 2.4 }, ZOOM_AT)
+            .to(eyebrowLines, { scaleX: 1, ease: 'power3.out', duration: 1.2 }, ZOOM_AT + 0.15)
+            .to(eyebrowWord, { yPercent: 0, opacity: 1, ease: 'power3.out', duration: 1.0 }, ZOOM_AT + 0.2)
+            .to(titleMain, { letterSpacing: '0.01em', ease: 'power3.out', duration: 2.0 }, ZOOM_AT + 0.25)
+            .to(titleChars, { yPercent: 0, opacity: 1, ease: 'power3.out', duration: 1.0, stagger: 0.045 }, ZOOM_AT + 0.3)
+            .to(subWords, { yPercent: 0, opacity: 1, ease: 'power3.out', duration: 0.8, stagger: 0.04 }, ZOOM_AT + 0.9)
+            .call(() => { pinHero(); lenis.start(); }, null, ZOOM_AT + 2.2);
+
+        /* start once the scene is decoded (so the portal never reveals a blank), max 2.5s wait */
+        let heroAlive = true;
+        cleanups.push(() => { heroAlive = false; });
+        Promise.race([
+            Promise.resolve($('.lx-hero .hero-tower > img', root).decode?.()).catch(() => {}),
+            new Promise((r) => setTimeout(r, 2500)),
+        ]).then(() => {
+            if (!heroAlive) return;
+            if (reduce) heroIntro.progress(1, false);
+            else heroIntro.play(0);
+        });
+        const heroFailSafe = window.setTimeout(() => {
+            if (heroIntro.progress() < 0.99) heroIntro.progress(1, false);
+            pinHero();
             lenis.start();
-        }, reduce ? 80 : 3000);
-        cleanups.push(() => window.clearTimeout(introFailSafe));
+        }, reduce ? 80 : 9000);
+        cleanups.push(() => window.clearTimeout(heroFailSafe));
 
-        ScrollTrigger.create({ trigger: hero, start: 'top top', end: '+=175%', pin: true, pinSpacing: false });
-        const heroOut = gsap.timeline({ scrollTrigger: { trigger: hero, start: 'top top', end: '+=175%', scrub: 1, invalidateOnRefresh: true } });
-        heroOut
-            .to(heroWindow, { clipPath: 'inset(0% 0% 0% 0% round 0vw 0vw 0 0)', ease: 'none', duration: 0.72 }, 0)
-            .to(portalOutline, { scale: 3.4, opacity: 0, ease: 'none', duration: 0.62 }, 0)
-            .to([coverFrame, coverGhost], { opacity: 0, ease: 'none', duration: 0.42 }, 0.08)
-            .to(scene, { scale: 1, yPercent: 0, ease: 'none', duration: 1 }, 0)
-            .fromTo(heroCopy, { opacity: 0, y: 34 }, { opacity: 1, y: 0, ease: 'power1.out', duration: 0.22 }, 0.14)
-            .to(heroCopy, { opacity: 0, y: -34, ease: 'power1.in', duration: 0.2 }, 0.68)
-            .fromTo(heroCta, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 0.18 }, 0.24)
-            .to(heroCta, { opacity: 0, y: -20, duration: 0.16 }, 0.72)
-            .to(heroScroll, { opacity: 0, duration: 0.16 }, 0)
-            .to($('.lx-hero .scene-grade', root), { opacity: 0.35, duration: 1 }, 0);
-
-        /* ---------- arch: dome rises, curved text slides along it ---------- */
+        /* the hero holds still (pinned, nothing animates) while the next section rises over it */
+        function pinHero() {
+            if (heroPinned || !heroAlive) return;
+            heroPinned = true;
+            ctx.add(() => {
+                ScrollTrigger.create({ trigger: hero, start: 'top top', end: () => `+=${vh()}`, pin: true, pinSpacing: false, invalidateOnRefresh: true });
+            });
+        }
+        /* ---------- arch: dome rises, curved text slides along it; then the promises slider (ported from ERA) ---------- */
         const arch = $('.lx-arch', root);
         gsap.fromTo($('.lx-arch .dome', root), { scaleX: 0.78 }, { scaleX: 1, ease: 'none', scrollTrigger: { trigger: arch, start: 'top top', end: '+=100%', scrub: true } });
         gsap.fromTo($('.lx-arch .curve', root), { scaleX: 0.78 }, { scaleX: 1, ease: 'none', scrollTrigger: { trigger: arch, start: 'top top', end: '+=100%', scrub: true } });
@@ -209,11 +259,226 @@ export function initLux(root, { skipIntro = false } = {}) {
         gsap.fromTo($('.lx-arch .curve text', root), { opacity: 0 }, { opacity: 1, ease: 'none', scrollTrigger: { trigger: arch, start: '20% top', end: '+=60%', scrub: true } });
         gsap.fromTo($('.lx-arch .vline', root), { scaleY: 0 }, { scaleY: 1, ease: 'none', scrollTrigger: { trigger: $('.lx-arch .vline', root), start: 'top 85%', end: 'top 45%', scrub: true } });
         reveal($$('.lx-arch .crest, .lx-arch .lede', root));
-        $$('.lx-promise', root).forEach((p, i) => {
-            gsap.fromTo(p, { y: 80, opacity: 0 }, { y: 0, opacity: 1, duration: 1.4, delay: i * 0.12, ease: 'lux', scrollTrigger: { trigger: p, start: 'top 88%' } });
-            gsap.fromTo($('.n', p), { yPercent: 60, opacity: 0 }, { yPercent: 0, opacity: 0.9, duration: 1.6, delay: 0.2 + i * 0.12, ease: 'lux', scrollTrigger: { trigger: p, start: 'top 88%' } });
-        });
-        linesUp($$('.lx-arch .body', root));
+        {
+            CustomEase.create('eraOut', '0.25,1,0.5,1');
+            CustomEase.create('eraIn', '0.5,0,0.75,0');
+            CustomEase.create('eraInOut', '0.75,0,0.25,1');
+            const DS = 0.4, DM = 0.8, DL = 1.2, ST = 0.1, AUTO = 6;
+            const sl = $('.lx-bslider', root);
+            const slides = $$('.b-slide', sl);
+            const pager = $('.b-pager', sl);
+            const cur = $('.cur', sl), nxt = $('.nxt', sl), bar = $('.bar i', sl);
+            /* split once: title -> chars, paragraphs -> masked lines */
+            const parts = slides.map((s) => ({
+                el: s,
+                h: new SplitText($('[data-b="h"]', s), { type: 'words,chars', wordsClass: 'split-word', charsClass: 'split-char' }).chars,
+                p: $$('[data-b="p"]', s).map((p) => new SplitText(p, { type: 'lines', linesClass: 'split-line', mask: 'lines' }).lines),
+                img: $('[data-b="img"]', s),
+            }));
+            cleanups.push(() => parts.forEach((pt) => pt.el.querySelectorAll('[data-b="h"], [data-b="p"]').forEach((n) => { n.textContent = n.textContent; })));
+            const H = {
+                initial: (c) => gsap.set(c, { opacity: 0, yPercent: 50, rotateY: 90 }),
+                reveal: (c, d = 0) => gsap.fromTo(c, { opacity: 0, yPercent: 50, rotateY: 90 }, { opacity: 1, yPercent: 0, rotateY: 0, duration: DL, delay: d, stagger: 0.5 * ST, ease: 'eraOut', overwrite: true }),
+                hide: (c) => gsap.to(c, { opacity: 0, yPercent: -50, rotateY: -90, duration: DS, stagger: 0.25 * ST, ease: 'eraIn', overwrite: true }),
+            };
+            const P = {
+                initial: (ls) => ls.forEach((l) => gsap.set(l, { yPercent: 110 })),
+                reveal: (ls, d = 0) => ls.forEach((l, i) => gsap.fromTo(l, { yPercent: 110 }, { yPercent: 0, duration: DL, delay: d + i * ST, stagger: ST, ease: 'eraOut', overwrite: true })),
+                hide: (ls) => ls.forEach((l) => gsap.to(l, { yPercent: -110, duration: DS, stagger: 0.5 * ST, ease: 'eraIn', overwrite: true })),
+            };
+            const IMG = {
+                initial: (w) => { gsap.set(w, { clipPath: 'inset(100% 0% 0% 0%)' }); gsap.set(w.firstElementChild, { scale: 1.5, xPercent: 25 }); },
+                reveal: (w, d = 0) => {
+                    gsap.fromTo(w, { clipPath: 'polygon(100% 0%, 100% 0%, 101% 100%, 125% 100%)' }, { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', duration: DL, delay: d, ease: 'eraInOut', overwrite: true });
+                    gsap.fromTo(w.firstElementChild, { scale: 1.5, xPercent: 25 }, { scale: 1, xPercent: 0, duration: DL, delay: d, ease: 'eraInOut', overwrite: true });
+                },
+                hide: (w) => {
+                    gsap.fromTo(w, { clipPath: 'polygon(0% 0%, 100% 0%, 125% 100%, 0% 100%)' }, { clipPath: 'polygon(0% 0%, 0% 0%, 0% 100%, 0% 100%)', duration: DL, ease: 'eraInOut', overwrite: true });
+                    gsap.to(w.firstElementChild, { scale: 1.5, xPercent: -25, duration: DL, ease: 'eraInOut', overwrite: true });
+                },
+            };
+            /* descriptions live under the pager, one per slide: animate them with their slide's lines */
+            $$('.b-descs .b-desc', sl).forEach((c, i) => { if (parts[i]) parts[i].p.push(new SplitText(c, { type: 'lines', linesClass: 'split-line', mask: 'lines' }).lines); });
+            parts.forEach((pt) => { H.initial(pt.h); P.initial(pt.p); IMG.initial(pt.img); });
+            gsap.set(pager, { opacity: 0, y: 48 });
+
+            let index = 0, busy = false, timer = null, started = false;
+            const n = parts.length;
+            const labels = () => { cur.textContent = index + 1; nxt.textContent = index === n - 1 ? 1 : index + 2; };
+            const runBar = () => { gsap.killTweensOf(bar); gsap.fromTo(bar, { width: '0%' }, { width: '100%', duration: AUTO, ease: 'none' }); };
+            const schedule = () => { clearInterval(timer); if (n > 1) { runBar(); timer = setInterval(() => { if (!document.hidden) go(index + 1, true); }, AUTO * 1000); } };
+            cleanups.push(() => clearInterval(timer));
+
+            /* ERA slide change: old texts out + old image wipes out while the new image wipes in;
+               after DM the new title (chars) and lines rise in */
+            function go(k, auto = false) {
+                if (busy || n < 2) return;
+                const to = (k + n) % n;
+                if (to === index) return;
+                busy = true;
+                const from = parts[index], next = parts[to];
+                from.el.classList.add('is-leaving'); from.el.classList.remove('is-active'); from.el.setAttribute('aria-hidden', 'true');
+                next.el.classList.add('is-active'); next.el.removeAttribute('aria-hidden');
+                H.initial(next.h); P.initial(next.p); IMG.initial(next.img);
+                H.hide(from.h); P.hide(from.p); IMG.hide(from.img); IMG.reveal(next.img, 0);
+                index = to; labels();
+                gsap.delayedCall(DM, () => { H.reveal(next.h); P.reveal(next.p); });
+                gsap.delayedCall(DL, () => { from.el.classList.remove('is-leaving'); busy = false; });
+                if (!auto) schedule(); else runBar();
+            }
+            $('.next', sl).addEventListener('click', () => go(index + 1));
+            $('.prev', sl).addEventListener('click', () => go(index - 1));
+
+            /* first reveal when the slider scrolls into view (once) */
+            ScrollTrigger.create({
+                trigger: $('.b-slides', sl), start: 'top 82%', once: true,
+                onEnter: () => {
+                    if (started) return; started = true;
+                    const f = parts[0];
+                    H.reveal(f.h, 0.3); IMG.reveal(f.img, 0.3); P.reveal(f.p, 0.6);
+                    gsap.to(pager, { opacity: 1, y: 0, duration: DL, delay: 0.7, ease: 'eraOut' });
+                    gsap.delayedCall(1.2, schedule);
+                },
+            });
+        }
+
+        /* ---------- what our clients say: ERA reveals (ctn up, masked lines), image drift, optional rotation ---------- */
+        {
+            const says = $('.lx-says', root);
+            if (says) {
+                const quotes = $$('.s-quote', says).map((q) => ({
+                    el: q,
+                    lines: $$('[data-s="p"]', q).map((n) => new SplitText(n, { type: 'lines', linesClass: 'split-line', mask: 'lines' }).lines),
+                }));
+                const ctn = $$('[data-s="ctn"]', says);
+                const up = (ls, d = 0) => ls.forEach((l, i) => gsap.fromTo(l, { yPercent: 110 }, { yPercent: 0, duration: 1.2, delay: d + i * 0.1, stagger: 0.1, ease: 'eraOut', overwrite: true }));
+                const out = (ls) => ls.forEach((l) => gsap.to(l, { yPercent: -110, duration: 0.4, stagger: 0.05, ease: 'eraIn', overwrite: true }));
+                quotes.forEach((q) => q.lines.forEach((l) => gsap.set(l, { yPercent: 110 })));
+                gsap.set(ctn, { opacity: 0, y: 48 });
+                ScrollTrigger.create({
+                    trigger: $('.s-band', says), start: 'top 75%', once: true,
+                    onEnter: () => {
+                        gsap.to(ctn, { opacity: 1, y: 0, duration: 1.2, delay: 0.2, stagger: 0.1, ease: 'eraOut' });
+                        if (quotes[0]) up(quotes[0].lines, 0.35);
+                    },
+                });
+                /* the scene drifts slower than the page (ERA "img-out"), staying inside its frame */
+                const img = $('.s-scene img', says);
+                gsap.set(img, { scale: 1.12, transformOrigin: '50% 100%' });
+                gsap.fromTo(img, { yPercent: -6 }, { yPercent: 6, ease: 'none', scrollTrigger: { trigger: $('.s-scene', says), start: 'top bottom', end: 'bottom top', scrub: 0.5 } });
+                /* more than one testimonial: rotate every 8s, arrows switch immediately */
+                if (quotes.length > 1) {
+                    let i = 0, busy = false;
+                    const cur = $('.s-pager .cur', says);
+                    const show = (k) => {
+                        const to = (k + quotes.length) % quotes.length;
+                        if (busy || to === i) return;
+                        busy = true;
+                        const a = quotes[i], b = quotes[to];
+                        out(a.lines);
+                        a.el.classList.add('is-leaving'); a.el.classList.remove('is-active'); a.el.setAttribute('aria-hidden', 'true');
+                        b.el.classList.add('is-active'); b.el.removeAttribute('aria-hidden');
+                        b.lines.forEach((l) => gsap.set(l, { yPercent: 110 }));
+                        up(b.lines, 0.45);
+                        i = to; cur.textContent = i + 1;
+                        gsap.delayedCall(0.6, () => { a.el.classList.remove('is-leaving'); busy = false; });
+                    };
+                    let t = setInterval(() => { if (!document.hidden) show(i + 1); }, 8000);
+                    const reset = () => { clearInterval(t); t = setInterval(() => { if (!document.hidden) show(i + 1); }, 8000); };
+                    $('.s-pager .next', says).addEventListener('click', () => { show(i + 1); reset(); });
+                    $('.s-pager .prev', says).addEventListener('click', () => { show(i - 1); reset(); });
+                    cleanups.push(() => clearInterval(t));
+                }
+            }
+        }
+
+        /* ---------- the concept: ERA reveals + flowers drifting with the scroll and swaying in the wind ---------- */
+        {
+            const cs = $('.lx-concept', root);
+            if (cs) {
+                const chars = new SplitText($('[data-c="h"]', cs), { type: 'words,chars', wordsClass: 'split-word', charsClass: 'split-char' }).chars;
+                const lines = new SplitText($('[data-c="p"]', cs), { type: 'lines', linesClass: 'split-line', mask: 'lines' }).lines;
+                const ctn = $$('[data-c="ctn"]', cs);
+                gsap.set(chars, { opacity: 0, yPercent: 50, rotateY: 90 });
+                gsap.set(lines, { yPercent: 110 });
+                gsap.set(ctn, { opacity: 0, y: 48 });
+                ScrollTrigger.create({
+                    trigger: $('.c-inner', cs), start: 'top 78%', once: true,
+                    onEnter: () => {
+                        gsap.to(ctn[0], { opacity: 1, y: 0, duration: 1.2, delay: 0.2, ease: 'eraOut' });
+                        gsap.to(chars, { opacity: 1, yPercent: 0, rotateY: 0, duration: 1.2, delay: 0.3, stagger: 0.012, ease: 'eraOut' });
+                        gsap.to(lines, { yPercent: 0, duration: 1.2, delay: 1.0, stagger: 0.1, ease: 'eraOut' });
+                        gsap.to(ctn[1], { opacity: 1, y: 0, duration: 1.2, delay: 1.3, ease: 'eraOut' });
+                    },
+                });
+                /* real-time 3D vines: wind runs in their vertex shader (see lib/vine3d.js) */
+                $$('.c-vine', cs.closest('.lx-hscroll') || cs).forEach((cv) => {
+                    try {
+                        cleanups.push(createVine(cv, { seed: +cv.dataset.seed || 7, flip: cv.dataset.flip === '1', shape: cv.dataset.shape || 'corner', reduce }));
+                    } catch (e) { cv.style.display = 'none'; }      // no WebGL: leave the corner empty
+                });
+            }
+        }
+
+        /* ---------- horizontal track (ERA location): vertical scroll moves the whole strip sideways ---------- */
+        {
+            const hs = $('.lx-hscroll', root);
+            if (hs) mm.add('(min-width: 861px)', () => {
+                CustomEase.create('horScroll', '0.25,0,0.75,1');
+                const track = $('.h-track', hs);
+                const dist = () => Math.max(0, track.scrollWidth - innerWidth);
+                const tween = gsap.to(track, {
+                    x: () => -dist(), ease: 'horScroll',
+                    scrollTrigger: { trigger: hs, start: 'top top', end: () => `+=${dist()}`, pin: true, scrub: 0.25, invalidateOnRefresh: true, anticipatePin: 1 },
+                });
+                const whole = { trigger: hs, start: 'top top', end: () => `+=${dist()}`, scrub: 0.25, invalidateOnRefresh: true };
+                /* each name shrinks until its longest line fits the left column (never runs into the image) */
+                const fit = () => $$('.h-title', hs).forEach((t) => {
+                    t.style.fontSize = '';
+                    const widest = Math.max(...$$('.h-line', t).map((l) => l.offsetWidth));
+                    if (widest > t.clientWidth) t.style.fontSize = `${parseFloat(getComputedStyle(t).fontSize) * t.clientWidth / widest}px`;
+                });
+                fit();
+                document.fonts && document.fonts.ready.then(fit);
+                window.addEventListener('resize', fit);
+                cleanups.push(() => window.removeEventListener('resize', fit));
+                /* the bridging flower drifts while the strip moves (ERA xPercent 0 -> -25) */
+                const bridge = $('.c-flower.bridge', hs);
+                $$('.h-panel', hs).forEach((p) => {
+                    const once = (fn) => ScrollTrigger.create({ trigger: p, containerAnimation: tween, start: 'left 85%', once: true, onEnter: fn });
+                    const img = $('.h-img', p), lines = $$('.h-line', p), cta = [$('.h-cta', p), $('.h-meta', p)].filter(Boolean);
+                    const desc = $$('[data-h="p"]', p).flatMap((n) => new SplitText(n, { type: 'lines', linesClass: 'split-line', mask: 'lines' }).lines);
+                    gsap.set(img, { clipPath: 'inset(100% 0% 0% 0%)' });
+                    gsap.set(img.firstElementChild, { scale: 1.5, xPercent: 25 });
+                    gsap.set(lines, { opacity: 0 });
+                    gsap.set(desc, { yPercent: 110 });
+                    gsap.set(cta, { opacity: 0 });
+                    once(() => {
+                        /* ERA slide reveal: slanted wipe + the photo settles from 1.5x */
+                        gsap.fromTo(img, { clipPath: 'polygon(100% 0%, 100% 0%, 101% 100%, 125% 100%)' }, { clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)', duration: 1.2, delay: 0.1, ease: 'eraInOut' });
+                        gsap.to(img.firstElementChild, { scale: 1, xPercent: 0, duration: 1.2, delay: 0.1, ease: 'eraInOut' });
+                        gsap.to(lines, { opacity: 1, duration: 1.2, stagger: 0.1, ease: 'eraOut' });
+                        gsap.to(desc, { yPercent: 0, duration: 1.2, delay: 0.4, stagger: 0.1, ease: 'eraOut' });
+                        gsap.to(cta, { opacity: 1, duration: 1.2, delay: 0.5, ease: 'eraOut' });
+                    });
+                });
+            });
+        }
+
+        /* ---------- cloud passage: the whole photo (no pin, no zoom). It first appears with clouds over its sky and
+           the buildings below; scrolling on lifts the clouds away, then the rest of the photo scrolls by normally ---------- */
+        {
+            const cp = $('.lx-clouds', root);
+            if (cp) {
+                const tl = gsap.timeline({ scrollTrigger: { trigger: cp, start: 'top 15%', end: () => `+=${innerHeight * 0.7}`, scrub: 0.6, invalidateOnRefresh: true } });
+                tl.to($('.cl-fade', cp), { yPercent: -100, opacity: 0, ease: 'power1.in', duration: 0.7 }, 0)
+                    .to($('.cl-layer.back', cp), { yPercent: -140, opacity: 0, ease: 'power1.in', duration: 1 }, 0)
+                    .to($('.cl-layer.extra', cp), { yPercent: -160, opacity: 0, ease: 'power1.in', duration: 1 }, 0)
+                    .to($('.cl-layer.mid', cp), { yPercent: -190, opacity: 0, ease: 'power1.in', duration: 1 }, 0)
+                    .to($('.cl-layer.low', cp), { yPercent: -220, opacity: 0, ease: 'power1.in', duration: 1 }, 0)
+                    .to($('.cl-layer.front', cp), { yPercent: -260, opacity: 0, ease: 'power1.in', duration: 1 }, 0);
+            }
+        }
 
         /* ---------- portal: arched window opens into the tower ---------- */
         const portal = $('.lx-portal', root);

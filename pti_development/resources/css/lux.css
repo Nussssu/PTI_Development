@@ -91,57 +91,223 @@
 .lx-flora .sway { transform-origin: var(--ox, 0) var(--oy, 0); will-change: transform; }
 .lx-petals { position: absolute; inset: 0; z-index: 5; pointer-events: none; width: 100%; height: 100%; }
 
-/* ---------- hero ---------- */
-.lx-hero { position: relative; height: 100svh; min-height: 640px; overflow: hidden; background: #35071f; color: #fff; z-index: 1; }
-.lx-hero .media, .lx-hero .hero-window { position: absolute; inset: 0; overflow: hidden; }
-.lx-hero .hero-window { z-index: 2; will-change: clip-path; }
-.lx-hero .scene-frame { position: absolute; left: 50%; top: 50%; width: max(100vw, 177.79vh); aspect-ratio: 1673 / 941; transform: translate(-50%, -50%); transform-origin: 50% 50%; will-change: transform; }
-.lx-hero .scene-frame > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; }
-.lx-hero .scene-grade { position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(5,15,26,.16), transparent 42%, rgba(5,15,26,.2)); pointer-events: none; }
-.lx-hero .hero-cover { position: absolute; inset: 0; z-index: 4; pointer-events: none; color: rgba(255,255,255,.18); }
-.lx-hero .cover-frame { position: absolute; inset: 28px; border: 1px solid currentColor; clip-path: polygon(16px 0, calc(100% - 16px) 0, 100% 16px, 100% calc(100% - 16px), calc(100% - 16px) 100%, 16px 100%, 0 calc(100% - 16px), 0 16px); }
-.lx-hero .cover-ghost { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-52%); color: rgba(16,0,9,.14); font-size: clamp(240px,42vw,720px); white-space: nowrap; }
-.lx-hero .portal-outline { position: absolute; left: 34vw; right: 34vw; top: 16vh; bottom: -2px; border: 1px solid rgba(255,255,255,.16); border-bottom: 0; border-radius: 50vw 50vw 0 0; transform-origin: 50% 100%; }
-.lx-hero .portal-outline i { position: absolute; inset: 3.2%; border: 1px solid rgba(255,255,255,.1); border-bottom: 0; border-radius: inherit; }
-.lx-hero .portal-outline i:last-child { inset: -4.5%; opacity: .55; }
-.lx-hero .hero-copy { position: absolute; z-index: 6; left: 10vw; right: 10vw; top: 13vh; text-align: center; text-shadow: 0 2px 32px rgba(0,0,0,.34); opacity: 0; }
-.lx-hero .hero-copy .micro { margin-bottom: 18px; }
-.lx-hero .hero-copy h1 { font-size: clamp(70px, 8.8vw, 158px); line-height: .82; }
-.lx-hero .hero-copy p { margin-top: 20px; font-size: clamp(14px, 1.1vw, 17px); letter-spacing: .08em; }
-.lx-hero .cta { position: absolute; z-index: 6; right: 6vw; bottom: 6vh; color: #fff; opacity: 0; }
-.lx-hero .hero-scroll { position: absolute; z-index: 6; left: 50%; bottom: 3vh; transform: translateX(-50%); display: flex; align-items: center; gap: 14px; opacity: 0; }
-.lx-hero .hero-scroll i { display: block; width: 54px; height: 1px; background: currentColor; position: relative; }
-.lx-hero .hero-scroll i::after { content: ""; position: absolute; right: 0; top: -3px; width: 7px; height: 7px; border-top: 1px solid currentColor; border-right: 1px solid currentColor; transform: rotate(45deg); }
+/* ---------- hero: navy cover -> gothic-arch portal reveal -> scene zooms to fit + centred title ---------- */
+.lx-hero { position: relative; height: 100svh; min-height: 560px; overflow: hidden; color: #fff; z-index: 1;
+  background: radial-gradient(120% 90% at 50% 55%, #10284a 0%, #0b1f3d 55%, #081831 100%); }   /* deep navy door cover */
+/* no extra scroll inside the hero: it simply stays pinned while the next section rises over it */
+.lx-hero-runway { height: 0; pointer-events: none; }
+/* the scene sits in a stage clipped (by JS) to a pointed-arch path; hidden until the arch rises */
+.lx-hero .hero-stage { position: absolute; inset: 0; z-index: 2; overflow: hidden; clip-path: inset(100% 0 0 0); will-change: clip-path; }
+/* the scene covers the hero exactly (centred); at scale 1 the whole composition fits the screen.
+   A sharpened 2x file is served via srcset so the zoomed-in start stays crisp. */
+.lx-hero .hero-tower { position: absolute; inset: 0; will-change: transform; }
+.lx-hero .hero-tower > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; user-select: none; }
+/* soft shade at the top for the badge/nav, and a gentle centre wash so the title reads over the sky */
+.lx-hero .tower-grade { position: absolute; inset: 0; pointer-events: none; background:
+  radial-gradient(60% 34% at 50% 48%, rgba(6, 18, 40, .32) 0%, rgba(6, 18, 40, 0) 100%),
+  linear-gradient(180deg, rgba(6, 14, 28, .32) 0%, rgba(6, 14, 28, 0) 10%); }
+
+/* centred title: words are masks, letters (main) / words (sub) rise into them */
+.lx-hero .hero-title { position: absolute; z-index: 6; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; color: #fff;
+  pointer-events: none; filter: drop-shadow(0 4px 28px rgba(6, 20, 42, .45)); }
+.lx-hero .t-eyebrow { display: flex; align-items: center; justify-content: center; gap: 22px; margin-bottom: 26px;
+  font-family: var(--f-micro); font-size: clamp(11px, .9vw, 14px); letter-spacing: .3em; text-transform: uppercase; white-space: nowrap; }
+.lx-hero .t-eyebrow i { display: block; width: 72px; height: 1px; background: currentColor; flex: none; }
+.lx-hero .t-eyebrow i:first-child { transform-origin: 100% 50%; }
+.lx-hero .t-eyebrow i:last-child { transform-origin: 0 50%; }
+.lx-hero .t-main { margin: 0; font-family: var(--f-disp); font-weight: 400; text-transform: none; font-size: clamp(52px, 6.4vw, 128px); line-height: .98; letter-spacing: .01em; }
+.lx-hero .t-main .ln { display: flex; justify-content: center; column-gap: .24em; white-space: nowrap; }
+.lx-hero .t-sub { display: flex; flex-wrap: wrap; justify-content: center; column-gap: .32em; max-width: min(34em, 86vw); margin: 26px auto 0;
+  font-size: clamp(15px, 1.15vw, 19px); line-height: 1.55; }
+.lx-hero .hero-title .w { display: inline-block; overflow: hidden; padding: .08em .03em .03em; }
+.lx-hero .hero-title .char, .lx-hero .hero-title .word { display: inline-block; opacity: 0; } /* rise offset set by JS */
 @media (max-width: 760px) {
-  .lx-hero { min-height: 620px; }
-  .lx-hero .scene-frame { width: max(100vw, 177.79svh); }
-  .lx-hero .portal-outline { left: 14vw; right: 14vw; top: 20vh; }
-  .lx-hero .cover-frame { inset: 12px; }
-  .lx-hero .hero-copy { left: 5vw; right: 5vw; top: 19vh; }
-  .lx-hero .hero-copy h1 { font-size: clamp(48px, 14vw, 68px); }
-  .lx-hero .hero-copy p { margin-top: 12px; }
-  .lx-hero .cta { right: 6vw; bottom: 3vh; }
-  .lx-hero .cta .lx-circle { width: 128px; height: 128px; }
-  .lx-hero .hero-scroll { left: 7vw; bottom: 4vh; transform: none; }
+  .lx-hero .t-eyebrow { gap: 12px; margin-bottom: 16px; letter-spacing: .22em; }
+  .lx-hero .t-eyebrow i { width: 32px; }
+  .lx-hero .t-main { font-size: clamp(40px, 12vw, 64px); }
+  .lx-hero .t-sub { font-size: 15px; margin-top: 16px; max-width: 22em; }
 }
 
-/* ---------- arch: promises ---------- */
-.lx-arch { position: relative; z-index: 3; margin-top: -100svh; padding-top: 100svh; color: var(--ink); pointer-events: none; }
+/* ---------- arch: gothic lavender dome + "three promises" slider (ERA boutique-concept layout) ---------- */
+.lx-arch { --lav: #eae5f3; position: relative; z-index: 3; margin-top: -100svh; padding-top: 100svh; color: var(--ink); pointer-events: none; }
+.lx-arch .gothic-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .lx-arch > * { pointer-events: auto; }
-.lx-arch .dome { position: absolute; left: 50%; top: 100svh; width: 150vw; height: 150vw; max-height: none; transform: translate(-50%, 0); background: var(--stone); border-radius: 50%; }
+.lx-arch .dome { position: absolute; left: 50%; top: 100svh; width: 150vw; height: 150vw; max-height: none; transform: translate(-50%, 0); background: var(--lav); clip-path: url(#lx-gothic); }
 .lx-arch .curve { position: absolute; left: 50%; top: 100svh; width: 150vw; height: 150vw; transform: translateX(-50%); overflow: visible; pointer-events: none; }
 .lx-arch .curve text { font-family: var(--f-disp); font-weight: 500; font-size: 64px; letter-spacing: .02em; fill: var(--ink); text-transform: uppercase; }
-.lx-arch .inner { position: relative; padding: 30vh var(--pad) 18vh; text-align: center; min-height: 100svh; background: linear-gradient(transparent 0, transparent 40vh, var(--stone) 40vh); }
+.lx-arch .inner { position: relative; padding: 30vh var(--pad) 18vh; text-align: center; min-height: 100svh; background: linear-gradient(transparent 0, transparent 50vh, var(--lav) 50vh); }
 .lx-arch .crest { display: flex; align-items: center; justify-content: center; gap: 26px; margin-bottom: 24px; }
 .lx-arch .crest svg { width: 34px; fill: var(--ink); }
 .lx-arch .vline { width: 1px; height: 120px; background: var(--ink); opacity: .45; margin: 0 auto 34px; transform-origin: top; }
-.lx-promises { margin-top: 12vh; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4vw; text-align: left; }
-.lx-promise { border-top: 1px solid rgba(11,38,68,.25); padding-top: 26px; }
-.lx-promise .n { font-family: var(--f-disp); font-size: clamp(54px, 6vw, 96px); line-height: .9; color: var(--flame); opacity: .9; }
-.lx-promise h3 { font-family: var(--f-disp); font-weight: 500; text-transform: uppercase; font-size: clamp(26px, 2.4vw, 40px); line-height: .95; margin: 18px 0 14px; }
-@media (max-width: 860px) { .lx-promises { grid-template-columns: 1fr; gap: 40px; } .lx-arch .curve text { font-size: 90px; } }
+.lx-bslider { margin-top: 14vh; }
+.lx-bslider .b-slides { display: grid; }
+.lx-bslider .b-slide { grid-area: 1 / 1; align-self: end; visibility: hidden; } /* image always sits on the bottom edge, right above the pager */
+.lx-bslider .b-slide.is-active, .lx-bslider .b-slide.is-leaving { visibility: visible; }
+.lx-bslider .b-slide.is-leaving { z-index: 0; } .lx-bslider .b-slide.is-active { z-index: 1; }
+/* title stays on one line and inside the dome (the tallest letters never clip) */
+.lx-bslider .b-title { font-size: clamp(48px, 5.6vw, 116px); line-height: .9; white-space: nowrap; perspective: 600px; padding: .06em 0 .1em; }
+.lx-bslider .b-title .split-word { display: inline-block; white-space: nowrap; }
+.lx-bslider .b-title .split-char { display: inline-block; transform-origin: 50% 50%; will-change: transform, opacity; }
+.lx-bslider .b-img { width: min(36vw, 640px); aspect-ratio: 2 / 1; margin: 5vh auto 0; overflow: hidden; }
+.lx-bslider .b-img img { width: 100%; height: 100%; object-fit: cover; will-change: transform; }
+.lx-bslider .b-desc { max-width: 34em; margin: 6vh auto 0; font-size: clamp(15px, 1.05vw, 18px); line-height: 1.6; }
+.lx-bslider .b-descs { display: grid; margin-top: 4vh; }
+.lx-bslider .b-descs .b-desc { grid-area: 1 / 1; align-self: start; margin: 0 auto; }
+.lx-bslider .split-line-mask { overflow: hidden; }
+.lx-bslider .b-pager { display: flex; align-items: center; justify-content: center; gap: 26px; margin-top: 22px; }
+.lx-bslider .b-pager button { background: none; border: 0; color: inherit; cursor: pointer; padding: 6px 10px; font-size: 20px; line-height: 1; }
+.lx-bslider .b-pager .bar { position: relative; width: 190px; height: 1px; background: rgba(11, 38, 68, .16); overflow: hidden; }
+.lx-bslider .b-pager .bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: currentColor; }
+@media (max-width: 860px) { .lx-arch .curve text { font-size: 90px; } }
+@media (max-width: 760px) {
+  .lx-bslider .b-title { white-space: normal; font-size: clamp(36px, 11vw, 60px); }
+  .lx-bslider .b-img { width: 100%; }
+  .lx-bslider .b-pager .bar { width: 120px; }
+}
 
 /* ---------- portal ---------- */
+/* ---------- what our clients say (ERA quote layout; background = the scene's own sky colour) ---------- */
+/* the building sits at the top and its sky dissolves into the section background; the quote sits bottom-left */
+.lx-says { --sky: #eae5f3; position: relative; z-index: 3; color: var(--ink); padding-top: 4vh;
+  background: var(--sky); }   /* same colour as section 2 and as the scene's (recoloured) sky */
+.lx-says .s-band { position: absolute; z-index: 3; left: var(--pad); bottom: 9vh; width: min(42vw, 720px); color: #fff; text-shadow: 0 2px 22px rgba(6, 14, 28, .35); }
+.lx-says .s-head { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; }
+.lx-says .s-eyebrow { letter-spacing: .26em; }
+.lx-says .s-ico { display: block; width: 34px; fill: var(--flame); }
+.lx-says .s-quotes { display: grid; }
+.lx-says .s-quote { grid-area: 1 / 1; margin: 0; visibility: hidden; }
+.lx-says .s-quote.is-active, .lx-says .s-quote.is-leaving { visibility: visible; }
+.lx-says .s-text { margin: 0; font-size: clamp(22px, 2.1vw, 38px); line-height: 1.1; }
+.lx-says .red-line { float: left; width: 64px; height: 3px; margin: .5em 18px 0 0; background: var(--flame); }
+.lx-says .s-author { display: flex; align-items: center; gap: 18px; margin-top: 4vh; }
+.lx-says .s-who { display: flex; flex-direction: column; gap: 6px; }
+.lx-says .s-avatar { flex: none; width: 64px; height: 64px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+  border: 1px solid rgba(255, 255, 255, .55); box-shadow: 0 6px 20px rgba(6, 14, 28, .35); background: rgba(255, 255, 255, .12); }
+.lx-says .s-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.lx-says .s-avatar b { font-family: var(--f-disp); font-weight: 500; font-size: 22px; }
+.lx-says .s-name { letter-spacing: .2em; font-weight: 600; }
+.lx-says .s-role { letter-spacing: .16em; opacity: .8; }
+.lx-says .split-line-mask { overflow: hidden; }
+.lx-says .s-pager { grid-area: 2 / 1; display: flex; align-items: center; gap: 14px; margin-top: 3vh; }
+.lx-says .s-pager button { background: none; border: 0; color: inherit; cursor: pointer; padding: 6px 10px; font-size: 20px; line-height: 1; }
+/* the scene: its top edge dissolves into the sky colour, so there is no visible seam */
+.lx-says .s-scene { position: relative; overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14%); mask-image: linear-gradient(180deg, transparent 0, #000 14%); } /* fade covers only the open sky above the building */
+.lx-says .s-scene img { display: block; width: 100%; height: auto; aspect-ratio: 1672 / 1121; object-fit: cover; will-change: transform; }
+/* soft dusk shade bottom-left so the quote reads over flowers and water */
+.lx-says .s-shade { position: absolute; inset: 0; pointer-events: none; background:
+  radial-gradient(70% 62% at 12% 100%, rgba(6, 14, 28, .62) 0%, rgba(6, 14, 28, .3) 50%, rgba(6, 14, 28, 0) 100%),
+  linear-gradient(180deg, rgba(6, 14, 28, 0) 62%, rgba(6, 14, 28, .35) 100%); }   /* only behind the quote, sky stays clean */
+@media (max-width: 760px) {
+  .lx-says { padding-top: 6vh; }
+  .lx-says .s-band { left: 6vw; right: 6vw; width: auto; bottom: 6vh; }
+  .lx-says .s-head { margin-bottom: 16px; }
+  .lx-says .s-ico { width: 28px; }
+  .lx-says .s-text { font-size: clamp(20px, 6vw, 28px); }
+  .lx-says .s-scene img { height: 100svh; object-fit: cover; object-position: 42% 50%; }
+}
+/* ---------- the concept (ERA layout; blue flowers swaying in the corners) ---------- */
+.lx-concept { position: relative; z-index: 3; overflow: hidden; background: #f4f1ea; color: var(--ink); min-height: 100svh; display: grid; place-items: center; padding: 22vh var(--pad) 20vh; }
+.lx-concept .c-inner { position: relative; z-index: 2; max-width: 1200px; text-align: center; }
+.lx-concept .c-eyebrow { letter-spacing: .24em; font-weight: 600; }
+.lx-concept .c-title { margin: 6vh auto 0; font-size: clamp(34px, 4.1vw, 76px); line-height: .98; max-width: 21em; perspective: 700px; }
+.lx-concept .c-title .split-word { display: inline-block; white-space: nowrap; }
+.lx-concept .c-title.c-big { font-size: clamp(64px, 8vw, 170px); line-height: .88; }
+/* in the track, the text block sits in the free space right of the top-left flower and left of the bottom-right one */
+.lx-hscroll .lx-concept .c-inner { margin-left: 30vw; width: 50vw; }
+.lx-concept .c-title .split-char { display: inline-block; will-change: transform, opacity; }
+.lx-concept .c-text { margin: 7vh auto 0; max-width: 23em; font-size: clamp(15px, 1.05vw, 18px); line-height: 1.5; }
+.lx-concept .split-line-mask { overflow: hidden; }
+.lx-concept .c-mark { margin-top: 6vh; }
+.lx-concept .c-mark svg { width: 44px; fill: var(--ink); }
+/* real-time 3D vines (lib/vine3d.js); each fades out toward the far side of its frame, so no edge shows */
+.lx-hscroll .c-flower { position: absolute; z-index: 4; pointer-events: none; will-change: transform; }
+.lx-hscroll .c-vine { display: block; width: 100%; aspect-ratio: 1.3 / 1; filter: drop-shadow(0 14px 18px rgba(30, 24, 60, .16)); }
+.lx-hscroll .c-flower.tl { left: -1vw; top: -1vh; width: 30vw; }
+.lx-hscroll .c-flower.tl .c-vine, .lx-hscroll .c-flower.tr .c-vine { aspect-ratio: 1.05 / 1; }   /* tall cascade, ~2/3 of the screen height */
+.lx-hscroll .c-flower.tl .c-vine, .lx-hscroll .c-flower.tr .c-vine { -webkit-mask-image: linear-gradient(90deg, #000 50%, transparent 97%), linear-gradient(180deg, #000 50%, transparent 97%); -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, #000 50%, transparent 97%), linear-gradient(180deg, #000 50%, transparent 97%); mask-composite: intersect; }
+/* straddles the concept and "Our projects" pages, rising from the bottom edge */
+.lx-hscroll .c-flower.bridge { left: -16vw; bottom: -1vh; width: 32vw; }   /* half on this page, half on the next */
+.lx-hscroll .c-flower.bridge .c-vine { aspect-ratio: 1.25 / 1; -webkit-mask-image: radial-gradient(ellipse 58% 100% at 50% 100%, #000 55%, transparent 98%); mask-image: radial-gradient(ellipse 58% 100% at 50% 100%, #000 55%, transparent 98%); }
+/* last page: hangs from the top-right corner (the top-left vine mirrored) */
+.lx-hscroll .c-flower.tr { right: -1vw; top: 25vh; width: 30vw; transform: scaleX(-1); }   /* below the site menu, never under its text */
+.lx-hscroll .c-flower.tr .c-vine { -webkit-mask-image: linear-gradient(90deg, #000 50%, transparent 97%), linear-gradient(180deg, transparent 0%, #000 14%, #000 50%, transparent 97%); -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(90deg, #000 50%, transparent 97%), linear-gradient(180deg, transparent 0%, #000 14%, #000 50%, transparent 97%); mask-composite: intersect; }
+/* last page is wider: the content keeps its usual columns and the flower gets its own strip on the right */
+.lx-hscroll .h-panel.h-last { width: 134vw; }
+.lx-hscroll .h-last .h-desc { right: 38vw; }
+.lx-hscroll .h-last .h-cta { right: 37vw; }
+@media (max-width: 760px) {
+  .lx-concept { padding: 16vh 6vw 18vh; }
+  .lx-hscroll .c-flower.tl { width: 64vw; }
+  .lx-hscroll .c-flower.bridge, .lx-hscroll .c-flower.tr { display: none; }
+  .lx-concept .c-title { font-size: clamp(28px, 8vw, 40px); }
+}
+/* ---------- horizontal track (ERA location structure) ---------- */
+.lx-hscroll { position: relative; z-index: 3; background: #f4f1ea; color: var(--ink); overflow: hidden; }
+.lx-hscroll .h-track { display: flex; width: max-content; will-change: transform; }
+/* the concept is narrower than the screen, so the next page's title already peeks in from the right */
+.lx-hscroll .h-track > .lx-concept { flex: none; width: 100vw; height: 100svh; min-height: 0; padding: 18vh 5vw; z-index: 3; overflow: visible; }
+.lx-hscroll .h-panel { position: relative; flex: none; width: 100vw; height: 100svh; }
+.lx-hscroll .h-cap { position: absolute; left: 1.4vw; top: 50%; transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl; font-family: var(--f-disp); font-size: clamp(16px, 1.2vw, 22px); letter-spacing: .8em; text-transform: uppercase; }
+/* three columns that never overlap: name (5-27vw) | image (29-66vw) | description + button (69-96vw).
+   JS shrinks each name so its longest line fits the left column. */
+.lx-hscroll .h-title { position: absolute; z-index: 2; left: 5vw; width: 22vw; top: 50%; transform: translateY(-50%); margin: 0; display: flex; flex-direction: column;
+  font-size: clamp(44px, 6vw, 120px); line-height: .92; white-space: nowrap; pointer-events: none; }
+.lx-hscroll .h-line { display: block; will-change: transform; }
+.lx-hscroll .h-line { width: max-content; }
+.lx-hscroll .h-img { position: absolute; z-index: 1; left: 29vw; top: 6.5vh; bottom: 0; width: 37vw; overflow: hidden; }
+.lx-hscroll .h-img img { width: 100%; height: 100%; object-fit: cover; will-change: transform; }
+.lx-hscroll .h-desc { position: absolute; z-index: 2; left: 69vw; right: 4vw; bottom: 1vh; padding-bottom: 3vh; }
+.lx-hscroll .h-head { margin: 0 0 14px; font-size: clamp(28px, 2.5vw, 50px); line-height: .95; }
+.lx-hscroll .h-text { max-width: 30em; font-size: clamp(14px, 1vw, 17px); line-height: 1.5; }
+.lx-hscroll .h-meta { display: flex; flex-wrap: wrap; gap: 6px 20px; margin-top: 16px; letter-spacing: .14em; }
+.lx-hscroll .split-line-mask { overflow: hidden; }
+/* circle button at the right edge, vertically centred */
+.lx-hscroll .h-cta { position: absolute; z-index: 2; right: 3vw; top: 50%; transform: translateY(-50%); width: 13.5vw; height: 13.5vw; min-width: 170px; min-height: 170px; }
+@media (max-width: 860px) {
+  .lx-hscroll .h-track { flex-direction: column; width: 100%; }
+  .lx-hscroll .h-track > .lx-concept { width: 100%; height: auto; min-height: 100svh; padding: 16vh 6vw 18vh; }
+  .lx-hscroll .h-panel, .lx-hscroll .h-panel.h-last { width: 100%; height: auto; padding: 10vh 6vw 8vh; display: flex; flex-direction: column; }
+  .lx-hscroll .lx-concept .c-inner { margin-left: 0; width: auto; }
+  .lx-hscroll .h-cap, .lx-hscroll .h-title, .lx-hscroll .h-img, .lx-hscroll .h-desc, .lx-hscroll .h-cta { position: relative; inset: auto; transform: none; }
+  .lx-hscroll .h-cap { margin-bottom: 2vh; font-size: 16px; }
+  .lx-hscroll .h-title { font-size: clamp(48px, 15vw, 84px); margin-bottom: 3vh; white-space: normal; }
+  .lx-hscroll .h-line.l1, .lx-hscroll .h-line.l2 { margin-left: 0; }
+  .lx-hscroll .h-img { width: 100%; aspect-ratio: 3 / 4; }
+  .lx-hscroll .h-desc { margin-top: 4vh; padding: 0; }
+  .lx-hscroll .h-cta { margin: 4vh 0 0 auto; width: 128px; height: 128px; min-width: 0; min-height: 0; }
+}
+/* ---------- cloud passage (ERA): the full photo, its sky covered by drifting cloud banks that blend into the cream
+   page above; scrolling (pinned) lifts the clouds away and leaves the clean photo filling the screen ---------- */
+.lx-clouds { position: relative; z-index: 4; background: #f4f1ea; overflow: hidden; }   /* as tall as the whole photo */
+/* starts as the whole square photo (full screen height, nothing cropped), JS widens it to fill the screen */
+.lx-clouds .cl-scene { position: relative; width: 100%; }
+.lx-clouds .cl-scene img { display: block; width: 100%; height: auto; }   /* the full photo, uncropped, no zoom */
+/* cream mist at the top: continues the page above into the cloud bank */
+.lx-clouds .cl-fade { position: absolute; z-index: 5; left: 0; right: 0; top: 0; height: 40vh; pointer-events: none; will-change: transform, opacity;
+  background: linear-gradient(180deg, #f4f1ea 0%, #f4f1ea 16%, rgba(244, 241, 234, .8) 42%, rgba(244, 241, 234, .3) 72%, rgba(244, 241, 234, 0) 100%); }
+.lx-clouds .cl-layer { position: absolute; z-index: 4; left: 0; right: 0; overflow: hidden; pointer-events: none; will-change: transform, opacity; }
+.lx-clouds .cl-layer.back { top: -8vh; height: 44vh; }
+.lx-clouds .cl-layer.extra { top: -4vh; height: 40vh; opacity: .85; }
+.lx-clouds .cl-layer.extra .cl-track { flex-direction: row-reverse; }
+.lx-clouds .cl-layer.mid { top: 0vh; height: 36vh; }
+.lx-clouds .cl-layer.low { top: 6vh; height: 30vh; opacity: .85; }
+.lx-clouds .cl-layer.front { top: 10vh; height: 28vh; }   /* every bank ends above the rooftops (~38vh) */
+.lx-clouds .cl-track { display: flex; width: max-content; height: 100%; animation: lxCloudDrift 42s linear infinite; }
+.lx-clouds .cl-layer.mid .cl-track { animation-duration: 30s; }
+.lx-clouds .cl-layer.front .cl-track { animation-duration: 20s; }
+.lx-clouds .cl-layer.extra .cl-track { animation-duration: 36s; animation-direction: reverse; }
+.lx-clouds .cl-layer.low .cl-track { animation-duration: 24s; }
+.lx-clouds .cl-layer.back img, .lx-clouds .cl-layer.extra img { filter: sepia(.12) saturate(1.05) brightness(1.03); }
+.lx-clouds .cl-track img { flex: none; height: 100%; width: auto; user-select: none; }
+@keyframes lxCloudDrift { from { transform: translateX(0); } to { transform: translateX(-33.3333%); } }   /* one tile = seamless loop */
+@media (max-width: 760px) {
+  .lx-clouds .cl-layer.back, .lx-clouds .cl-layer.extra { height: 30vh; }
+  .lx-clouds .cl-layer.mid, .lx-clouds .cl-layer.low, .lx-clouds .cl-layer.front { height: 26vh; }
+}
+@media (prefers-reduced-motion: reduce) { .lx-clouds .cl-track { animation: none; } }
 .lx-portal { position: relative; height: 100svh; background: var(--stone); overflow: hidden; z-index: 2; }
 .lx-portal .window { position: absolute; inset: 0; clip-path: inset(15vh 36vw 8vh 36vw round 32vw 32vw 0 0); will-change: clip-path; }
 .lx-portal .window img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 38%; transform: scale(1.35); will-change: transform; }

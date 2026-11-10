@@ -1,0 +1,13 @@
+{
+    "name": "pti-development-root",
+    "private": true,
+    "description": "Shortcut scripts so commands can be run from the repo root. The real app lives in pti_development/.",
+    "scripts": {
+        "dev": "cd pti_development && composer run dev",
+        "vite": "npm --prefix pti_development run dev",
+        "serve": "cd pti_development && php artisan serve",
+        "build": "npm --prefix pti_development run build",
+        "postinstall": "npm --prefix pti_development install",
+        "test": "cd pti_development && composer run test"
+    }
+}
