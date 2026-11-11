@@ -106,7 +106,7 @@ function Hero() {
             <section className="lx-hero" data-tone="dark">
                 <div className="hero-stage">
                     <div className="hero-tower">
-                        <img src="/images/hero-scene.webp" srcSet="/images/hero-scene.webp 1672w, /images/hero-scene@2x.webp 3344w" sizes="max(100vw, 178svh)" alt="PTI residential tower at dusk, rising above palms and a lit swimming pool" fetchpriority="high" draggable="false" />
+                        <img src="/images/hero-tower-dusk.webp" alt="PTI residential tower at dusk, rising above palms and a lit swimming pool" fetchpriority="high" draggable="false" />
                         <div className="tower-grade" />
                     </div>
                 </div>
@@ -236,16 +236,19 @@ function Says({ testimonials }) {
 }
 
 /**
- * "The concept" (ERA layout): cream page, a big centred statement, a short paragraph and the mark, with real-time
- * 3D purple vines (lib/vine3d.js) in the top-left and bottom-right corners, swaying in the wind.
+ * "The concept" (ERA layout): cream page, a big centred statement, a short paragraph and the mark, with lilac and
+ * blue flowers in the top-left and bottom-right corners swaying in the wind (lib/flora3d.js).
  * Motion lives in lib/lux.js.
  */
 function Concept() {
     return (
         <section className="lx-concept" data-tone="light">
-            <div className="c-flower tl" aria-hidden="true"><canvas className="c-vine" data-seed="7" /></div>
+            {/* the reference's own flowers, alive in WebGL (lib/flora3d.js): a cascade hanging from the top-left corner and a
+                bush rising bottom-right, whose other half grows on into the next page */}
+            <div className="c-flower tl" aria-hidden="true"><canvas className="c-flora" data-src={`${B}concept-tl-white.webp`} data-anchor="top" data-pads="0,0.09,0,0.09" /></div>
+            <div className="c-flower br" aria-hidden="true"><canvas className="c-flora" data-src={`${B}concept-br-white.webp`} data-anchor="bottom" data-pads="0.06,0.06,0.07,0" /></div>
             <div className="c-inner">
-                <div className="micro c-eyebrow" data-c="ctn">PTI Development · Dhaka</div>
+                <div className="micro c-eyebrow" data-c="ctn">The concept<i className="c-rule" /></div>
                 <h2 className="disp c-title c-big" data-c="h">Our Projects</h2>
                 <p className="c-text" data-c="p">Inspired by the city&rsquo;s rising skyline, every project pairs contemporary architecture with natural light, green spaces and carefully planned homes.</p>
                 <div className="c-mark" data-c="ctn"><Mark /></div>
@@ -267,7 +270,7 @@ function TrackPanel({ cap, lines, img, alt, head, text, meta, href, cta, childre
     return (
         <section className={`h-panel${last ? ' h-last' : ''}`}>
             {children}
-            <div className="h-cap spaced" aria-hidden="true">{cap}</div>
+            {cap && <div className="h-cap spaced" aria-hidden="true">{cap}</div>}
             <h3 className="h-title disp" aria-label={lines.join(' ')}>
                 {lines.map((l, i) => <span className={`h-line l${i + 1}`} key={i} aria-hidden="true">{l}</span>)}
             </h3>
@@ -284,25 +287,30 @@ function TrackPanel({ cap, lines, img, alt, head, text, meta, href, cta, childre
 
 /**
  * Horizontal track (ERA "location" structure): The concept (narrower than the screen, flower top-left) ->
- * "Our projects" intro (a flower straddling the two pages at the bottom) -> one panel per project
+ * "Our projects" intro (the concept's bottom-right flower straddles the two pages) -> one panel per project
  * (the last one has a flower in the top-right corner). Vertical scroll moves the whole strip sideways on
  * desktop; on phones the panels stack. Motion lives in lib/lux.js.
  */
 function Showcase({ projects: all }) {
     const projects = all.slice(0, 3);          // three projects, in order
+    /* first panel shows Airman Tower (name + HD photo) in this section */
+    if (projects[0]) projects[0] = { ...projects[0], name: 'Airman Tower', image: null, image_url: '/images/projects-hd/airman-tower.webp' };
+    /* second panel shows PTI Shopno Tower-2 (name + HD photo) in this section */
+    if (projects[1]) projects[1] = { ...projects[1], name: 'PTI Shopno Tower-2', image: null, image_url: '/images/projects-hd/pti-shopno-tower-2.webp' };
+    /* Darul Fazle Tower: its new HD photo in this section */
+    projects.forEach((p, i) => { if (/darul\s*fazle/i.test(p.name)) projects[i] = { ...p, image: null, image_url: '/images/projects-hd/darul-fazle-tower.webp' }; });
     const last = projects.length - 1;
     return (
         <div className="lx-hscroll" data-tone="light">
             <div className="h-track">
                 <Concept />
                 {projects.map((p, i) => (
-                    <TrackPanel key={p.id} cap="Dhaka" lines={titleLines(p.name)} img={hdImage(p)} alt={p.name}
+                    <TrackPanel key={p.id} lines={titleLines(p.name)} img={hdImage(p)} alt={p.name}
                         head={p.location}
                         text={p.description || `${p.units} thoughtfully planned residences by PTI Development, with clear pricing, documented paperwork and lasting quality.`}
                         meta={<><span>{pad(i + 1)} / {pad(projects.length)}</span><span>{p.units} units</span><span>{p.status}</span></>}
                         href="/projects" last={i === last} cta={i === last ? <>View all<br />projects</> : null}>
-                        {i === 0 && <div className="c-flower bridge" aria-hidden="true"><canvas className="c-vine" data-seed="23" data-flip="1" data-shape="center" /></div>}
-                        {i === last && <div className="c-flower tr" aria-hidden="true"><canvas className="c-vine" data-seed="31" /></div>}
+                        {i === last && <div className="c-flower tr" aria-hidden="true"><canvas className="c-flora" data-src={`${B}projects-tr-white.webp`} data-anchor="top" data-side="-1" data-pads="0.09,0,0,0.09" /></div>}
                     </TrackPanel>
                 ))}
             </div>
@@ -314,16 +322,49 @@ function Showcase({ projects: all }) {
  * Cloud passage (ERA "loc-w" clouds): after the horizontal track, banks of cloud drift endlessly across the
  * cream page and spill into the sky of a full-bleed photo below. Motion lives in lib/lux.js and lux.css.
  */
-function CloudPass() {
+function CloudPass({ projects, site }) {
     return (
         <section className="lx-clouds" data-tone="light" aria-label="PTI towers under a cloudy sky">
             <div className="cl-scene"><img src="/images/clouds-scene.webp" alt="Glass towers and gardens under a bright cloudy sky" loading="lazy" /></div>
             <div className="cl-fade" aria-hidden="true" />
-            {[['back', 'back'], ['mid', 'mid'], ['front', 'front'], ['extra', 'back'], ['low', 'mid']].map(([n, src]) => (
+            {/* three depths of torn cloud bank hanging from the cream page into the sky; each strip tiles seamlessly, repeated 3x for an endless drift */}
+            {/* 2nd layer (['mid', 1]) taken out for now */}
+            {[['back', 3], ['front', 2]].map(([n, b]) => (
                 <div className={`cl-layer ${n}`} key={n} aria-hidden="true">
-                    <div className="cl-track">{[0, 1, 2].map((k) => <img key={k} src={`/images/clouds-${src}.webp`} alt="" draggable="false" />)}</div>
+                    <div className="cl-track">{[0, 1, 2].map((k) => <img key={k} src={`/images/clouds/bank-${b}.webp`} alt="" draggable="false" />)}</div>
                 </div>
             ))}
+            {/* "The city you'll call home" content, set on the lower part of the photo below the clouds */}
+            <PlaceContent projects={projects} site={site} />
+        </section>
+    );
+}
+
+/**
+ * Video door (after the clouds): the cloud section holds still while this page rises over it in the same pointed
+ * door shape, colour and curved title as the section under the hero; inside sits the frame for the film.
+ * To show the film, set VIDEO_SRC (and optionally VIDEO_POSTER) to files in /public. Motion lives in lib/lux.js.
+ */
+const VIDEO_SRC = '';
+const VIDEO_POSTER = '';
+function VideoDoor() {
+    return (
+        <section className="lx-arch lx-vdoor" data-tone="light" data-tone-offset="screen">
+            <div className="dome" />
+            <svg className="curve" viewBox="0 0 1000 1000" aria-hidden="true">
+                <defs><path id="lx-arc-v" d="M110 522 A457 457 0 0 1 500 70 A457 457 0 0 1 890 522" /></defs>
+                <text textAnchor="middle" style={{ fontSize: 30 }}><textPath href="#lx-arc-v" startOffset="50%">Our Story</textPath></text>
+            </svg>
+            <div className="inner">
+                <div className="crest micro"><span>Mirpur</span><Mark /><span>Dhaka</span></div>
+                <div className="vline" />
+                <p className="micro lede">Our story on film</p>
+                <div className="v-frame">
+                    {VIDEO_SRC
+                        ? <video src={VIDEO_SRC} poster={VIDEO_POSTER || undefined} controls playsInline preload="metadata" />
+                        : <div className="v-empty"><span className="v-play" aria-hidden="true" /><span className="micro">Video coming soon</span></div>}
+                </div>
+            </div>
         </section>
     );
 }
@@ -437,7 +478,8 @@ function Vision() {
     );
 }
 
-function Place({ projects, site }) {
+/** "The city you'll call home": heading, text and route (shown on the cloud photo; same classes, fonts and motion). */
+function PlaceContent({ projects, site }) {
     const stops = useMemo(() => {
         const seen = new Map();
         projects.forEach((p) => {
@@ -458,14 +500,12 @@ function Place({ projects, site }) {
     });
     const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p.x * 10} ${p.y * 2.6}`).join(' ');
     return (
-        <section className="lx-place" data-tone="light">
-            <div className="peek"><img src="/images/hd/skyline.webp" alt="" /></div>
+        <div className="lx-place cl-place">
             <div className="head">
                 <div className="disp l1">The city</div>
                 <div className="script s1">you'll</div>
                 <div className="disp l2">Call home</div>
             </div>
-            <Circle className="cta" href="/contact">Book a<br />site visit</Circle>
             <div className="lower">
                 <div>
                     <h3>Minutes from what matters</h3>
@@ -483,6 +523,16 @@ function Place({ projects, site }) {
                     ))}
                 </div>
             </div>
+        </div>
+    );
+}
+
+/* the original section keeps the photo strip and the "Book a site visit" circle */
+function Place() {
+    return (
+        <section className="lx-place" data-tone="light">
+            <div className="peek"><img src="/images/hd/skyline.webp" alt="" /></div>
+            <Circle className="cta" href="/contact">Book a<br />site visit</Circle>
         </section>
     );
 }
@@ -650,19 +700,13 @@ export default function Home({ projects, stats, faqs, services = [], values = []
             <Arch values={values} site={site} />
             <Says testimonials={testimonials} />
             <Showcase projects={projects} />
-            <CloudPass />
-            <Portal />
-            <Collection projects={projects} />
-            <Quote />
-            <Vision />
-            <Place projects={projects} site={site} />
-            <Sky />
-            <Services services={services} />
-            <Values values={values} />
-            <Numbers stats={stats} />
-            <Gallery projects={projects} />
-            <Faq faqs={faqs} />
+            <CloudPass projects={projects} site={site} />
+            <VideoDoor />
+            {/* the sections that followed (Step Inside -> FAQ) now live on the About page (see About.jsx) */}
             <Footer site={site} />
         </div>
     );
 }
+
+/* sections shown on the About page, below its own content */
+export { Portal, Collection, Quote, Vision, Place, Sky, Services, Values, Numbers, Gallery, Faq };

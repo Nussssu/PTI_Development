@@ -33,6 +33,11 @@ class SiteController extends Controller
             'values' => CompanyValue::ordered()->get(),
             'stats' => Stat::where('page', 'about')->ordered()->get(),
             'team' => TeamMember::where('is_published', true)->ordered()->get(),
+            // sections moved here from the home page
+            'projects' => Project::published()->where('is_featured', true)->ordered()->get(),
+            'services' => Service::ordered()->get(),
+            'faqs' => Faq::where('is_published', true)->ordered()->get(),
+            'homeStats' => Stat::where('page', 'home')->ordered()->get(),
         ]);
     }
 

@@ -1,7 +1,13 @@
+import { useEffect, useRef } from 'react';
 import { Cta, pad, PageHero, Split, StatCard } from '../Components/Site';
 import SiteLayout from '../Layouts/SiteLayout';
+import { initLuxSections } from '../lib/lux';
+import { Collection, Faq, Gallery, Numbers, Place, Portal, Quote, Services, Sky, Values, Vision } from './Home';
 
-export default function About({ values, stats, team }) {
+export default function About({ values, stats, team, projects = [], services = [], faqs = [], homeStats = [] }) {
+    /* the sections moved here from Home keep their own style and scroll motion */
+    const lux = useRef(null);
+    useEffect(() => (lux.current ? initLuxSections(lux.current) : undefined), []);
     return (
         <SiteLayout title="About">
             <PageHero crumb="About" image="/images/rooftop-dusk.webp" title={['Our Legacy of', 'Construction', <span className="serif">Excellence</span>]}>
@@ -82,6 +88,21 @@ export default function About({ values, stats, team }) {
             )}
 
             <Cta />
+
+            {/* moved from the Home page (Step Inside -> FAQ), same look and motion as there */}
+            <div className="lx lx-moved" ref={lux}>
+                <Portal />
+                {projects.length > 0 && <Collection projects={projects} />}
+                <Quote />
+                <Vision />
+                <Place />
+                <Sky />
+                <Services services={services} />
+                <Values values={values} />
+                <Numbers stats={homeStats} />
+                {projects.length > 0 && <Gallery projects={projects} />}
+                <Faq faqs={faqs} />
+            </div>
         </SiteLayout>
     );
 }

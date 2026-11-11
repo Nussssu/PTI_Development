@@ -139,6 +139,14 @@
 .lx-arch .crest { display: flex; align-items: center; justify-content: center; gap: 26px; margin-bottom: 24px; }
 .lx-arch .crest svg { width: 34px; fill: var(--ink); }
 .lx-arch .vline { width: 1px; height: 120px; background: var(--ink); opacity: .45; margin: 0 auto 34px; transform-origin: top; }
+/* video door: same dome / curve / inner as the arch above (lx-arch classes), rising over the held cloud section */
+.lx-vdoor { z-index: 5; margin-top: -20svh; }   /* starts 0.8 screen later than the arch, so the route can finish drawing first (D in lux.js) */
+.lx-vdoor .v-frame { position: relative; width: min(64vw, 1100px); aspect-ratio: 16 / 9; margin: 8vh auto 0; overflow: hidden; border-radius: 4px; background: var(--ink); box-shadow: 0 30px 80px rgba(11, 38, 68, .18); }
+.lx-vdoor .v-frame video { display: block; width: 100%; height: 100%; object-fit: cover; }
+.lx-vdoor .v-empty { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 20px; color: #fff; background: linear-gradient(135deg, #0b2644, #2a4a72); }
+.lx-vdoor .v-play { display: grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .6); }
+.lx-vdoor .v-play::before { content: ""; margin-left: 6px; border-left: 20px solid #fff; border-top: 12px solid transparent; border-bottom: 12px solid transparent; }
+@media (max-width: 860px) { .lx-vdoor .v-frame { width: 100%; } }
 .lx-bslider { margin-top: 14vh; }
 .lx-bslider .b-slides { display: grid; }
 .lx-bslider .b-slide { grid-area: 1 / 1; align-self: end; visibility: hidden; } /* image always sits on the bottom edge, right above the pager */
@@ -209,39 +217,47 @@
 /* ---------- the concept (ERA layout; blue flowers swaying in the corners) ---------- */
 .lx-concept { position: relative; z-index: 3; overflow: hidden; background: #f4f1ea; color: var(--ink); min-height: 100svh; display: grid; place-items: center; padding: 22vh var(--pad) 20vh; }
 .lx-concept .c-inner { position: relative; z-index: 2; max-width: 1200px; text-align: center; }
-.lx-concept .c-eyebrow { letter-spacing: .24em; font-weight: 600; }
-.lx-concept .c-title { margin: 6vh auto 0; font-size: clamp(34px, 4.1vw, 76px); line-height: .98; max-width: 21em; perspective: 700px; }
+.lx-concept .c-eyebrow { letter-spacing: .32em; font-weight: 700; font-size: clamp(12px, 1.15vw, 22px); }
+.lx-concept .c-rule { display: block; width: max(40px, 3.5vw); height: 1px; margin: 2.6vw auto 0; background: currentColor; opacity: .6; }
+.lx-concept .c-title { margin: 2.4vw auto 0; font-size: clamp(34px, 4.1vw, 76px); line-height: .98; max-width: 21em; perspective: 700px; }
 .lx-concept .c-title .split-word { display: inline-block; white-space: nowrap; }
-.lx-concept .c-title.c-big { font-size: clamp(64px, 8vw, 170px); line-height: .88; }
-/* in the track, the text block sits in the free space right of the top-left flower and left of the bottom-right one */
-.lx-hscroll .lx-concept .c-inner { margin-left: 30vw; width: 50vw; }
+/* one line, tall and narrow like the reference (slight vertical stretch of the serif) */
+.lx-concept .c-title.c-big { font-size: clamp(40px, 6.3vw, 140px); line-height: .88; max-width: none; white-space: nowrap; transform: scaleY(1.16); }
+.lx-hscroll .lx-concept .c-inner { margin: 0 auto; width: 48vw; }   /* centred, like the reference */
 .lx-concept .c-title .split-char { display: inline-block; will-change: transform, opacity; }
-.lx-concept .c-text { margin: 7vh auto 0; max-width: 23em; font-size: clamp(15px, 1.05vw, 18px); line-height: 1.5; }
+.lx-concept .c-text { margin: 3.4vw auto 0; max-width: 31em; font-size: clamp(15px, 1.26vw, 24px); line-height: 1.62; }
 .lx-concept .split-line-mask { overflow: hidden; }
-.lx-concept .c-mark { margin-top: 6vh; }
-.lx-concept .c-mark svg { width: 44px; fill: var(--ink); }
-/* real-time 3D vines (lib/vine3d.js); each fades out toward the far side of its frame, so no edge shows */
+.lx-concept .c-mark { margin-top: 3.2vw; }
+.lx-concept .c-mark svg { width: max(40px, 3.5vw); fill: var(--ink); }
+/* real-time 3D vines (lib/vine3d.js): shown whole and solid, no fading masks */
 .lx-hscroll .c-flower { position: absolute; z-index: 4; pointer-events: none; will-change: transform; }
-.lx-hscroll .c-vine { display: block; width: 100%; aspect-ratio: 1.3 / 1; filter: drop-shadow(0 14px 18px rgba(30, 24, 60, .16)); }
-.lx-hscroll .c-flower.tl { left: -1vw; top: -1vh; width: 30vw; }
+.lx-hscroll .c-vine { display: block; width: 100%; aspect-ratio: 1.3 / 1; filter: drop-shadow(10px 18px 14px rgba(40, 30, 70, .2)); }   /* soft shadow cast on the wall */
+/* the concept's photographed flowers (lib/flora3d.js), sized in vw exactly as in the 1672px reference; each canvas is
+   the photo plus a little room (data-pads) so swaying tips are never cut; a soft wall shadow moves with them */
+.lx-hscroll .c-flora { display: block; filter: drop-shadow(12px 20px 14px rgba(70, 55, 110, .16)); }
+.lx-hscroll .c-flower.tl { left: 0; top: 0; }
+.lx-hscroll .c-flower.tl .c-flora { width: 54.76vw; height: 43.99vw; }   /* photo 840x660 = 50.24vw, + 9% right/bottom */
 .lx-hscroll .c-flower.tl .c-vine, .lx-hscroll .c-flower.tr .c-vine { aspect-ratio: 1.05 / 1; }   /* tall cascade, ~2/3 of the screen height */
-.lx-hscroll .c-flower.tl .c-vine, .lx-hscroll .c-flower.tr .c-vine { -webkit-mask-image: linear-gradient(90deg, #000 50%, transparent 97%), linear-gradient(180deg, #000 50%, transparent 97%); -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(90deg, #000 50%, transparent 97%), linear-gradient(180deg, #000 50%, transparent 97%); mask-composite: intersect; }
-/* straddles the concept and "Our projects" pages, rising from the bottom edge */
-.lx-hscroll .c-flower.bridge { left: -16vw; bottom: -1vh; width: 32vw; }   /* half on this page, half on the next */
-.lx-hscroll .c-flower.bridge .c-vine { aspect-ratio: 1.25 / 1; -webkit-mask-image: radial-gradient(ellipse 58% 100% at 50% 100%, #000 55%, transparent 98%); mask-image: radial-gradient(ellipse 58% 100% at 50% 100%, #000 55%, transparent 98%); }
-/* last page: hangs from the top-right corner (the top-left vine mirrored) */
-.lx-hscroll .c-flower.tr { right: -1vw; top: 25vh; width: 30vw; transform: scaleX(-1); }   /* below the site menu, never under its text */
-.lx-hscroll .c-flower.tr .c-vine { -webkit-mask-image: linear-gradient(90deg, #000 50%, transparent 97%), linear-gradient(180deg, transparent 0%, #000 14%, #000 50%, transparent 97%); -webkit-mask-composite: source-in;
-  mask-image: linear-gradient(90deg, #000 50%, transparent 97%), linear-gradient(180deg, transparent 0%, #000 14%, #000 50%, transparent 97%); mask-composite: intersect; }
-/* last page is wider: the content keeps its usual columns and the flower gets its own strip on the right */
-.lx-hscroll .h-panel.h-last { width: 134vw; }
-.lx-hscroll .h-last .h-desc { right: 38vw; }
-.lx-hscroll .h-last .h-cta { right: 37vw; }
+/* bottom-right bush rising from the bottom edge: the reference's half ends at this page's right edge, the grown
+   half carries on into the next page (photo 1201x441 = 71.83vw, seam at 37.8vw from its left) */
+.lx-hscroll .c-flower.br { left: 57.89vw; bottom: 0; }
+.lx-hscroll .c-flower.br .c-flora { width: 80.45vw; height: 31.4vw; }   /* + 6% sides, 7% top */
+/* last page: wider than the screen, so the cascade (full size, from its top-right corner) hangs clear of the photo and
+   the text, and the "View all projects" button sits right under it, its top meeting the tip of the middle sprig. The page
+   still ends right after the button.
+   --p = flower photo width (1178x849): 58vw, smaller only when the screen is too short for flower + button */
+@media (min-width: 861px) {
+  .lx-hscroll .h-panel.h-last { --p: min(58vw, calc((96svh - 13.5vw) / .62)); width: 134vw; }
+  .lx-hscroll .h-last .h-desc { right: 38vw; }
+  /* centred under the middle sprig (66.5% across the photo; its tip ends at ~62% of the photo width down) */
+  .lx-hscroll .h-last .h-cta { top: calc(var(--p) * .62); transform: none; right: max(2vw, calc(var(--p) * .335 - 2.75vw)); }   /* 4vw left of the sprig */
+}
+.lx-hscroll .c-flower.tr { right: 0; top: 0; z-index: 2; }
+.lx-hscroll .c-flower.tr .c-flora { width: calc(var(--p) * 1.09); height: calc(var(--p) * .811); }   /* + 9% left/bottom for the sway */
 @media (max-width: 760px) {
   .lx-concept { padding: 16vh 6vw 18vh; }
-  .lx-hscroll .c-flower.tl { width: 64vw; }
-  .lx-hscroll .c-flower.bridge, .lx-hscroll .c-flower.tr { display: none; }
+  .lx-hscroll .c-flower.tl .c-flora { width: 90vw; height: 72.3vw; }
+  .lx-hscroll .c-flower.br, .lx-hscroll .c-flower.tr { display: none; }
   .lx-concept .c-title { font-size: clamp(28px, 8vw, 40px); }
 }
 /* ---------- horizontal track (ERA location structure) ---------- */
@@ -286,26 +302,24 @@
 .lx-clouds .cl-scene { position: relative; width: 100%; }
 .lx-clouds .cl-scene img { display: block; width: 100%; height: auto; }   /* the full photo, uncropped, no zoom */
 /* cream mist at the top: continues the page above into the cloud bank */
-.lx-clouds .cl-fade { position: absolute; z-index: 5; left: 0; right: 0; top: 0; height: 40vh; pointer-events: none; will-change: transform, opacity;
+.lx-clouds .cl-fade { position: absolute; z-index: 5; left: 0; right: 0; top: 0; height: 28vh; pointer-events: none; will-change: transform, opacity;
   background: linear-gradient(180deg, #f4f1ea 0%, #f4f1ea 16%, rgba(244, 241, 234, .8) 42%, rgba(244, 241, 234, .3) 72%, rgba(244, 241, 234, 0) 100%); }
 .lx-clouds .cl-layer { position: absolute; z-index: 4; left: 0; right: 0; overflow: hidden; pointer-events: none; will-change: transform, opacity; }
-.lx-clouds .cl-layer.back { top: -8vh; height: 44vh; }
-.lx-clouds .cl-layer.extra { top: -4vh; height: 40vh; opacity: .85; }
-.lx-clouds .cl-layer.extra .cl-track { flex-direction: row-reverse; }
-.lx-clouds .cl-layer.mid { top: 0vh; height: 36vh; }
-.lx-clouds .cl-layer.low { top: 6vh; height: 30vh; opacity: .85; }
-.lx-clouds .cl-layer.front { top: 10vh; height: 28vh; }   /* every bank ends above the rooftops (~38vh) */
-.lx-clouds .cl-track { display: flex; width: max-content; height: 100%; animation: lxCloudDrift 42s linear infinite; }
-.lx-clouds .cl-layer.mid .cl-track { animation-duration: 30s; }
-.lx-clouds .cl-layer.front .cl-track { animation-duration: 20s; }
-.lx-clouds .cl-layer.extra .cl-track { animation-duration: 36s; animation-direction: reverse; }
-.lx-clouds .cl-layer.low .cl-track { animation-duration: 24s; }
-.lx-clouds .cl-layer.back img, .lx-clouds .cl-layer.extra img { filter: sepia(.12) saturate(1.05) brightness(1.03); }
+/* torn cloud banks: solid white at the top (melting into the cream page), breaking into wispy clumps that hang
+   over the sky; back = highest reach and hazier, front = more torn and faster */
+.lx-clouds .cl-layer.back { top: -8vh; height: 90vh; }
+.lx-clouds .cl-layer.mid { top: -4vh; height: 82vh; }
+.lx-clouds .cl-layer.front { top: 2vh; height: 74vh; }
+.lx-clouds .cl-track { display: flex; width: max-content; height: 100%; animation: lxCloudDrift 150s linear infinite; }
+.lx-clouds .cl-layer.mid .cl-track { animation-duration: 110s; }   /* every bank drifts left only */
+.lx-clouds .cl-layer.front .cl-track { animation-duration: 80s; }
 .lx-clouds .cl-track img { flex: none; height: 100%; width: auto; user-select: none; }
+.lx-clouds .cl-layer.back img { opacity: .9; filter: blur(.5px); }
 @keyframes lxCloudDrift { from { transform: translateX(0); } to { transform: translateX(-33.3333%); } }   /* one tile = seamless loop */
 @media (max-width: 760px) {
-  .lx-clouds .cl-layer.back, .lx-clouds .cl-layer.extra { height: 30vh; }
-  .lx-clouds .cl-layer.mid, .lx-clouds .cl-layer.low, .lx-clouds .cl-layer.front { height: 26vh; }
+  .lx-clouds .cl-layer.back { height: 40vh; }
+  .lx-clouds .cl-layer.mid { height: 36vh; }
+  .lx-clouds .cl-layer.front { height: 32vh; }
 }
 @media (prefers-reduced-motion: reduce) { .lx-clouds .cl-track { animation: none; } }
 .lx-portal { position: relative; height: 100svh; background: var(--stone); overflow: hidden; z-index: 2; }
@@ -398,6 +412,30 @@
 .lx-stop.office i { background: var(--flame); box-shadow: 0 0 0 6px rgba(200,50,31,.15); }
 .lx-place .peek { position: absolute; left: 0; top: 10vh; width: 2.4vw; height: 80vh; overflow: hidden; }
 .lx-place .peek img { height: 100%; width: auto; }
+/* "The city you'll call home" content on the lower part of the cloud photo: same type, no box of its own */
+.lx-clouds .cl-place { position: absolute; z-index: 6; left: 0; right: 0; bottom: 0; min-height: 0; padding: 0 var(--pad) 8vh; background: none; overflow: visible; }
+@media (max-width: 860px) { .lx-clouds .cl-place { position: relative; padding: 8vh 6vw; background: var(--cream); } }
+@media (min-width: 861px) {
+  /* soft dusk shade over the lower photo so the white type reads on the buildings and the plaza */
+  .lx-clouds .cl-scene::after { content: ""; position: absolute; left: 0; right: 0; top: 38%; bottom: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(7, 26, 48, 0) 0%, rgba(7, 26, 48, .28) 40%, rgba(7, 26, 48, .5) 100%); }
+  /* heading, in white: "The city" / script "you'll" tucked in between / "Call home" stepped in, each line whole */
+  /* the content fills the photo: the heading starts in the blue sky (30% down), the text + route sit on the plaza */
+  .lx-clouds .cl-place { top: 0; bottom: 0; padding: 0; }
+  .lx-clouds .cl-place .head { position: absolute; left: 11vw; top: 30%; width: 78vw; margin: 0; }
+  .lx-clouds .cl-place .lower { position: absolute; left: var(--pad); right: var(--pad); bottom: 13vh; margin-top: 0; }   /* on the plaza, raised a little so it reads clearly */
+  .lx-clouds .cl-place .head .disp { font-size: 10.5vw; color: #fff; white-space: nowrap; text-shadow: 0 6px 40px rgba(7, 26, 48, .35); }
+  .lx-clouds .cl-place .head .l2 { margin-left: 20%; margin-top: .42em; }
+  .lx-clouds .cl-place .head .script { font-size: 10vw; color: #fff; text-shadow: 0 4px 24px rgba(7, 26, 48, .4); }
+  .lx-clouds .cl-place .head .s1 { left: 9%; top: 31%; }
+  /* text and route below, in white */
+  .lx-clouds .cl-place .lower, .lx-clouds .cl-place .lower h3, .lx-clouds .cl-place .lower .body { color: #fff; text-shadow: 0 2px 16px rgba(7, 26, 48, .45); }
+  .lx-clouds .cl-place .lx-route path { stroke: rgba(255, 255, 255, .55); }
+  .lx-clouds .cl-place .lx-route path.draw { stroke: rgba(255, 255, 255, .95) !important; }   /* the drawn line carries an inline colour */
+  .lx-clouds .cl-place .lx-stop b, .lx-clouds .cl-place .lx-stop small { color: #fff; text-shadow: 0 2px 12px rgba(7, 26, 48, .5); }
+  .lx-clouds .cl-place .lx-stop small { opacity: .85; }
+  .lx-clouds .cl-place .lx-stop:not(.office) i { background: #fff; box-shadow: 0 0 0 6px rgba(255, 255, 255, .22); }
+}
 @media (max-width: 860px) { .lx-place .cta { position: relative; left: auto; top: auto; margin: 40px 0; } .lx-place .lower { grid-template-columns: 1fr; } .lx-route { height: 420px; } }
 
 /* ---------- sky (clouds parting) ---------- */

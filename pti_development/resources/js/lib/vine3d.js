@@ -94,6 +94,9 @@ function windify(mat, uniforms) {
     return mat;
 }
 
+/* canvas size relative to the vine's design frame (CSS sizes the canvas PAD x larger) */
+export const PAD = 1.5;
+
 export function createVine(canvas, { seed = 7, flip = false, shape = 'corner', reduce = false } = {}) {
     const rand = rng(seed);
     const R = (a, b) => a + (b - a) * rand();
@@ -233,6 +236,15 @@ export function createVine(canvas, { seed = 7, flip = false, shape = 'corner', r
         renderer.setSize(w, h, false);
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
+        /* the canvas is PAD x larger than the vine's original frame: widen the view the same way (off-axis, so
+           the anchored corner/edge stays put and the vine keeps its size) and every petal fits, nothing is cut */
+        const top = camera.near * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / PAD;
+        const wd = top * camera.aspect, ext = PAD - 1;
+        const [l, r, t, b] = shape === 'center'
+            ? [-wd * (1 + ext), wd * (1 + ext), top * (1 + 2 * ext), -top]      // anchored on the bottom edge, grows up and sideways
+            : [-wd, wd * (1 + 2 * ext), top, -top * (1 + 2 * ext)];             // anchored top-left, grows right and down
+        camera.projectionMatrix.makePerspective(l, r, t, b, camera.near, camera.far);
+        camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
     };
     resize();
     const ro = new ResizeObserver(resize);

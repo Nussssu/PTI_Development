@@ -8,6 +8,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import Lenis from 'lenis';
 import { createVine } from './vine3d';
+import { createFlora } from './flora3d';
 
 gsap.registerPlugin(ScrollTrigger, SplitText, CustomEase);
 CustomEase.create('lux', '0.19,1,0.22,1');
@@ -17,6 +18,17 @@ CustomEase.create('luxSoft', '0.45,0,0.15,1');
 const $ = (s, c) => c.querySelector(s);
 const $$ = (s, c) => Array.from(c.querySelectorAll(s));
 const isDesktop = () => window.matchMedia('(min-width: 861px)').matches;
+
+/* shared reveal helpers (used inside a gsap.context, so they are reverted with it) */
+function reveal(els) {
+    els.forEach((el) => gsap.fromTo(el, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 1.3, ease: 'lux', scrollTrigger: { trigger: el, start: 'top 90%' } }));
+}
+function linesUp(els, each = 0.1) {
+    els.forEach((el) => {
+        const s = new SplitText(el, { type: 'lines', mask: 'lines', linesClass: 'split-line' });
+        gsap.fromTo(s.lines, { yPercent: 105 }, { yPercent: 0, duration: 1.4, stagger: each, ease: 'lux', scrollTrigger: { trigger: el, start: 'top 88%' } });
+    });
+}
 
 /* ---------------- falling petals ---------------- */
 class Petals {
@@ -397,20 +409,40 @@ export function initLux(root, { skipIntro = false } = {}) {
             const cs = $('.lx-concept', root);
             if (cs) {
                 const chars = new SplitText($('[data-c="h"]', cs), { type: 'words,chars', wordsClass: 'split-word', charsClass: 'split-char' }).chars;
-                const lines = new SplitText($('[data-c="p"]', cs), { type: 'lines', linesClass: 'split-line', mask: 'lines' }).lines;
+                const para = $('[data-c="p"]', cs);
+                const splitP = () => new SplitText(para, { type: 'lines', linesClass: 'split-line', mask: 'lines' });
+                let pSplit = splitP(), lines = pSplit.lines, shown = false;
                 const ctn = $$('[data-c="ctn"]', cs);
                 gsap.set(chars, { opacity: 0, yPercent: 50, rotateY: 90 });
                 gsap.set(lines, { yPercent: 110 });
                 gsap.set(ctn, { opacity: 0, y: 48 });
+                /* lines measured before the web font arrived break wrongly: split again once fonts are in */
+                document.fonts?.ready.then(() => ctx.add(() => {
+                    if (shown) return;
+                    pSplit.revert(); pSplit = splitP(); lines = pSplit.lines;
+                    gsap.set(lines, { yPercent: 110 });
+                }));
                 ScrollTrigger.create({
                     trigger: $('.c-inner', cs), start: 'top 78%', once: true,
                     onEnter: () => {
+                        shown = true;
                         gsap.to(ctn[0], { opacity: 1, y: 0, duration: 1.2, delay: 0.2, ease: 'eraOut' });
                         gsap.to(chars, { opacity: 1, yPercent: 0, rotateY: 0, duration: 1.2, delay: 0.3, stagger: 0.012, ease: 'eraOut' });
                         gsap.to(lines, { yPercent: 0, duration: 1.2, delay: 1.0, stagger: 0.1, ease: 'eraOut' });
                         gsap.to(ctn[1], { opacity: 1, y: 0, duration: 1.2, delay: 1.3, ease: 'eraOut' });
                     },
                 });
+                /* the track's three flowers: photographed clusters bent by wind + scroll in a vertex shader (lib/flora3d.js) */
+                $$('.c-flora', cs.closest('.lx-hscroll') || cs).forEach((cv) => {
+                    try {
+                        const [l, r, t, b] = (cv.dataset.pads || '0,0,0,0').split(',').map(Number);
+                        cleanups.push(createFlora(cv, { src: cv.dataset.src, anchor: cv.dataset.anchor, side: +cv.dataset.side || 1, pads: { l, r, t, b }, reduce }));
+                    } catch (e) { cv.style.display = 'none'; }
+                });
+                /* ERA "ctn-down" parallax: the top-left cascade starts lifted and settles into its corner as the page arrives
+                   (it hangs from the page edge, so it ends flush instead of going on past it) */
+                const tl = $('.c-flower.tl', cs);
+                if (tl && !reduce) gsap.fromTo(tl, { yPercent: -10 }, { yPercent: 0, ease: 'none', scrollTrigger: { trigger: cs.closest('.lx-hscroll') || cs, start: 'top 125%', end: 'top top', scrub: 0.5 } });
                 /* real-time 3D vines: wind runs in their vertex shader (see lib/vine3d.js) */
                 $$('.c-vine', cs.closest('.lx-hscroll') || cs).forEach((cv) => {
                     try {
@@ -432,6 +464,13 @@ export function initLux(root, { skipIntro = false } = {}) {
                     scrollTrigger: { trigger: hs, start: 'top top', end: () => `+=${dist()}`, pin: true, scrub: 0.25, invalidateOnRefresh: true, anticipatePin: 1 },
                 });
                 const whole = { trigger: hs, start: 'top top', end: () => `+=${dist()}`, scrub: 0.25, invalidateOnRefresh: true };
+                /* ERA flower parallax: the bush straddling the first two pages drifts with the strip (loc-intro: xPercent
+                   0 -> -25, scrub .25); the last page's cascade starts lifted and settles into its corner as that page slides in */
+                const br = $('.c-flower.br', hs), trf = $('.c-flower.tr', hs);
+                if (!reduce) {
+                    if (br) gsap.fromTo(br, { xPercent: 0 }, { xPercent: -25, ease: 'none', scrollTrigger: whole });
+                    if (trf) gsap.fromTo(trf, { yPercent: -10 }, { yPercent: 0, ease: 'none', scrollTrigger: { trigger: trf.closest('.h-panel'), containerAnimation: tween, start: 'left right', end: 'right right', scrub: 0.5 } });
+                }
                 /* each name shrinks until its longest line fits the left column (never runs into the image) */
                 const fit = () => $$('.h-title', hs).forEach((t) => {
                     t.style.fontSize = '';
@@ -442,11 +481,16 @@ export function initLux(root, { skipIntro = false } = {}) {
                 document.fonts && document.fonts.ready.then(fit);
                 window.addEventListener('resize', fit);
                 cleanups.push(() => window.removeEventListener('resize', fit));
-                /* the bridging flower drifts while the strip moves (ERA xPercent 0 -> -25) */
-                const bridge = $('.c-flower.bridge', hs);
                 $$('.h-panel', hs).forEach((p) => {
                     const once = (fn) => ScrollTrigger.create({ trigger: p, containerAnimation: tween, start: 'left 85%', once: true, onEnter: fn });
                     const img = $('.h-img', p), lines = $$('.h-line', p), cta = [$('.h-cta', p), $('.h-meta', p)].filter(Boolean);
+                    /* ERA "New / Golden / Mile": the big serif lines are scrubbed sideways by the scroll, each by its own
+                       amount (xPercent -5 -> 5, 25 -> -25, -15 -> 25, scrub .25), so they arrive at different moments,
+                       slide over the photo's layer and run back when the scroll reverses */
+                    if (!reduce && lines.length) gsap.fromTo(lines, { xPercent: gsap.utils.wrap([-5, 25, -15]) }, {
+                        xPercent: gsap.utils.wrap([5, -25, 25]), ease: 'none',
+                        scrollTrigger: { trigger: p, containerAnimation: tween, start: 'left right', end: 'right left', scrub: 0.25 },
+                    });
                     const desc = $$('[data-h="p"]', p).flatMap((n) => new SplitText(n, { type: 'lines', linesClass: 'split-line', mask: 'lines' }).lines);
                     gsap.set(img, { clipPath: 'inset(100% 0% 0% 0%)' });
                     gsap.set(img.firstElementChild, { scale: 1.5, xPercent: 25 });
@@ -466,23 +510,139 @@ export function initLux(root, { skipIntro = false } = {}) {
         }
 
         /* ---------- cloud passage: the whole photo (no pin, no zoom). It first appears with clouds over its sky and
-           the buildings below; scrolling on lifts the clouds away, then the rest of the photo scrolls by normally ---------- */
+           the buildings below; the clouds stay where they are (only drifting sideways, see lux.css) while the photo scrolls by ---------- */
         {
             const cp = $('.lx-clouds', root);
             if (cp) {
                 const tl = gsap.timeline({ scrollTrigger: { trigger: cp, start: 'top 15%', end: () => `+=${innerHeight * 0.7}`, scrub: 0.6, invalidateOnRefresh: true } });
-                tl.to($('.cl-fade', cp), { yPercent: -100, opacity: 0, ease: 'power1.in', duration: 0.7 }, 0)
-                    .to($('.cl-layer.back', cp), { yPercent: -140, opacity: 0, ease: 'power1.in', duration: 1 }, 0)
-                    .to($('.cl-layer.extra', cp), { yPercent: -160, opacity: 0, ease: 'power1.in', duration: 1 }, 0)
-                    .to($('.cl-layer.mid', cp), { yPercent: -190, opacity: 0, ease: 'power1.in', duration: 1 }, 0)
-                    .to($('.cl-layer.low', cp), { yPercent: -220, opacity: 0, ease: 'power1.in', duration: 1 }, 0)
-                    .to($('.cl-layer.front', cp), { yPercent: -260, opacity: 0, ease: 'power1.in', duration: 1 }, 0);
+                tl.to($('.cl-fade', cp), { yPercent: -100, opacity: 0, ease: 'power1.in', duration: 0.7 }, 0);
             }
         }
 
+        /* ---------- place: scattered letters assemble ---------- */
+        const place = $('.lx-clouds .lx-place', root);
+        if (place) {
+        const pChars = new SplitText($$('.lx-place .head .disp', place), { type: 'chars', charsClass: 'char' }).chars;
+        /* scrubbed with the scroll from start to end: the letters assemble and "you'll" writes itself as the block
+           comes up the photo, and run back when scrolling up */
+        const headST = { trigger: $('.lx-place .head', place), start: 'top 95%', end: 'top 30%', scrub: 0.6 };
+        gsap.fromTo(pChars, { yPercent: () => gsap.utils.random(-80, 120), opacity: 0, rotation: () => gsap.utils.random(-12, 12), scaleY: () => gsap.utils.random(0.6, 1.6) },
+            { yPercent: 0, opacity: 1, rotation: 0, scaleY: 1, stagger: { each: 0.035, from: 'random' }, duration: 1.6, ease: 'lux', scrollTrigger: headST });
+        $$('.lx-place .head .script', place).forEach((s) => gsap.fromTo(s, { clipPath: 'inset(-60% 100% -70% -20%)' }, { clipPath: 'inset(-60% -20% -70% -20%)', ease: 'none', scrollTrigger: { ...headST, start: 'top 75%', end: 'top 25%' } }));
+        /* the heading starts in the blue sky, then stays fixed on screen while the photo scrolls under it, until it
+           sits over the buildings; from there it scrolls on with the photo and the content below comes into view */
+        const cloudSec = place.closest('.lx-clouds');
+        if (cloudSec) {
+            mm.add('(min-width: 861px)', () => {
+                const head = $('.head', place);
+                const travel = () => cloudSec.offsetHeight * 0.12;     // sky (30% of the photo) -> over the building tops (42%), where it then stays
+                gsap.fromTo(head, { y: 0 }, { y: travel, ease: 'none', scrollTrigger: { trigger: head, start: 'top 16%', end: () => `+=${travel()}`, scrub: true, invalidateOnRefresh: true } });
+            });
+            /* the photo loads lazily: re-measure the triggers once its real height is known */
+            const ci = $('.cl-scene img', cloudSec);
+            if (ci && !ci.complete) ci.addEventListener('load', () => ScrollTrigger.refresh(), { once: true });
+        }
+
+        /* ---------- video door: the cloud section holds still (pinned at its bottom, nothing below it scrolls) while
+           the next page rises over it in the pointed door shape, exactly like the section under the hero ---------- */
+        {
+            const vdoor = $('.lx-vdoor', root);
+            const cpin = $('.lx-clouds', root);
+            if (vdoor && cpin) {
+                /* while it holds: first the route line draws all the way to the Pallabi office (each stop appears as the
+                   line reaches it, D screens of scroll), and only then does the door page rise (one more screen; the
+                   door section starts D screens later, see .lx-vdoor margin in lux.css) */
+                const D = 0.8;
+                const hold = gsap.timeline({ scrollTrigger: { trigger: cpin, start: 'bottom bottom', end: () => `+=${innerHeight * (D + 1)}`, pin: true, pinSpacing: false, scrub: 0.6, invalidateOnRefresh: true } });
+                const draw = $('.lx-route .draw', cpin);
+                if (draw) {
+                    const L = draw.getTotalLength();
+                    gsap.set($('.lx-route path', cpin), { strokeDasharray: '4 6', strokeDashoffset: 0 });
+                    hold.fromTo(draw, { strokeDasharray: L, strokeDashoffset: L }, { strokeDashoffset: 0, ease: 'none', duration: D }, 0);
+                    const stops = $$('.lx-stop', cpin);
+                    stops.forEach((s, i) => hold.fromTo(s, { opacity: 0, y: 20 }, { opacity: 1, y: 0, ease: 'none', duration: D * 0.12 }, D * 0.88 * (i / Math.max(1, stops.length - 1))));
+                }
+                hold.to({}, { duration: 1 }, D);
+                const dST = { trigger: vdoor, start: 'top top', end: '+=100%', scrub: true };
+                gsap.fromTo($('.dome', vdoor), { scaleX: 0.78 }, { scaleX: 1, ease: 'none', scrollTrigger: dST });
+                gsap.fromTo($('.curve', vdoor), { scaleX: 0.78 }, { scaleX: 1, ease: 'none', scrollTrigger: dST });
+                gsap.fromTo($('textPath', vdoor), { attr: { startOffset: '12%' } }, { attr: { startOffset: '50%' }, ease: 'none', scrollTrigger: dST });
+                gsap.fromTo($('.curve text', vdoor), { opacity: 0 }, { opacity: 1, ease: 'none', scrollTrigger: { trigger: vdoor, start: '20% top', end: '+=60%', scrub: true } });
+                gsap.fromTo($('.vline', vdoor), { scaleY: 0 }, { scaleY: 1, ease: 'none', scrollTrigger: { trigger: $('.vline', vdoor), start: 'top 85%', end: 'top 45%', scrub: true } });
+                reveal($$('.crest, .lede, .v-frame', vdoor));
+            }
+        }
+        const route = $('.lx-route path', place);
+        if (route && !$('.lx-vdoor', root)) {      // with the video door, the route draws during the hold (see above)
+            const L = route.getTotalLength();
+            gsap.set(route, { strokeDasharray: `4 6`, strokeDashoffset: 0 });
+            gsap.fromTo($('.lx-route .draw', place), { strokeDasharray: L, strokeDashoffset: L }, { strokeDashoffset: 0, ease: 'none', scrollTrigger: { trigger: $('.lx-route', place), start: 'top 85%', end: 'bottom 45%', scrub: true } });
+            /* each stop appears in turn as the line reaches it, scrubbed with the scroll */
+            $$('.lx-stop', place).forEach((s, i, arr) => gsap.fromTo(s, { opacity: 0, y: 20 }, { opacity: 1, y: 0, ease: 'none', scrollTrigger: { trigger: $('.lx-route', place), start: `top+=${(i / arr.length) * 70}% 85%`, end: `top+=${(i / arr.length) * 70}% 65%`, scrub: 0.6 } }));
+        }
+        $$('.lx-place .lower > div:first-child', place).forEach((el) => gsap.fromTo(el, { opacity: 0, y: 40 }, { opacity: 1, y: 0, ease: 'none', scrollTrigger: { trigger: el, start: 'top 95%', end: 'top 60%', scrub: 0.6 } }));
+        }
+        /* ---------- footer ---------- */
+        const foot = $('.lx-foot', root);
+        if (foot) {
+        gsap.fromTo($('.lx-foot .dome', foot), { yPercent: 0, scaleX: 1 }, { yPercent: -38, scaleX: 0.7, ease: 'none', scrollTrigger: { trigger: foot, start: 'top bottom', end: 'top 20%', scrub: true } });
+        gsap.fromTo($('.lx-foot .ghost', foot), { xPercent: -40 }, { xPercent: -60, ease: 'none', scrollTrigger: { trigger: foot, start: 'top bottom', end: 'bottom bottom', scrub: true } });
+        const fChars = new SplitText($('.lx-foot .big .disp', foot), { type: 'chars', charsClass: 'char' }).chars;
+        gsap.fromTo(fChars, { yPercent: 110, opacity: 0 }, { yPercent: 0, opacity: 1, stagger: { each: 0.04, from: 'center' }, duration: 1.4, ease: 'lux', scrollTrigger: { trigger: foot, start: 'top 40%' } });
+        gsap.fromTo($('.lx-foot .big .script', foot), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.8, delay: 0.5, ease: 'luxSoft', scrollTrigger: { trigger: foot, start: 'top 40%' } });
+        reveal($$('.lx-foot .cols > div', foot));
+        }
+
+        /* circles draw in when they appear */
+        $$('.lx-circle .track', root).forEach((c) => gsap.fromTo(c, { strokeDasharray: 566, strokeDashoffset: 566 }, { strokeDashoffset: 0, duration: 2, ease: 'luxInOut', scrollTrigger: { trigger: c.closest('.lx-circle'), start: 'top 92%' } }));
+    }, root);
+
+    const refresh = () => ScrollTrigger.refresh();
+    window.addEventListener('load', refresh);
+    document.fonts && document.fonts.ready.then(refresh);
+    const t = setTimeout(refresh, 900);
+
+    return () => {
+        clearTimeout(t);
+        window.removeEventListener('load', refresh);
+        mm.revert();
+        ctx.revert();
+        cleanups.forEach((fn) => fn());
+    };
+}
+
+/* =========================================================
+   The sections moved from Home to the About page (Step Inside -> FAQ), in the same style and motion.
+   initLuxSections(root) -> destroy(). Runs inside the site layout, which already owns the smooth scroll
+   (window.__lenis), so it only adds this page's scroll animations.
+   ========================================================= */
+export function initLuxSections(root) {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const cleanups = [];
+    const scrollToY = (y) => (window.__lenis ? window.__lenis.scrollTo(y, { duration: 1.2 }) : window.scrollTo({ top: y, behavior: 'smooth' }));
+    const petalSrc = [1, 2, 3, 4, 5, 6].map((i) => `/images/botanical/petal-${i}.png`);
+    const petals = $$('.lx-petals', root).map((c) => {
+        const requested = +c.dataset.count || 26;
+        return new Petals(c, petalSrc, reduce ? 0 : (isDesktop() ? requested : Math.ceil(requested * 0.55)));
+    });
+    cleanups.push(() => petals.forEach((p) => p.destroy()));
+    const mm = gsap.matchMedia();
+    const ctx = gsap.context(() => {
+        /* cursor parallax + perpetual sway of the botanical layers */
+        const layers = $$('[data-depth]', root).map((el) => ({ d: +el.dataset.depth, x: gsap.quickTo(el, 'x', { duration: 1.4, ease: 'power3' }), y: gsap.quickTo(el, 'y', { duration: 1.4, ease: 'power3' }) }));
+        const move = (e) => { const mx = e.clientX / innerWidth - 0.5, my = e.clientY / innerHeight - 0.5; layers.forEach((l) => { l.x(mx * l.d * 40); l.y(my * l.d * 26); }); };
+        if (isDesktop() && !reduce) { window.addEventListener('mousemove', move); cleanups.push(() => window.removeEventListener('mousemove', move)); }
+        $$('.lx-flora .sway', root).forEach((el, i) => {
+            const amp = +el.closest('.lx-flora').dataset.sway || 2;
+            gsap.to(el, { rotation: amp, y: amp * 2, duration: 4.5 + (i % 3) * 1.3, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: -i * 0.9 });
+        });
+        const wind = () => { const v = window.__lenis?.velocity || 0; petals.forEach((pt) => { pt.wind += v * 0.004; }); };
+        gsap.ticker.add(wind);
+        cleanups.push(() => gsap.ticker.remove(wind));
+
         /* ---------- portal: arched window opens into the tower ---------- */
         const portal = $('.lx-portal', root);
-        mm.add({ desk: '(min-width: 761px)', mob: '(max-width: 760px)' }, (c) => {
+        if (portal) mm.add({ desk: '(min-width: 761px)', mob: '(max-width: 760px)' }, (c) => {
             const start = c.conditions.desk
                 ? 'inset(15vh 36vw 8vh 36vw round 32vw 32vw 0vw 0vw)'
                 : 'inset(18vh 14vw 10vh 14vw round 40vw 40vw 0vw 0vw)';
@@ -512,10 +672,10 @@ export function initLux(root, { skipIntro = false } = {}) {
         /* ---------- collection ---------- */
         linesUp($$('.lx-collection .lead', root));
         reveal($$('.lx-collection .tag', root));
-        gsap.fromTo($('.lx-slider .frame', root), { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.8, ease: 'luxInOut', scrollTrigger: { trigger: $('.lx-slider', root), start: 'top 80%' } });
+        if ($('.lx-slider', root)) gsap.fromTo($('.lx-slider .frame', root), { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.8, ease: 'luxInOut', scrollTrigger: { trigger: $('.lx-slider', root), start: 'top 80%' } });
 
         /* ---------- quote band ---------- */
-        gsap.fromTo($('.lx-quote .bg', root), { yPercent: -10 }, { yPercent: 10, ease: 'none', scrollTrigger: { trigger: $('.lx-quote', root), start: 'top bottom', end: 'bottom top', scrub: true } });
+        if ($('.lx-quote', root)) gsap.fromTo($('.lx-quote .bg', root), { yPercent: -10 }, { yPercent: 10, ease: 'none', scrollTrigger: { trigger: $('.lx-quote', root), start: 'top bottom', end: 'bottom top', scrub: true } });
         linesUp($$('.lx-quote blockquote .disp', root), 0.08);
         reveal($$('.lx-quote blockquote .micro', root));
         $$('.lx-hang .lx-flora', root).forEach((f) => {
@@ -525,6 +685,7 @@ export function initLux(root, { skipIntro = false } = {}) {
 
         /* ---------- vision: three rows of type travel horizontally ---------- */
         const vision = $('.lx-vision', root);
+        if (vision) {
         const rows = $$('.lx-vision .row', vision);
         const bigs = $$('.lx-vision .big span', vision);
         const country = new SplitText($('.lx-vision .country', vision), { type: 'chars', charsClass: 'char' }).chars;
@@ -538,25 +699,18 @@ export function initLux(root, { skipIntro = false } = {}) {
             .fromTo($('.lx-vision .label', vision), { opacity: 0 }, { opacity: 1, duration: 0.15 }, 0)
             .fromTo($('.lx-vision .note', vision), { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.25 }, 0.45)
             .fromTo($('.lx-vision .lx-flora', vision), { yPercent: 40, rotation: 6 }, { yPercent: -6, rotation: 0, ease: 'none', duration: 1 }, 0);
-
-        /* ---------- place: scattered letters assemble ---------- */
-        const place = $('.lx-place', root);
-        const pChars = new SplitText($$('.lx-place .head .disp', place), { type: 'chars', charsClass: 'char' }).chars;
-        gsap.fromTo(pChars, { yPercent: () => gsap.utils.random(-80, 120), opacity: 0, rotation: () => gsap.utils.random(-12, 12), scaleY: () => gsap.utils.random(0.6, 1.6) },
-            { yPercent: 0, opacity: 1, rotation: 0, scaleY: 1, stagger: { each: 0.035, from: 'random' }, duration: 1.6, ease: 'lux', scrollTrigger: { trigger: $('.lx-place .head', place), start: 'top 75%' } });
-        $$('.lx-place .head .script', place).forEach((s) => gsap.fromTo(s, { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 2, delay: 0.6, ease: 'luxSoft', scrollTrigger: { trigger: $('.lx-place .head', place), start: 'top 75%' } }));
-        const route = $('.lx-route path', place);
-        if (route) {
-            const L = route.getTotalLength();
-            gsap.set(route, { strokeDasharray: `4 6`, strokeDashoffset: 0 });
-            gsap.fromTo($('.lx-route .draw', place), { strokeDasharray: L, strokeDashoffset: L }, { strokeDashoffset: 0, ease: 'none', scrollTrigger: { trigger: $('.lx-route', place), start: 'top 85%', end: 'bottom 45%', scrub: true } });
-            $$('.lx-stop', place).forEach((s, i, arr) => gsap.fromTo(s, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 1, ease: 'lux', scrollTrigger: { trigger: $('.lx-route', place), start: `top+=${(i / arr.length) * 70}% 80%` } }));
         }
-        reveal($$('.lx-place .lower > div:first-child, .lx-place .cta', place));
-        gsap.fromTo($('.lx-place .peek img', place), { xPercent: 0 }, { xPercent: -30, ease: 'none', scrollTrigger: { trigger: place, start: 'top bottom', end: 'bottom top', scrub: true } });
+
+        /* ---------- "Book a site visit" section: the circle and the drifting photo strip ---------- */
+        const placeSec = $('section.lx-place', root);
+        if (placeSec) {
+        reveal($$('.cta', placeSec));
+        gsap.fromTo($('.peek img', placeSec), { xPercent: 0 }, { xPercent: -30, ease: 'none', scrollTrigger: { trigger: placeSec, start: 'top bottom', end: 'bottom top', scrub: true } });
+        }
 
         /* ---------- sky: clouds part over the city ---------- */
         const sky = $('.lx-sky', root);
+        if (sky) {
         const st = gsap.timeline({ scrollTrigger: { trigger: sky, start: 'top top', end: '+=170%', pin: true, scrub: 1 } });
         st.fromTo($('.lx-sky .city img', sky), { scale: 1.25 }, { scale: 1, ease: 'none', duration: 1 }, 0)
             .to($('.lx-sky .c0', sky), { yPercent: -68, scale: 1.35, opacity: 0, ease: 'power1.in', duration: 0.8 }, 0)
@@ -567,6 +721,7 @@ export function initLux(root, { skipIntro = false } = {}) {
             .fromTo($('.lx-sky .sky-glow', sky), { opacity: 0, scale: 0.8 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'power1.out' }, 0.36)
             .fromTo($('.lx-sky .copy', sky), { opacity: 0, scale: 0.92 }, { opacity: 1, scale: 1, duration: 0.35 }, 0.45)
             .to({}, { duration: 0.2 });
+        }
 
         /* ---------- services: pinned three-act sequence ---------- */
         const svc = $('.lx-services', root);
@@ -601,7 +756,7 @@ export function initLux(root, { skipIntro = false } = {}) {
             show(0);
             const go = (d) => {
                 const target = Math.max(0, Math.min(slides.length - 1, cur + d));
-                lenis.scrollTo(trig.start + (trig.end - trig.start) * ((target + 0.5) / slides.length), { duration: 1.2 });
+                scrollToY(trig.start + (trig.end - trig.start) * ((target + 0.5) / slides.length), { duration: 1.2 });
             };
             const prevB = $('.lx-services .prev', svc), nextB = $('.lx-services .next', svc);
             const pv = () => go(-1), nx = () => go(1);
@@ -611,6 +766,7 @@ export function initLux(root, { skipIntro = false } = {}) {
 
         /* ---------- values: pinned list highlights, then the cream arch rises ---------- */
         const vals = $('.lx-values', root);
+        if (vals) {
         const items = $$('.lx-values .list li', vals);
         const texts = $$('.lx-values .text .disp', vals);
         let vcur = -1;
@@ -630,9 +786,11 @@ export function initLux(root, { skipIntro = false } = {}) {
         });
         vtl.fromTo($('.lx-values .bg img', vals), { scale: 1.18 }, { scale: 1, ease: 'none', duration: 1 }, 0)
             .fromTo($('.lx-values .rise', vals), { yPercent: 100 }, { yPercent: 30, ease: 'luxSoft', duration: 0.22 }, 0.78);
+        }
 
         /* ---------- split: numbers ---------- */
         const split = $('.lx-split', root);
+        if (split) {
         gsap.fromTo($('.lx-split .photo img', split), { yPercent: -8 }, { yPercent: 0, ease: 'none', scrollTrigger: { trigger: split, start: 'top bottom', end: 'bottom top', scrub: true } });
         gsap.fromTo($('.lx-split .photo', split), { clipPath: 'inset(100% 0 0 0)' }, { clipPath: 'inset(0% 0 0 0)', duration: 1.8, ease: 'luxInOut', scrollTrigger: { trigger: split, start: 'top 70%' } });
         linesUp($$('.lx-split .copy .disp', split), 0.07);
@@ -645,46 +803,30 @@ export function initLux(root, { skipIntro = false } = {}) {
         });
         $$('.lx-split .lx-flora', split).forEach((f) => gsap.fromTo(f, { yPercent: 20 }, { yPercent: -16, ease: 'none', scrollTrigger: { trigger: split, start: 'top bottom', end: 'bottom top', scrub: true } }));
         reveal($$('.lx-split .cta', split));
+        }
 
         /* ---------- gallery: staggered horizontal drift ---------- */
         const gal = $('.lx-gallery', root);
+        if (gal) {
         const track = $('.lx-gallery .track', gal);
         gsap.fromTo(track, { x: 0 }, { x: () => -(track.scrollWidth - innerWidth * 0.86), ease: 'none', scrollTrigger: { trigger: gal, start: 'top 70%', end: 'bottom top', scrub: true, invalidateOnRefresh: true } });
         $$('.lx-gallery .card .img', gal).forEach((c) => gsap.fromTo(c, { clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)', duration: 1.6, ease: 'luxInOut', scrollTrigger: { trigger: gal, start: 'top 75%' } }));
         linesUp($$('.lx-gallery .head .disp', gal));
         $$('.lx-gallery .lx-flora', gal).forEach((f, i) => gsap.fromTo(f, { yPercent: 30 }, { yPercent: -10, ease: 'none', scrollTrigger: { trigger: gal, start: 'top bottom', end: 'bottom top', scrub: true } }));
+        }
 
-        /* ---------- faq + footer ---------- */
+        /* ---------- faq ---------- */
         reveal($$('.lx-faq details', root));
         linesUp($$('.lx-faq .disp', root));
-        const foot = $('.lx-foot', root);
-        gsap.fromTo($('.lx-foot .dome', foot), { yPercent: 0, scaleX: 1 }, { yPercent: -38, scaleX: 0.7, ease: 'none', scrollTrigger: { trigger: foot, start: 'top bottom', end: 'top 20%', scrub: true } });
-        gsap.fromTo($('.lx-foot .ghost', foot), { xPercent: -40 }, { xPercent: -60, ease: 'none', scrollTrigger: { trigger: foot, start: 'top bottom', end: 'bottom bottom', scrub: true } });
-        const fChars = new SplitText($('.lx-foot .big .disp', foot), { type: 'chars', charsClass: 'char' }).chars;
-        gsap.fromTo(fChars, { yPercent: 110, opacity: 0 }, { yPercent: 0, opacity: 1, stagger: { each: 0.04, from: 'center' }, duration: 1.4, ease: 'lux', scrollTrigger: { trigger: foot, start: 'top 40%' } });
-        gsap.fromTo($('.lx-foot .big .script', foot), { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.8, delay: 0.5, ease: 'luxSoft', scrollTrigger: { trigger: foot, start: 'top 40%' } });
-        reveal($$('.lx-foot .cols > div', foot));
 
         /* circles draw in when they appear */
         $$('.lx-circle .track', root).forEach((c) => gsap.fromTo(c, { strokeDasharray: 566, strokeDashoffset: 566 }, { strokeDashoffset: 0, duration: 2, ease: 'luxInOut', scrollTrigger: { trigger: c.closest('.lx-circle'), start: 'top 92%' } }));
     }, root);
 
-    // helpers inside the context
-    function reveal(els) {
-        els.forEach((el) => gsap.fromTo(el, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 1.3, ease: 'lux', scrollTrigger: { trigger: el, start: 'top 90%' } }));
-    }
-    function linesUp(els, each = 0.1) {
-        els.forEach((el) => {
-            const s = new SplitText(el, { type: 'lines', mask: 'lines', linesClass: 'split-line' });
-            gsap.fromTo(s.lines, { yPercent: 105 }, { yPercent: 0, duration: 1.4, stagger: each, ease: 'lux', scrollTrigger: { trigger: el, start: 'top 88%' } });
-        });
-    }
-
     const refresh = () => ScrollTrigger.refresh();
     window.addEventListener('load', refresh);
     document.fonts && document.fonts.ready.then(refresh);
     const t = setTimeout(refresh, 900);
-
     return () => {
         clearTimeout(t);
         window.removeEventListener('load', refresh);
