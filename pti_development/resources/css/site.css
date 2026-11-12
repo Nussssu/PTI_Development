@@ -160,6 +160,29 @@ ul { margin: 0; padding: 0; list-style: none; }
 .link-arrow svg { transition: transform .5s var(--ease); }
 .link-arrow:hover svg { transform: translateX(6px); }
 
+/* ---------- Header in the landing page's style (ring badge + stacked menu), see SiteChrome in SiteLayout.jsx ---------- */
+.site-chrome { --sc-disp: "Libre Caslon Condensed", "Instrument Serif", Georgia, serif; --sc-micro: "Archivo", "Poppins", sans-serif;
+  position: fixed; inset: 0 0 auto 0; height: 0; z-index: 80; color: #fff; transition: color .6s; }
+.site-chrome.on-light { color: var(--navy); }
+.sc-badge { position: absolute; top: 34px; left: 34px; width: 116px; height: 116px; display: grid; place-items: center; }
+.sc-badge svg.ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sc-badge svg.ring text { font-family: var(--sc-micro); font-stretch: 125%; font-weight: 600; font-size: 8.6px; letter-spacing: .32em; fill: currentColor; }
+.sc-badge .mark { width: 30px; height: auto; fill: currentColor; }
+.sc-nav { position: absolute; top: 40px; right: 44px; text-align: right; display: grid; justify-items: end; gap: 18px; }
+.sc-nav .primary { font-family: var(--sc-disp); font-weight: 500; text-transform: uppercase; font-size: 23px; line-height: 1.02; letter-spacing: -.005em; }
+.sc-nav .primary span { display: block; width: fit-content; margin-left: auto; background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat; transition: background-size .6s var(--ease); }
+.sc-nav .primary:hover span { background-size: 0 1px; background-position: 100% 100%; }
+.sc-nav .links { display: grid; gap: 4px; justify-items: end; }
+.sc-nav .links a { font-family: var(--sc-micro); font-stretch: 125%; font-size: 10px; font-weight: 600; letter-spacing: .26em; text-transform: uppercase; opacity: .9; }
+.sc-nav .links a:hover { opacity: .55; }
+.site-chrome .sc-burger { position: absolute; top: 22px; right: 18px; display: none; }
+@media (max-width: 860px) {
+  .sc-badge { top: 16px; left: 16px; width: 84px; height: 84px; }
+  .sc-badge svg.ring text { font-size: 9.5px; }
+  .sc-nav { display: none; }
+  .site-chrome .sc-burger { display: block; }
+}
+
 /* ---------- Header ---------- */
 .site-header {
   position: fixed; inset: 0 0 auto 0; z-index: 80;

@@ -1,8 +1,9 @@
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import '../../css/lux.css';
 import { gsap } from 'gsap';
 import { initLux } from '../lib/lux';
+import { Field } from '../Components/Site';
 
 const MARK = 'M0.00454068 18.3256H0V73.5928H18.4044V92H36.827V91.9728H73.5949V55.1674V18.3619H73.6085V0H0.00908136V18.3256H0.00454068ZM18.4271 18.3619H55.195V55.1674H36.7997V73.5701H18.4271V18.3619Z';
 const Mark = ({ className }) => <svg className={className} viewBox="0 0 74 92" aria-hidden="true"><path d={MARK} /></svg>;
@@ -106,7 +107,7 @@ function Hero() {
             <section className="lx-hero" data-tone="dark">
                 <div className="hero-stage">
                     <div className="hero-tower">
-                        <img src="/images/hero-tower-dusk.webp" alt="PTI residential tower at dusk, rising above palms and a lit swimming pool" fetchpriority="high" draggable="false" />
+                        <img src="/images/hero-tower-pool-dusk.webp" alt="PTI residential tower lit up at dusk, rising above palms, garden lights and a long swimming pool" fetchpriority="high" draggable="false" />
                         <div className="tower-grade" />
                     </div>
                 </div>
@@ -236,23 +237,62 @@ function Says({ testimonials }) {
 }
 
 /**
- * "The concept" (ERA layout): cream page, a big centred statement, a short paragraph and the mark, with lilac and
- * blue flowers in the top-left and bottom-right corners swaying in the wind (lib/flora3d.js).
+ * "We are in numbers" (after the auras-staging.webflow.io intro): the heading rises in, the four cards arrive one by
+ * one as a small, tight row in the middle, then all of them grow together and spread into the full-size row of cards,
+ * where the figures roll up like a counter over each photo. Figures and labels come from the admin panel (home stats).
  * Motion lives in lib/lux.js.
  */
-function Concept() {
+/* the four photos behind the figures (PTI towers) */
+const NUM_IMAGES = ['/images/faq.jpg', '/images/projects-hd/Project5.webp', '/images/projects-hd/Project1.webp', '/images/projects-hd/Project4.webp'];
+/* a rolling counter: each digit is a strip of 0-9 three times over; lux.js rolls it with the scroll and it stops on the
+   digit after two full turns. It is drawn at its final figure, so without motion it simply shows the number. */
+const ODO_TURNS = 2;
+function Odo({ value }) {
     return (
-        <section className="lx-concept" data-tone="light">
-            {/* the reference's own flowers, alive in WebGL (lib/flora3d.js): a cascade hanging from the top-left corner and a
-                bush rising bottom-right, whose other half grows on into the next page */}
-            <div className="c-flower tl" aria-hidden="true"><canvas className="c-flora" data-src={`${B}concept-tl-white.webp`} data-anchor="top" data-pads="0,0.09,0,0.09" /></div>
-            <div className="c-flower br" aria-hidden="true"><canvas className="c-flora" data-src={`${B}concept-br-white.webp`} data-anchor="bottom" data-pads="0.06,0.06,0.07,0" /></div>
-            <div className="c-inner">
-                <div className="micro c-eyebrow" data-c="ctn">The concept<i className="c-rule" /></div>
-                <h2 className="disp c-title c-big" data-c="h">Our Projects</h2>
-                <p className="c-text" data-c="p">Inspired by the city&rsquo;s rising skyline, every project pairs contemporary architecture with natural light, green spaces and carefully planned homes.</p>
-                <div className="c-mark" data-c="ctn"><Mark /></div>
+        <span className="n-odo" aria-hidden="true">
+            {String(value).split('').map((d, i) => (
+                <span className="n-dig" key={i}>
+                    <span className="n-strip" data-d={d} style={{ transform: `translateY(${-((ODO_TURNS * 10 + +d) / 30) * 100}%)` }}>
+                        {Array.from({ length: 30 }, (_, k) => <span key={k}>{k % 10}</span>)}
+                    </span>
+                </span>
+            ))}
+        </span>
+    );
+}
+
+function InNumbers({ stats }) {
+    if (!stats.length) return null;
+    return (
+        <section className="lx-innum" data-tone="light">
+            <div className="n-wrap">
+                <h2 className="n-title" data-n="h">We are in numbers</h2>
+                <div className="n-row">
+                    {stats.slice(0, 4).map((s, i) => (
+                        <div className="n-card" key={s.id}>
+                            <div className="n-img"><img src={NUM_IMAGES[i % NUM_IMAGES.length]} alt="" loading="lazy" /></div>
+                            <div className="n-over">
+                                <div className="n-val" aria-label={`${s.value}${s.suffix || ''}`}><Odo value={s.value} />{s.suffix}</div>
+                                <div className="n-label">{s.label}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
+        </section>
+    );
+}
+
+/**
+ * "Our Projects" from above (after belgradearbor.rs "View from above"): a top-down photo of the neighbourhood fills the
+ * first page of the horizontal track (flipped so the side with more road is at the top, under the title), and the
+ * title and the photo each slide at their own pace as the strip moves. Motion lives in lib/lux.js.
+ */
+function Aerial() {
+    return (
+        <section className="lx-aerial" data-tone="dark" aria-label="Our projects">
+            <div className="a-img"><img src="/images/aerial-roundabout.webp" alt="Aerial view of a tree-lined neighbourhood around a roundabout" /></div>
+            <h2 className="disp a-title" data-a="h">Our Projects</h2>
         </section>
     );
 }
@@ -286,9 +326,8 @@ function TrackPanel({ cap, lines, img, alt, head, text, meta, href, cta, childre
 }
 
 /**
- * Horizontal track (ERA "location" structure): The concept (narrower than the screen, flower top-left) ->
- * "Our projects" intro (the concept's bottom-right flower straddles the two pages) -> one panel per project
- * (the last one has a flower in the top-right corner). Vertical scroll moves the whole strip sideways on
+ * Horizontal track (ERA "location" structure): "Our Projects" seen from above, in the clouds -> one panel per
+ * project (the last one has a flower in the top-right corner). Vertical scroll moves the whole strip sideways on
  * desktop; on phones the panels stack. Motion lives in lib/lux.js.
  */
 function Showcase({ projects: all }) {
@@ -303,7 +342,7 @@ function Showcase({ projects: all }) {
     return (
         <div className="lx-hscroll" data-tone="light">
             <div className="h-track">
-                <Concept />
+                <Aerial />
                 {projects.map((p, i) => (
                     <TrackPanel key={p.id} lines={titleLines(p.name)} img={hdImage(p)} alt={p.name}
                         head={p.location}
@@ -342,28 +381,121 @@ function CloudPass({ projects, site }) {
 
 /**
  * Video door (after the clouds): the cloud section holds still while this page rises over it in the same pointed
- * door shape, colour and curved title as the section under the hero; inside sits the frame for the film.
- * To show the film, set VIDEO_SRC (and optionally VIDEO_POSTER) to files in /public. Motion lives in lib/lux.js.
+ * door shape and colour as the section under the hero. Inside: "Crafted for everyday living", the film right under
+ * it (a YouTube embed, YT_ID, in a laptop frame), then two pictures, each with its caption and a short description
+ * beside it (Architecture on the left, Living space crossing to the right, lower). Motion lives in lib/lux.js.
  */
-const VIDEO_SRC = '';
-const VIDEO_POSTER = '';
+const YT_ID = '2C9NmA_p-6Q';   /* youtu.be/2C9NmA_p-6Q */
 function VideoDoor() {
     return (
         <section className="lx-arch lx-vdoor" data-tone="light" data-tone-offset="screen">
             <div className="dome" />
-            <svg className="curve" viewBox="0 0 1000 1000" aria-hidden="true">
-                <defs><path id="lx-arc-v" d="M110 522 A457 457 0 0 1 500 70 A457 457 0 0 1 890 522" /></defs>
-                <text textAnchor="middle" style={{ fontSize: 30 }}><textPath href="#lx-arc-v" startOffset="50%">Our Story</textPath></text>
-            </svg>
             <div className="inner">
-                <div className="crest micro"><span>Mirpur</span><Mark /><span>Dhaka</span></div>
-                <div className="vline" />
-                <p className="micro lede">Our story on film</p>
-                <div className="v-frame">
-                    {VIDEO_SRC
-                        ? <video src={VIDEO_SRC} poster={VIDEO_POSTER || undefined} controls playsInline preload="metadata" />
-                        : <div className="v-empty"><span className="v-play" aria-hidden="true" /><span className="micro">Video coming soon</span></div>}
+                {/* ERA "The space to live in": a tall, condensed title inside the door with the last word in script */}
+                <h2 className="cr-title" aria-label="Crafted for everyday living">
+                    <span className="disp cr-line" aria-hidden="true">Crafted</span>
+                    <span className="disp cr-line" aria-hidden="true">For</span>
+                    <span className="disp cr-line" aria-hidden="true">Everyday</span>
+                    <span className="script cr-script" aria-hidden="true">Living</span>
+                </h2>
+                <p className="micro v-lede">Our story</p>
+                {/* the film plays inside a laptop, framed like the ERA (videinfra.com/work/era) presentation shot */}
+                <div className="v-frame lx-laptop">
+                    <div className="lid">
+                        <div className="screen">
+                            <iframe
+                                src={`https://www.youtube-nocookie.com/embed/${YT_ID}?autoplay=1&mute=1&loop=1&playlist=${YT_ID}&rel=0&modestbranding=1&playsinline=1`}
+                                title="PTI Development: our story on film"
+                                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                                allowFullScreen
+                                loading="lazy"
+                            />
+                        </div>
+                    </div>
+                    <div className="base"><i /></div>
                 </div>
+                <div className="cr-pics">
+                    <figure className="cr-pic arch">
+                        <div className="cr-img"><img src="/images/craft-architecture.webp" alt="Scaffolding around a building under construction" loading="lazy" /></div>
+                        <figcaption className="cr-txt">
+                            <h3 className="micro cr-cap">Architecture</h3>
+                            <p>Every PTI tower starts with a sound structure: engineered foundations, tested materials and on-site supervision on every floor, so the building stands as strong as it looks.</p>
+                        </figcaption>
+                    </figure>
+                    <figure className="cr-pic living">
+                        <div className="cr-img"><img src="/images/craft-living.webp" alt="PTI residential tower lit up at night" loading="lazy" /></div>
+                        <figcaption className="cr-txt">
+                            <h3 className="micro cr-cap">Living space</h3>
+                            <p>Bright, well-planned homes with natural light, cross ventilation and green balconies, designed around the way Dhaka families live every day.</p>
+                        </figcaption>
+                    </figure>
+                </div>
+            </div>
+        </section>
+    );
+}
+
+/**
+ * Split picture -> "Contact" (scroll-triggered split image merge & zoom, after the ERA "two pictures" section, without the
+ * flowers). One full-screen photo is shown as two layers, each clipped to one half; at the start both are scaled down
+ * and pulled apart (left half lower, right half higher), so they read as two pictures. The scroll slowly slides them
+ * together into one picture, then quickly zooms it to fill the screen, and "Contact" rises on it, like a new page.
+ * Because both halves are always the same image, they meet without a seam. Motion lives in lib/lux.js.
+ */
+function Merge() {
+    return (
+        <section className="lx-merge" data-tone="light" aria-label="Contact">
+            <div className="m-half l" aria-hidden="true"><img src="/images/merge-skyline.webp" alt="" /></div>
+            <div className="m-half r"><img src="/images/merge-skyline.webp" alt="Glass and brick towers seen from the street, looking up at a clear sky" /></div>
+            {/* editorial frame around the two panels (ERA): the heading in the space above the left panel, a short text and
+                link under the right one, with fine rules; it all steps aside as the panels start to join */}
+            <div className="m-head-wrap">
+                <h2 className="disp m-head" aria-label="Designed to inspire">
+                    <span className="m-mask" aria-hidden="true"><span className="m-line">Designed</span></span>
+                    <span className="m-mask" aria-hidden="true"><span className="m-line">to Inspire</span></span>
+                </h2>
+                <span className="m-rule h" aria-hidden="true" />
+            </div>
+            <div className="m-copy">
+                <span className="m-rule v" aria-hidden="true" />
+                <p className="m-desc">Every PTI home starts with light, air and the street around it: calm proportions, honest materials and spaces planned to be lived in for generations.</p>
+                <a className="micro m-cta" href="/about" onClick={go('/about')}><span>Explore our vision</span><i aria-hidden="true" /></a>
+            </div>
+            <div className="m-shade" aria-hidden="true" />
+            <h2 className="disp m-title">Contact</h2>
+        </section>
+    );
+}
+
+/* contact form under the full-page picture (same fields and endpoint as the Contact page), then the footer */
+function HomeContact({ site }) {
+    const { flash = {} } = usePage().props;
+    const form = useForm({ first_name: '', last_name: '', email: '', phone: '', message: '', website: '' });
+    const bind = (k) => ({ value: form.data[k], onChange: (e) => form.setData(k, e.target.value), error: form.errors[k] });
+    const submit = (e) => {
+        e.preventDefault();
+        form.post('/inquiries', { preserveScroll: true, onSuccess: () => form.reset() });
+    };
+    return (
+        <section className="lx-contact" data-tone="light" id="contact">
+            <div className="k-pic"><img src="/images/contact-keys.webp" alt="A PTI agent handing the keys of a new home to a couple" loading="lazy" /></div>
+            <div className="k-main">
+            <div className="k-head">
+                <div className="micro k-eyebrow">Get in touch</div>
+                <h2 className="disp k-title">Let&rsquo;s build <span className="script">your home</span></h2>
+            </div>
+            <form className="form k-form" onSubmit={submit} noValidate>
+                <input type="text" name="website" className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.data.website} onChange={(e) => form.setData('website', e.target.value)} />
+                <Field id="k1" label="First Name" autoComplete="given-name" {...bind('first_name')} />
+                <Field id="k2" label="Last Name" autoComplete="family-name" {...bind('last_name')} />
+                <Field id="k3" label="Email Address" type="email" autoComplete="email" {...bind('email')} />
+                <Field id="k4" label="Phone" type="tel" autoComplete="tel" {...bind('phone')} />
+                <Field id="k5" label="Message" full textarea {...bind('message')} />
+                <div className="k-send">
+                    <button className="k-btn" type="submit" disabled={form.processing}>{form.processing ? 'Sending…' : 'Send message'}</button>
+                    {flash.success && form.wasSuccessful && <p className="k-ok" role="status">{flash.success}</p>}
+                </div>
+            </form>
             </div>
         </section>
     );
@@ -663,7 +795,6 @@ function Footer({ site }) {
     const tel = `tel:${(site.phone || '').replace(/\s/g, '')}`;
     return (
         <footer className="lx-foot" data-tone="dark">
-            <div className="dome" />
             <div className="ghost script" aria-hidden="true">Shopno</div>
             <div className="big">
                 <div className="disp">Book a visit</div>
@@ -699,9 +830,12 @@ export default function Home({ projects, stats, faqs, services = [], values = []
             <Hero />
             <Arch values={values} site={site} />
             <Says testimonials={testimonials} />
+            <InNumbers stats={stats} />
             <Showcase projects={projects} />
             <CloudPass projects={projects} site={site} />
             <VideoDoor />
+            <Merge />
+            <HomeContact site={site} />
             {/* the sections that followed (Step Inside -> FAQ) now live on the About page (see About.jsx) */}
             <Footer site={site} />
         </div>

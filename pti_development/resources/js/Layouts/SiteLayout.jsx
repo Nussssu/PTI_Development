@@ -1,7 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Facebook, Instagram, LinkedIn } from '../Components/Icons';
-import { Btn, pad, TLink } from '../Components/Site';
+import { pad, TLink } from '../Components/Site';
 import { initMotion, playLoader, prefersReducedMotion, revealCurtain } from '../lib/motion';
 import RisingTower from '../lib/tower';
 
@@ -10,12 +10,63 @@ export const useSite = () => useContext(SiteCtx);
 
 const NAV = [['/', 'Home'], ['/about', 'About'], ['/services', 'Services'], ['/projects', 'Projects'], ['/contact', 'Contact']];
 
+/* ---------- header in the landing page's style: the rotating ring badge (top left, back to Home) and the stacked menu
+   (top right). Its colour follows the section under it: white on dark sections, navy on light ones. The ring turns
+   slowly and speeds up with the scroll. On phones the links fold into the menu button. ---------- */
+const MARK = 'M0.00454068 18.3256H0V73.5928H18.4044V92H36.827V91.9728H73.5949V55.1674V18.3619H73.6085V0H0.00908136V18.3256H0.00454068ZM18.4271 18.3619H55.195V55.1674H36.7997V73.5701H18.4271V18.3619Z';
+function SiteChrome({ menuOpen, onBurger }) {
+    const ref = useRef(null);
+    useEffect(() => {
+        const el = ref.current, ring = el.querySelector('.ring');
+        const reduce = prefersReducedMotion();
+        let rot = 0, lastY = window.scrollY, raf;
+        const tick = () => {
+            const y = window.scrollY, v = y - lastY;
+            lastY = y;
+            if (!reduce) { rot += 0.12 + Math.min(6, Math.abs(v) * 0.06); ring.style.transform = `rotate(${rot}deg)`; }
+            /* light or dark under the menu (top right): pages mark sections with data-theme, the landing sections with data-tone */
+            let light = false;
+            for (const s of document.querySelectorAll('main [data-theme], main [data-tone]')) {
+                const r = s.getBoundingClientRect();
+                if (r.top <= 90 && r.bottom > 90 && r.left <= innerWidth - 60 && r.right > innerWidth - 60) {
+                    const t = s.dataset.tone || s.dataset.theme;
+                    light = t === 'light' || t === 'white';
+                }
+            }
+            el.classList.toggle('on-light', light && !document.documentElement.classList.contains('menu-open'));
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, []);
+    return (
+        <div className="site-chrome" ref={ref}>
+            <TLink className="sc-badge" href="/" aria-label="PTI Development home">
+                <svg className="ring" viewBox="0 0 120 120" aria-hidden="true">
+                    <defs><path id="sc-ring" d="M60 60 m-47 0 a47 47 0 1 1 94 0 a47 47 0 1 1 -94 0" /></defs>
+                    <text><textPath href="#sc-ring">PTI DEVELOPMENT · SHAPING DREAMS · DHAKA ·</textPath></text>
+                </svg>
+                <svg className="mark" viewBox="0 0 74 92" aria-hidden="true"><path d={MARK} /></svg>
+            </TLink>
+            <nav className="sc-nav" aria-label="Main">
+                <TLink className="primary" href="/projects"><span>Our</span><span>Projects</span></TLink>
+                <div className="links">
+                    <TLink href="/contact">Book a visit</TLink>
+                    <TLink href="/about">About</TLink>
+                    <TLink href="/services">Services</TLink>
+                    <TLink href="/contact">Contact</TLink>
+                </div>
+            </nav>
+            <button className="burger sc-burger" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={onBurger}><i></i><i></i></button>
+        </div>
+    );
+}
+
 export default function SiteLayout({ title, children }) {
     const page = usePage();
     const site = page.props.site || {};
     const url = page.url;
     const mainRef = useRef(null);
-    const headerRef = useRef(null);
     const loaderRef = useRef(null);
     const motionRef = useRef(null);
     const [menuOpen, setMenuOpen] = useState(false);
@@ -60,15 +111,9 @@ export default function SiteLayout({ title, children }) {
         };
     }, []);
 
-    /* ---------- header: solid / hide / theme under header ---------- */
+    /* ---------- theme under the top of the screen ---------- */
     useEffect(() => {
-        const header = headerRef.current;
-        let lastY = 0;
         const onScroll = () => {
-            const y = window.scrollY;
-            header.classList.toggle('is-solid', y > 40);
-            header.classList.toggle('is-hidden', y > lastY && y > 400 && !document.documentElement.classList.contains('menu-open'));
-            lastY = y;
             let theme = 'dark';
             for (const s of document.querySelectorAll('[data-theme]')) {
                 const r = s.getBoundingClientRect();
@@ -146,21 +191,7 @@ export default function SiteLayout({ title, children }) {
         <SiteCtx.Provider value={{ openVideo: setVideo }}>
             <Head title={title} />
             <div className="site">
-                <header className="site-header" ref={headerRef}>
-                    <div className="wrap">
-                        <TLink className="logo" href="/" aria-label="PTI Development home">
-                            <img className="logo-light" src="/images/pti-logo-horizontal-white.svg" alt="PTI Development" />
-                            <img className="logo-dark" src="/images/pti-logo-horizontal.svg" alt="" aria-hidden="true" />
-                        </TLink>
-                        <nav className="nav" aria-label="Main">
-                            {NAV.slice(0, 4).map(([h, t]) => (
-                                <TLink key={h} href={h} className={isActive(h) ? 'is-active' : ''}><span data-text={t}>{t}</span></TLink>
-                            ))}
-                        </nav>
-                        <Btn href="/contact" className="header-cta">Get Started</Btn>
-                        <button className="burger" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}><i></i><i></i></button>
-                    </div>
-                </header>
+                <SiteChrome menuOpen={menuOpen} onBurger={() => setMenuOpen(!menuOpen)} />
 
                 <div className="mobile-menu" aria-hidden={!menuOpen}>
                     {NAV.map(([h, t], i) => (

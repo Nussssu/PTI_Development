@@ -141,12 +141,121 @@
 .lx-arch .vline { width: 1px; height: 120px; background: var(--ink); opacity: .45; margin: 0 auto 34px; transform-origin: top; }
 /* video door: same dome / curve / inner as the arch above (lx-arch classes), rising over the held cloud section */
 .lx-vdoor { z-index: 5; margin-top: -20svh; }   /* starts 0.8 screen later than the arch, so the route can finish drawing first (D in lux.js) */
-.lx-vdoor .v-frame { position: relative; width: min(64vw, 1100px); aspect-ratio: 16 / 9; margin: 8vh auto 0; overflow: hidden; border-radius: 4px; background: var(--ink); box-shadow: 0 30px 80px rgba(11, 38, 68, .18); }
-.lx-vdoor .v-frame video { display: block; width: 100%; height: 100%; object-fit: cover; }
-.lx-vdoor .v-empty { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 20px; color: #fff; background: linear-gradient(135deg, #0b2644, #2a4a72); }
-.lx-vdoor .v-play { display: grid; place-items: center; width: 96px; height: 96px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .6); }
-.lx-vdoor .v-play::before { content: ""; margin-left: 6px; border-left: 20px solid #fff; border-top: 12px solid transparent; border-bottom: 12px solid transparent; }
-@media (max-width: 860px) { .lx-vdoor .v-frame { width: 100%; } }
+/* "Crafted for everyday living" (ERA "The space to live in"): tall condensed serif lines stacked in the middle of the
+   door, the last word in script running across the bottom line; the film right under it; then two pictures, each with
+   its caption and a short description beside it: Architecture on the left, Living space crossing to the right, lower */
+.lx-vdoor .cr-title { position: relative; margin: 0; display: flex; flex-direction: column; align-items: center; color: var(--ink); }
+.lx-vdoor .cr-line { display: block; font-size: clamp(42px, 6.2vw, 120px); line-height: .9; letter-spacing: -.005em; transform: scaleY(1.22); transform-origin: 50% 100%; }
+.lx-vdoor .cr-line + .cr-line { margin-top: .2em; }
+.lx-vdoor .cr-script { display: block; margin-top: -.14em; margin-left: .3em; font-size: clamp(60px, 8.6vw, 168px); color: var(--ink); transform: rotate(-4deg); position: relative; z-index: 1; }
+/* two columns: picture | text. Architecture: picture left, text centred beside it. Living space: picture in the
+   second column pushed to the right edge of the page, its top a little above the end of the Architecture picture;
+   its text on the left of it, in the same column as the Architecture text and below it */
+.lx-vdoor .cr-pics { display: grid; grid-template-columns: min(25vw, 420px) 1fr; column-gap: 3.2vw; margin: 18vh 0 0 3vw; text-align: left; }
+.lx-vdoor .cr-pic { display: contents; }
+.lx-vdoor .cr-pic.arch .cr-img { grid-column: 1; grid-row: 1; aspect-ratio: 1 / 1; }
+.lx-vdoor .cr-pic.arch .cr-txt { grid-column: 2; grid-row: 1; align-self: center; }
+.lx-vdoor .cr-pic.living .cr-img { grid-column: 2; grid-row: 2; justify-self: end; width: 40vw; aspect-ratio: 16 / 10; margin: -5vw calc(-1 * var(--pad)) 0 0; }
+.lx-vdoor .cr-pic.living .cr-txt { grid-column: 2; grid-row: 2; align-self: center; margin-top: 3vw; }
+.lx-vdoor .cr-img { overflow: hidden; }
+.lx-vdoor .cr-img img { display: block; width: 100%; height: 100%; object-fit: cover; will-change: transform; }
+.lx-vdoor .cr-txt { max-width: min(30ch, 21vw); }
+.lx-vdoor .cr-cap { margin: 0 0 16px; letter-spacing: .3em; }
+.lx-vdoor .cr-txt p { margin: 0; font-size: clamp(14px, 1.05vw, 18px); line-height: 1.6; color: var(--ink); opacity: .85; }
+@media (max-width: 860px) {
+  .lx-vdoor .cr-pics { display: flex; flex-direction: column; gap: 8vh; margin: 10vh 0 0; }
+  .lx-vdoor .cr-pic { display: flex; flex-direction: column; align-items: flex-start; gap: 18px; }
+  .lx-vdoor .cr-pic.arch .cr-img { width: 72%; }
+  .lx-vdoor .cr-pic.living .cr-img { width: 100%; margin: 0; }
+  .lx-vdoor .cr-pic .cr-txt { max-width: none; margin: 0; }
+}
+/* the door's own background starts only where the pointed door is already wider than the screen (46vw down from its
+   tip, even while it rises at 78% width), so its sides never show square corners */
+.lx-vdoor .inner { background: linear-gradient(transparent 0, transparent 46vw, var(--lav) 46vw); }
+/* ---------- split picture -> "Contact" (split image merge & zoom): one full-screen photo in two layers, each clipped to
+   one half; lux.js scales them down and pulls them apart, then brings them together and zooms them back to full size ---------- */
+.lx-merge { position: relative; z-index: 5; height: 100svh; overflow: hidden; background: #eae5f3; }
+.lx-merge .m-half { position: absolute; inset: 0; transform-origin: 50% 50%; will-change: transform; backface-visibility: hidden; }
+.lx-merge .m-half img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* the halves overlap by 1px at the centre line, so when they meet there is never a hairline seam */
+.lx-merge .m-half.l { clip-path: inset(0 calc(50% - 1px) 0 0); }
+.lx-merge .m-half.r { clip-path: inset(0 0 0 calc(50% - 1px)); }
+.lx-merge .m-shade { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: rgba(6, 18, 36, .34); }
+.lx-merge .m-title { position: absolute; z-index: 2; left: 0; right: 0; top: 50%; margin: 0; transform: translateY(-50%) scaleY(1.18); text-align: center;
+  font-size: clamp(72px, 13vw, 250px); line-height: .9; color: #fff; text-shadow: 0 8px 50px rgba(6, 18, 36, .3); pointer-events: none; }
+.lx-merge .m-title .split-char { display: inline-block; will-change: transform, opacity, filter; }
+.lx-merge .m-title .split-char-mask { display: inline-block; overflow: hidden; padding: 0 .02em .06em; vertical-align: bottom; }
+/* editorial frame (ERA): placed from the same geometry lux.js uses for the panels at the start, so it always sits
+   just outside them. Panels: 62% of the screen, each half pulled sideways by --m-dx and up/down by --m-dy.
+     left panel:  x from 19vw - dx to 50vw - dx, top at 19svh + dy
+     right panel: x from 50vw + dx to 81vw + dx, bottom at 81svh - dy */
+.lx-merge { --m-dx: max(28px, 4.5vw); --m-dy: 6.5svh; --m-gap: 3svh; color: var(--ink); }
+.lx-merge .m-head-wrap { position: absolute; z-index: 3; left: calc(19vw - var(--m-dx)); width: 31vw;
+  bottom: calc(100svh - (19svh + var(--m-dy)) + var(--m-gap)); }
+.lx-merge .m-head { margin: 0; display: flex; flex-direction: column; font-size: clamp(34px, min(4.4vw, 8.2svh), 84px); line-height: .92; letter-spacing: .01em; }
+.lx-merge .m-mask { display: block; overflow: hidden; padding-bottom: .08em; }
+.lx-merge .m-line { display: block; transform-origin: 0 100%; }
+.lx-merge .m-head .m-mask + .m-mask { margin-top: -.04em; }
+.lx-merge .m-mask:nth-child(2) .m-line { padding-left: 1.1em; }   /* the second line steps in, like the ERA titles */
+/* fine rules: one under the heading, running to the gap between the panels; one beside the text */
+.lx-merge .m-rule { display: block; background: currentColor; opacity: .35; }
+.lx-merge .m-rule.h { height: 1px; width: 100%; margin-top: 1.6svh; transform-origin: 0 50%; }
+.lx-merge .m-rule.v { position: absolute; left: 0; top: 0; bottom: 0; width: 1px; transform-origin: 50% 0; }
+.lx-merge .m-copy { position: absolute; z-index: 3; left: calc(50vw + var(--m-dx)); width: min(31vw, 440px);
+  top: calc(81svh - var(--m-dy) + var(--m-gap)); padding-left: 22px; }
+.lx-merge .m-desc { margin: 0; max-width: 40ch; font-size: clamp(13px, min(1vw, 1.9svh), 17px); line-height: 1.6; opacity: .82; }
+.lx-merge .m-cta { display: inline-flex; align-items: center; gap: 14px; margin-top: 2.2svh; letter-spacing: .28em; color: inherit; }
+.lx-merge .m-cta span { background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat; padding-bottom: 4px; transition: background-size .6s var(--ease); }
+.lx-merge .m-cta i { position: relative; display: block; width: 34px; height: 1px; background: currentColor; transition: width .5s var(--ease); }
+.lx-merge .m-cta i::after { content: ""; position: absolute; right: 0; top: -3px; width: 7px; height: 7px; border-top: 1px solid currentColor; border-right: 1px solid currentColor; transform: rotate(45deg); }
+.lx-merge .m-cta:hover span { background-size: 0 1px; background-position: 100% 100%; }
+.lx-merge .m-cta:hover i { width: 48px; }
+@media (max-width: 860px) {
+  .lx-merge { --m-dx: 3vw; --m-dy: 4.5svh; }
+  .lx-merge .m-head-wrap { left: 6vw; width: 60vw; bottom: auto; top: 7svh; }
+  .lx-merge .m-head { font-size: clamp(28px, 8vw, 40px); }
+  .lx-merge .m-copy { left: 6vw; right: 6vw; width: auto; top: auto; bottom: 3svh; }
+  .lx-merge .m-desc { font-size: 13px; }
+}
+
+/* ---------- contact form under the full-page picture, before the footer ---------- */
+.lx-contact { position: relative; z-index: 5; background: var(--cream); color: var(--ink); padding: 18vh var(--pad) 20vh;
+  display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 6vw; align-items: center; }
+.lx-contact .k-pic { overflow: hidden; aspect-ratio: 4 / 5; }
+.lx-contact .k-pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.lx-contact .k-form { margin-top: 6vh; }
+.lx-contact .k-eyebrow { letter-spacing: .32em; margin-bottom: 26px; }
+.lx-contact .k-title { margin: 0; font-size: clamp(48px, 5.4vw, 104px); line-height: .9; }
+.lx-contact .k-title .script { display: block; font-size: 1.05em; margin-top: -.08em; text-transform: none; }
+.lx-contact .k-send { grid-column: 1 / -1; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; margin-top: 8px; }
+.lx-contact .k-btn { border: 1px solid var(--ink); background: var(--ink); color: var(--cream); padding: 18px 38px; border-radius: 999px; cursor: pointer;
+  font-family: var(--f-micro); font-stretch: 125%; font-weight: 600; font-size: 12px; letter-spacing: .2em; text-transform: uppercase; transition: background .35s, color .35s; }
+.lx-contact .k-btn:hover { background: transparent; color: var(--ink); }
+.lx-contact .k-btn:disabled { opacity: .6; cursor: wait; }
+.lx-contact .k-ok { margin: 0; font-size: 15px; }
+@media (max-width: 860px) { .lx-contact { grid-template-columns: 1fr; padding: 12vh 6vw 16vh; } }
+
+/* small "Our story" line just above the film */
+.lx-vdoor .v-lede { margin: 14vh 0 0; letter-spacing: .32em; }
+.lx-vdoor .v-lede + .lx-laptop { margin-top: 4vh; }
+/* laptop frame around the film, after the ERA presentation shot: thin navy bezel with a pale rim,
+   rounded lid, and a wider, flat base with a centre notch and two hinge seams */
+.lx-vdoor .lx-laptop { position: relative; width: min(66vw, 1040px); margin: 8vh auto 0; }
+.lx-laptop .lid { position: relative; padding: 1.15%; border-radius: clamp(14px, 2.1vw, 30px);
+  background: linear-gradient(180deg, #0f1f36, #08152a 60%, #06111f);
+  box-shadow: inset 0 0 0 1.5px rgba(196, 210, 230, .38), inset 0 0 0 3px #050e1c, 0 40px 90px -30px rgba(2, 10, 24, .55); }
+.lx-laptop .screen { position: relative; aspect-ratio: 16 / 9; overflow: hidden; border-radius: clamp(8px, 1.3vw, 18px); background: #020a18; }
+.lx-laptop .screen iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
+.lx-laptop .base { position: relative; margin: -1px -10% 0; height: clamp(9px, 1.25vw, 17px);
+  border-radius: 2px 2px 50% 50% / 2px 2px 100% 100%;
+  background: linear-gradient(180deg, #2a3a52 0, #142339 22%, #0a1628 70%, #050d1a 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .06) inset, 0 26px 40px -14px rgba(2, 10, 24, .55); }
+.lx-laptop .base::before, .lx-laptop .base::after { content: ""; position: absolute; top: 0; bottom: 30%; width: 1px; background: rgba(150, 168, 194, .28); }
+.lx-laptop .base::before { left: 33%; }
+.lx-laptop .base::after { right: 33%; }
+.lx-laptop .base i { position: absolute; left: 50%; top: 0; width: 11%; height: 38%; transform: translateX(-50%);
+  border-radius: 0 0 6px 6px; background: linear-gradient(180deg, #050d1a, #0d1b30); }
+@media (max-width: 860px) { .lx-vdoor .lx-laptop { width: 84%; } }
 .lx-bslider { margin-top: 14vh; }
 .lx-bslider .b-slides { display: grid; }
 .lx-bslider .b-slide { grid-area: 1 / 1; align-self: end; visibility: hidden; } /* image always sits on the bottom edge, right above the pager */
@@ -214,34 +323,54 @@
   .lx-says .s-text { font-size: clamp(20px, 6vw, 28px); }
   .lx-says .s-scene img { height: 100svh; object-fit: cover; object-position: 42% 50%; }
 }
-/* ---------- the concept (ERA layout; blue flowers swaying in the corners) ---------- */
-.lx-concept { position: relative; z-index: 3; overflow: hidden; background: #f4f1ea; color: var(--ink); min-height: 100svh; display: grid; place-items: center; padding: 22vh var(--pad) 20vh; }
-.lx-concept .c-inner { position: relative; z-index: 2; max-width: 1200px; text-align: center; }
-.lx-concept .c-eyebrow { letter-spacing: .32em; font-weight: 700; font-size: clamp(12px, 1.15vw, 22px); }
-.lx-concept .c-rule { display: block; width: max(40px, 3.5vw); height: 1px; margin: 2.6vw auto 0; background: currentColor; opacity: .6; }
-.lx-concept .c-title { margin: 2.4vw auto 0; font-size: clamp(34px, 4.1vw, 76px); line-height: .98; max-width: 21em; perspective: 700px; }
-.lx-concept .c-title .split-word { display: inline-block; white-space: nowrap; }
-/* one line, tall and narrow like the reference (slight vertical stretch of the serif) */
-.lx-concept .c-title.c-big { font-size: clamp(40px, 6.3vw, 140px); line-height: .88; max-width: none; white-space: nowrap; transform: scaleY(1.16); }
-.lx-hscroll .lx-concept .c-inner { margin: 0 auto; width: 48vw; }   /* centred, like the reference */
-.lx-concept .c-title .split-char { display: inline-block; will-change: transform, opacity; }
-.lx-concept .c-text { margin: 3.4vw auto 0; max-width: 31em; font-size: clamp(15px, 1.26vw, 24px); line-height: 1.62; }
-.lx-concept .split-line-mask { overflow: hidden; }
-.lx-concept .c-mark { margin-top: 3.2vw; }
-.lx-concept .c-mark svg { width: max(40px, 3.5vw); fill: var(--ink); }
+/* ---------- "We are in numbers" (auras intro: small row of cards that grows into the full row) ---------- */
+.lx-innum { position: relative; z-index: 3; overflow: hidden; background: #eae5f3; color: #0B2644; padding: 12vh 0 14vh; }
+/* wide screens: exactly one screen tall, content centred, the row narrowed if the screen is short so it always fits */
+@media (min-width: 1001px) {
+  .lx-innum { height: 100svh; padding: 0; display: flex; flex-direction: column; justify-content: center; }
+  .lx-innum .n-wrap { width: min(76vw, 1440px, calc((100svh - 300px) * 2.35)); }
+  .lx-innum .n-title { margin-bottom: 5vh; }
+}
+.lx-innum .n-wrap { position: relative; width: min(76vw, 1440px); margin: 0 auto; }
+.lx-innum .n-title { margin: 0 0 6.5vh; font-family: "Archivo", "Poppins", sans-serif; font-weight: 400; font-stretch: 100%; text-transform: uppercase;
+  font-size: clamp(38px, 4.4vw, 86px); line-height: 1; letter-spacing: -.02em; }
+.lx-innum .n-title .split-line-mask { overflow: hidden; padding-bottom: .06em; }
+.lx-innum .n-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(14px, 1.35vw, 26px); }
+/* each tile is a photo; the figure and its label sit on it, over a soft dark fade at the bottom */
+.lx-innum .n-card { position: relative; overflow: hidden; aspect-ratio: 3 / 4.6; color: #fff; will-change: transform, clip-path; }
+.lx-innum .n-img { position: absolute; inset: 0; }
+.lx-innum .n-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.lx-innum .n-img::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6, 18, 36, 0) 38%, rgba(6, 18, 36, .35) 62%, rgba(6, 18, 36, .78) 100%); }
+.lx-innum .n-over { position: absolute; left: 0; right: 0; bottom: 0; padding: clamp(16px, 1.6vw, 30px); }
+.lx-innum .n-val { display: flex; align-items: flex-start; font-family: "Archivo", "Poppins", sans-serif; font-stretch: 100%; font-weight: 400; font-size: clamp(44px, 4.3vw, 84px); line-height: 1; letter-spacing: -.02em; }
+/* rolling counter: each digit is a 1em window onto a strip of 0-9 (x3) */
+.lx-innum .n-odo { display: inline-flex; }
+.lx-innum .n-dig { display: inline-block; height: 1em; overflow: hidden; }
+.lx-innum .n-strip { display: block; will-change: transform; }
+.lx-innum .n-strip > span { display: block; height: 1em; line-height: 1; font-variant-numeric: tabular-nums; text-align: center; }
+.lx-innum .n-label { margin-top: clamp(10px, 1vw, 18px); font-family: "Archivo", "Poppins", sans-serif; font-stretch: 100%; font-size: clamp(15px, 1.25vw, 24px); line-height: 1.2; }
+@media (max-width: 1000px) { .lx-innum .n-wrap { width: auto; margin: 0 6vw; } .lx-innum .n-row { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 520px) { .lx-innum .n-row { grid-template-columns: 1fr; } }
+
+/* ---------- "Our Projects" from above (belgradearbor.rs "View from above"): top-down photo, title over it ---------- */
+.lx-aerial { position: relative; z-index: 3; overflow: hidden; height: 100svh; background: #5d7a4f; color: #FBF6EA; }
+.lx-aerial .a-img { position: absolute; inset: 0; overflow: hidden; }
+.lx-aerial .a-img img { position: absolute; top: 0; left: -10%; width: 120%; height: 100%; object-fit: cover; will-change: transform; }
+/* big cream serif across the top third, tall and narrow like the reference; the cloud canvas lies over it */
+.lx-aerial .a-title { position: absolute; z-index: 2; left: 0; right: 0; top: 13vh; margin: 0; text-align: center; white-space: nowrap;
+  font-size: clamp(56px, 10.6vw, 230px); line-height: .9; color: #FBF6EA; transform-origin: 50% 0; transform: scaleY(1.14);
+  text-shadow: 0 6px 40px rgba(20, 40, 25, .25); will-change: transform; }
+.lx-aerial .a-title .split-word { display: inline-block; white-space: nowrap; }
+.lx-aerial .a-title .split-char { display: inline-block; will-change: transform, opacity, filter; }
+@media (max-width: 860px) {
+  .lx-aerial .a-title { top: 20svh; font-size: 22vw; white-space: normal; line-height: .86; }
+}
 /* real-time 3D vines (lib/vine3d.js): shown whole and solid, no fading masks */
 .lx-hscroll .c-flower { position: absolute; z-index: 4; pointer-events: none; will-change: transform; }
 .lx-hscroll .c-vine { display: block; width: 100%; aspect-ratio: 1.3 / 1; filter: drop-shadow(10px 18px 14px rgba(40, 30, 70, .2)); }   /* soft shadow cast on the wall */
 /* the concept's photographed flowers (lib/flora3d.js), sized in vw exactly as in the 1672px reference; each canvas is
    the photo plus a little room (data-pads) so swaying tips are never cut; a soft wall shadow moves with them */
 .lx-hscroll .c-flora { display: block; filter: drop-shadow(12px 20px 14px rgba(70, 55, 110, .16)); }
-.lx-hscroll .c-flower.tl { left: 0; top: 0; }
-.lx-hscroll .c-flower.tl .c-flora { width: 54.76vw; height: 43.99vw; }   /* photo 840x660 = 50.24vw, + 9% right/bottom */
-.lx-hscroll .c-flower.tl .c-vine, .lx-hscroll .c-flower.tr .c-vine { aspect-ratio: 1.05 / 1; }   /* tall cascade, ~2/3 of the screen height */
-/* bottom-right bush rising from the bottom edge: the reference's half ends at this page's right edge, the grown
-   half carries on into the next page (photo 1201x441 = 71.83vw, seam at 37.8vw from its left) */
-.lx-hscroll .c-flower.br { left: 57.89vw; bottom: 0; }
-.lx-hscroll .c-flower.br .c-flora { width: 80.45vw; height: 31.4vw; }   /* + 6% sides, 7% top */
 /* last page: wider than the screen, so the cascade (full size, from its top-right corner) hangs clear of the photo and
    the text, and the "View all projects" button sits right under it, its top meeting the tip of the middle sprig. The page
    still ends right after the button.
@@ -253,18 +382,12 @@
   .lx-hscroll .h-last .h-cta { top: calc(var(--p) * .62); transform: none; right: max(2vw, calc(var(--p) * .335 - 2.75vw)); }   /* 4vw left of the sprig */
 }
 .lx-hscroll .c-flower.tr { right: 0; top: 0; z-index: 2; }
+@media (max-width: 760px) { .lx-hscroll .c-flower.tr { display: none; } }
 .lx-hscroll .c-flower.tr .c-flora { width: calc(var(--p) * 1.09); height: calc(var(--p) * .811); }   /* + 9% left/bottom for the sway */
-@media (max-width: 760px) {
-  .lx-concept { padding: 16vh 6vw 18vh; }
-  .lx-hscroll .c-flower.tl .c-flora { width: 90vw; height: 72.3vw; }
-  .lx-hscroll .c-flower.br, .lx-hscroll .c-flower.tr { display: none; }
-  .lx-concept .c-title { font-size: clamp(28px, 8vw, 40px); }
-}
 /* ---------- horizontal track (ERA location structure) ---------- */
 .lx-hscroll { position: relative; z-index: 3; background: #f4f1ea; color: var(--ink); overflow: hidden; }
 .lx-hscroll .h-track { display: flex; width: max-content; will-change: transform; }
-/* the concept is narrower than the screen, so the next page's title already peeks in from the right */
-.lx-hscroll .h-track > .lx-concept { flex: none; width: 100vw; height: 100svh; min-height: 0; padding: 18vh 5vw; z-index: 3; overflow: visible; }
+.lx-hscroll .h-track > .lx-aerial { flex: none; width: 100vw; }
 .lx-hscroll .h-panel { position: relative; flex: none; width: 100vw; height: 100svh; }
 .lx-hscroll .h-cap { position: absolute; left: 1.4vw; top: 50%; transform: translateY(-50%) rotate(180deg); writing-mode: vertical-rl; font-family: var(--f-disp); font-size: clamp(16px, 1.2vw, 22px); letter-spacing: .8em; text-transform: uppercase; }
 /* three columns that never overlap: name (5-27vw) | image (29-66vw) | description + button (69-96vw).
@@ -284,9 +407,7 @@
 .lx-hscroll .h-cta { position: absolute; z-index: 2; right: 3vw; top: 50%; transform: translateY(-50%); width: 13.5vw; height: 13.5vw; min-width: 170px; min-height: 170px; }
 @media (max-width: 860px) {
   .lx-hscroll .h-track { flex-direction: column; width: 100%; }
-  .lx-hscroll .h-track > .lx-concept { width: 100%; height: auto; min-height: 100svh; padding: 16vh 6vw 18vh; }
   .lx-hscroll .h-panel, .lx-hscroll .h-panel.h-last { width: 100%; height: auto; padding: 10vh 6vw 8vh; display: flex; flex-direction: column; }
-  .lx-hscroll .lx-concept .c-inner { margin-left: 0; width: auto; }
   .lx-hscroll .h-cap, .lx-hscroll .h-title, .lx-hscroll .h-img, .lx-hscroll .h-desc, .lx-hscroll .h-cta { position: relative; inset: auto; transform: none; }
   .lx-hscroll .h-cap { margin-bottom: 2vh; font-size: 16px; }
   .lx-hscroll .h-title { font-size: clamp(48px, 15vw, 84px); margin-bottom: 3vh; white-space: normal; }
@@ -519,8 +640,7 @@
 @media (max-width: 860px) { .lx-faq { grid-template-columns: 1fr; } }
 
 /* ---------- footer ---------- */
-.lx-foot { position: relative; background: var(--night); color: var(--cream); padding: 30vh var(--pad) 40px; overflow: hidden; margin-top: -1px; }
-.lx-foot .dome { position: absolute; left: 50%; top: -60vw; width: 170vw; height: 170vw; border-radius: 50%; background: var(--cream); transform: translateX(-50%); }
+.lx-foot { position: relative; background: var(--night); color: var(--cream); padding: 16vh var(--pad) 40px; overflow: hidden; margin-top: -1px; }
 .lx-foot .ghost { position: absolute; left: 50%; bottom: -8vw; transform: translateX(-50%); font-size: 34vw; color: rgba(244,239,230,.05); white-space: nowrap; pointer-events: none; }
 .lx-foot .big { position: relative; text-align: center; }
 .lx-foot .big .disp { font-size: clamp(70px, 11vw, 200px); }

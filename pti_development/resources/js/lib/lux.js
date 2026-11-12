@@ -7,7 +7,6 @@ import { CustomEase } from 'gsap/CustomEase';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { SplitText } from 'gsap/SplitText';
 import Lenis from 'lenis';
-import { createVine } from './vine3d';
 import { createFlora } from './flora3d';
 
 gsap.registerPlugin(ScrollTrigger, SplitText, CustomEase);
@@ -136,7 +135,8 @@ export function initLux(root, { skipIntro = false } = {}) {
                 const r = s.getBoundingClientRect();
                 /* data-tone-offset="screen": the section's first screen is transparent (it overlaps the hero) */
                 const off = s.dataset.toneOffset === 'screen' ? innerHeight : 0;
-                if (r.top + off <= 90 && r.bottom > 90) { tone = s.dataset.tone; }
+                /* inside the sideways strip only the page under the menu (top right) counts */
+                if (r.top + off <= 90 && r.bottom > 90 && r.left <= innerWidth - 60 && r.right > innerWidth - 60) { tone = s.dataset.tone; }
             }
             chrome.classList.toggle('on-light', tone === 'light');
             petals.forEach((pt) => { pt.wind += lenis.velocity * 0.004; });
@@ -404,52 +404,76 @@ export function initLux(root, { skipIntro = false } = {}) {
             }
         }
 
-        /* ---------- the concept: ERA reveals + flowers drifting with the scroll and swaying in the wind ---------- */
+        /* ---------- "We are in numbers" (auras intro), driven by the scroll: the section holds still while the scroll moves a
+           small row of the four cards in from the right to the middle, swells it a touch, then grows every card into the
+           full-size row while the figures count up. Scrolling back plays it in reverse. ---------- */
         {
-            const cs = $('.lx-concept', root);
-            if (cs) {
-                const chars = new SplitText($('[data-c="h"]', cs), { type: 'words,chars', wordsClass: 'split-word', charsClass: 'split-char' }).chars;
-                const para = $('[data-c="p"]', cs);
-                const splitP = () => new SplitText(para, { type: 'lines', linesClass: 'split-line', mask: 'lines' });
-                let pSplit = splitP(), lines = pSplit.lines, shown = false;
-                const ctn = $$('[data-c="ctn"]', cs);
-                gsap.set(chars, { opacity: 0, yPercent: 50, rotateY: 90 });
-                gsap.set(lines, { yPercent: 110 });
-                gsap.set(ctn, { opacity: 0, y: 48 });
-                /* lines measured before the web font arrived break wrongly: split again once fonts are in */
-                document.fonts?.ready.then(() => ctx.add(() => {
-                    if (shown) return;
-                    pSplit.revert(); pSplit = splitP(); lines = pSplit.lines;
-                    gsap.set(lines, { yPercent: 110 });
-                }));
-                ScrollTrigger.create({
-                    trigger: $('.c-inner', cs), start: 'top 78%', once: true,
-                    onEnter: () => {
-                        shown = true;
-                        gsap.to(ctn[0], { opacity: 1, y: 0, duration: 1.2, delay: 0.2, ease: 'eraOut' });
-                        gsap.to(chars, { opacity: 1, yPercent: 0, rotateY: 0, duration: 1.2, delay: 0.3, stagger: 0.012, ease: 'eraOut' });
-                        gsap.to(lines, { yPercent: 0, duration: 1.2, delay: 1.0, stagger: 0.1, ease: 'eraOut' });
-                        gsap.to(ctn[1], { opacity: 1, y: 0, duration: 1.2, delay: 1.3, ease: 'eraOut' });
-                    },
-                });
-                /* the track's three flowers: photographed clusters bent by wind + scroll in a vertex shader (lib/flora3d.js) */
-                $$('.c-flora', cs.closest('.lx-hscroll') || cs).forEach((cv) => {
-                    try {
-                        const [l, r, t, b] = (cv.dataset.pads || '0,0,0,0').split(',').map(Number);
-                        cleanups.push(createFlora(cv, { src: cv.dataset.src, anchor: cv.dataset.anchor, side: +cv.dataset.side || 1, pads: { l, r, t, b }, reduce }));
-                    } catch (e) { cv.style.display = 'none'; }
-                });
-                /* ERA "ctn-down" parallax: the top-left cascade starts lifted and settles into its corner as the page arrives
-                   (it hangs from the page edge, so it ends flush instead of going on past it) */
-                const tl = $('.c-flower.tl', cs);
-                if (tl && !reduce) gsap.fromTo(tl, { yPercent: -10 }, { yPercent: 0, ease: 'none', scrollTrigger: { trigger: cs.closest('.lx-hscroll') || cs, start: 'top 125%', end: 'top top', scrub: 0.5 } });
-                /* real-time 3D vines: wind runs in their vertex shader (see lib/vine3d.js) */
-                $$('.c-vine', cs.closest('.lx-hscroll') || cs).forEach((cv) => {
-                    try {
-                        cleanups.push(createVine(cv, { seed: +cv.dataset.seed || 7, flip: cv.dataset.flip === '1', shape: cv.dataset.shape || 'corner', reduce }));
-                    } catch (e) { cv.style.display = 'none'; }      // no WebGL: leave the corner empty
+            const nm = $('.lx-innum', root);
+            if (nm && !reduce) {
+                const cards = $$('.n-card', nm);
+                /* rolling counter: each digit strip (0-9 three times) rolls two full turns and stops on its digit */
+                const strips = $$('.n-strip', nm);
+                gsap.set(strips, { clearProps: 'transform' });
+                const setNums = (k) => strips.forEach((st) => gsap.set(st, { yPercent: -((20 + +st.dataset.d) * k) / 30 * 100 }));
+                const tLines = new SplitText($('[data-n="h"]', nm), { type: 'lines', linesClass: 'split-line', mask: 'lines' }).lines;
+                gsap.set(tLines, { yPercent: 110 });
+                /* the heading rises as the section comes up the screen */
+                ScrollTrigger.create({ trigger: nm, start: 'top 70%', once: true, onEnter: () => gsap.to(tLines, { yPercent: 0, duration: 1.2, stagger: 0.1, ease: 'eraOut' }) });
+                setNums(0);
+                mm.add({ wide: '(min-width: 1001px)', narrow: '(max-width: 1000px)' }, (c) => {
+                    if (c.conditions.narrow) {
+                        /* phones / tablets: cards wipe up and the figures count as the scroll brings them in */
+                        gsap.set(cards, { clipPath: 'inset(100% 0% 0% 0%)' });
+                        const tw = gsap.to(cards, { clipPath: 'inset(0% 0% 0% 0%)', ease: 'none', stagger: 0.15, scrollTrigger: { trigger: $('.n-row', nm), start: 'top 90%', end: 'top 35%', scrub: 0.6 } });
+                        const k = { v: 0 };
+                        const kt = gsap.to(k, { v: 1, ease: 'none', onUpdate: () => setNums(k.v), scrollTrigger: { trigger: $('.n-row', nm), start: 'top 80%', end: 'top 30%', scrub: 0.6 } });
+                        return () => { tw.scrollTrigger?.kill(); kt.scrollTrigger?.kill(); gsap.set(cards, { clearProps: 'clipPath' }); setNums(1); };
+                    }
+                    /* the small row: each card at 32% of its size, packed side by side around the row's centre */
+                    const S = 0.32, G = 14;
+                    gsap.set(cards, { x: 0, y: 0, scale: 1, clipPath: 'inset(0% 0% 0% 0%)', transformOrigin: '50% 50%' });
+                    const rs = cards.map((el) => el.getBoundingClientRect());
+                    const row = $('.n-row', nm).getBoundingClientRect();
+                    const cx = row.left + row.width / 2;
+                    const w = rs[0].width * S, total = cards.length * w + (cards.length - 1) * G;
+                    const pos = rs.map((r, i) => cx - total / 2 + w / 2 + i * (w + G) - (r.left + r.width / 2));
+                    /* waiting just past the right edge of the screen (the row's left end 40px out of view) */
+                    const off = innerWidth - (cx - total / 2) + 40;
+                    const k = { v: 0 };
+                    const tl = gsap.timeline({
+                        defaults: { ease: 'none' },
+                        scrollTrigger: { trigger: nm, start: 'top top', end: '+=220%', pin: true, scrub: 0.8, anticipatePin: 1, invalidateOnRefresh: false },
+                    });
+                    tl.fromTo(cards, { x: (i) => pos[i] + off, scale: S }, { x: (i) => pos[i], duration: 1.2, ease: 'power3.out', stagger: { each: 0.08, from: 'start' } }, 0)  // 1. in from the right
+                      .to(cards, { scale: S * 1.12, duration: 0.5, ease: 'power1.inOut' }, '>-0.15')                                                      // 2. swells a touch
+                      .to(cards, { x: 0, scale: 1, duration: 1.4, ease: 'power3.inOut', stagger: { each: 0.03, from: 'center' } }, '>');                   // 3. grows into the full row
+                    /* 4. the figures spin from the moment the pictures come in from the right until the row is full size */
+                    tl.to(k, { v: 1, duration: tl.duration(), ease: 'power1.out', onUpdate: () => setNums(k.v) }, 0)
+                      .to({}, { duration: 0.35 });                                                                                                         // a short rest before it lets go
+                    return () => { tl.scrollTrigger?.kill(); tl.kill(); gsap.set(cards, { clearProps: 'transform' }); };
                 });
             }
+        }
+
+        /* ---------- "Our Projects" from above: the title rises in over the photo ---------- */
+        {
+            const ae = $('.lx-aerial', root);
+            if (ae) {
+                const chars = new SplitText($('[data-a="h"]', ae), { type: 'words,chars', wordsClass: 'split-word', charsClass: 'split-char' }).chars;
+                gsap.set(chars, { opacity: 0, yPercent: 40, filter: 'blur(14px)' });
+                ScrollTrigger.create({
+                    trigger: ae, start: 'top 70%', once: true,
+                    onEnter: () => gsap.to(chars, { opacity: 1, yPercent: 0, filter: 'blur(0px)', duration: 1.6, stagger: 0.045, ease: 'eraOut' }),
+                });
+            }
+            /* the last project page's flower: a photographed cluster bent by wind + scroll in a vertex shader (lib/flora3d.js) */
+            const hsf = $('.lx-hscroll', root);
+            if (hsf) $$('.c-flora', hsf).forEach((cv) => {
+                try {
+                    const [l, r, t, b] = (cv.dataset.pads || '0,0,0,0').split(',').map(Number);
+                    cleanups.push(createFlora(cv, { src: cv.dataset.src, anchor: cv.dataset.anchor, side: +cv.dataset.side || 1, pads: { l, r, t, b }, reduce }));
+                } catch (e) { cv.style.display = 'none'; }
+            });
         }
 
         /* ---------- horizontal track (ERA location): vertical scroll moves the whole strip sideways ---------- */
@@ -463,12 +487,18 @@ export function initLux(root, { skipIntro = false } = {}) {
                     x: () => -dist(), ease: 'horScroll',
                     scrollTrigger: { trigger: hs, start: 'top top', end: () => `+=${dist()}`, pin: true, scrub: 0.25, invalidateOnRefresh: true, anticipatePin: 1 },
                 });
-                const whole = { trigger: hs, start: 'top top', end: () => `+=${dist()}`, scrub: 0.25, invalidateOnRefresh: true };
-                /* ERA flower parallax: the bush straddling the first two pages drifts with the strip (loc-intro: xPercent
-                   0 -> -25, scrub .25); the last page's cascade starts lifted and settles into its corner as that page slides in */
-                const br = $('.c-flower.br', hs), trf = $('.c-flower.tr', hs);
+                /* the aerial page: the title drifts a little and the photo lags behind as the strip moves, so they read as two depths */
+                const ae = $('.lx-aerial', hs);
+                if (ae) {
+                    const pass = { trigger: ae, containerAnimation: tween, start: 'left left', end: 'right left', scrub: 0.25 };
+                    if (!reduce) {
+                        gsap.fromTo($('.a-title', ae), { xPercent: 0 }, { xPercent: 18, ease: 'none', scrollTrigger: pass });
+                        gsap.fromTo($('.a-img img', ae), { xPercent: 0 }, { xPercent: 12, ease: 'none', scrollTrigger: pass });
+                    }
+                }
+                /* the last page's cascade starts lifted and settles into its corner as that page slides in */
+                const trf = $('.c-flower.tr', hs);
                 if (!reduce) {
-                    if (br) gsap.fromTo(br, { xPercent: 0 }, { xPercent: -25, ease: 'none', scrollTrigger: whole });
                     if (trf) gsap.fromTo(trf, { yPercent: -10 }, { yPercent: 0, ease: 'none', scrollTrigger: { trigger: trf.closest('.h-panel'), containerAnimation: tween, start: 'left right', end: 'right right', scrub: 0.5 } });
                 }
                 /* each name shrinks until its longest line fits the left column (never runs into the image) */
@@ -565,11 +595,29 @@ export function initLux(root, { skipIntro = false } = {}) {
                 hold.to({}, { duration: 1 }, D);
                 const dST = { trigger: vdoor, start: 'top top', end: '+=100%', scrub: true };
                 gsap.fromTo($('.dome', vdoor), { scaleX: 0.78 }, { scaleX: 1, ease: 'none', scrollTrigger: dST });
-                gsap.fromTo($('.curve', vdoor), { scaleX: 0.78 }, { scaleX: 1, ease: 'none', scrollTrigger: dST });
-                gsap.fromTo($('textPath', vdoor), { attr: { startOffset: '12%' } }, { attr: { startOffset: '50%' }, ease: 'none', scrollTrigger: dST });
-                gsap.fromTo($('.curve text', vdoor), { opacity: 0 }, { opacity: 1, ease: 'none', scrollTrigger: { trigger: vdoor, start: '20% top', end: '+=60%', scrub: true } });
-                gsap.fromTo($('.vline', vdoor), { scaleY: 0 }, { scaleY: 1, ease: 'none', scrollTrigger: { trigger: $('.vline', vdoor), start: 'top 85%', end: 'top 45%', scrub: true } });
-                reveal($$('.crest, .lede, .v-frame', vdoor));
+                reveal($$('.v-lede, .v-frame', vdoor));
+                /* "Crafted for everyday living": the condensed lines rise one after another as the door comes up, the script
+                   word is written in from the left; each picture is uncovered from the bottom while its photo settles from a
+                   slight zoom and drifts against the scroll, and its caption follows */
+                const crT = $('.cr-title', vdoor);
+                if (crT && !reduce) {
+                    const lines = $$('.cr-line', crT), scr = $('.cr-script', crT);
+                    gsap.set(lines, { opacity: 0, yPercent: 60 });
+                    gsap.set(scr, { clipPath: 'inset(-20% 100% -20% 0%)' });
+                    ScrollTrigger.create({
+                        trigger: crT, start: 'top 82%', once: true,
+                        onEnter: () => {
+                            gsap.to(lines, { opacity: 1, yPercent: 0, duration: 1.3, stagger: 0.14, ease: 'eraOut' });
+                            gsap.to(scr, { clipPath: 'inset(-20% 0% -20% 0%)', duration: 1.6, delay: 0.55, ease: 'power2.inOut' });
+                        },
+                    });
+                    $$('.cr-pic', vdoor).forEach((fig) => {
+                        const box = $('.cr-img', fig), img = $('img', fig), cap = $('figcaption', fig);
+                        gsap.fromTo(box, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', ease: 'none', scrollTrigger: { trigger: box, start: 'top 92%', end: 'top 45%', scrub: 0.6 } });
+                        gsap.fromTo(img, { scale: 1.3, yPercent: -8 }, { scale: 1.05, yPercent: 6, ease: 'none', scrollTrigger: { trigger: box, start: 'top bottom', end: 'bottom top', scrub: 0.6 } });
+                        gsap.fromTo(cap, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 1, ease: 'eraOut', scrollTrigger: { trigger: cap, start: 'top 92%', once: true } });
+                    });
+                }
             }
         }
         const route = $('.lx-route path', place);
@@ -582,10 +630,92 @@ export function initLux(root, { skipIntro = false } = {}) {
         }
         $$('.lx-place .lower > div:first-child', place).forEach((el) => gsap.fromTo(el, { opacity: 0, y: 40 }, { opacity: 1, y: 0, ease: 'none', scrollTrigger: { trigger: el, start: 'top 95%', end: 'top 60%', scrub: 0.6 } }));
         }
+        /* ---------- split picture -> "Contact" (scroll-scrubbed split-panel merge + fullscreen zoom, after ERA): pinned and
+           scrubbed. One full-screen photo is drawn as two layers, each clipped to one half (they overlap by 1px, so no seam
+           can ever show). At the start both are scaled down and pulled apart into two staggered panels with a gap.
+             1. the panels slide vertically into line
+             2. the gap closes until they are one continuous picture (it starts while the alignment finishes)
+             3. a short hold, then the whole picture scales out until it fills the screen
+             4. "Contact" rises on it, and the pin lets go: the full-screen photo simply scrolls on into the contact section
+           Every distance is worked out from the screen size and recalculated on resize; only transforms move, so there are
+           no layout shifts; scrolling up plays it all back in reverse. ---------- */
+        {
+            const mg = $('.lx-merge', root);
+            if (mg) {
+                const l = $('.m-half.l', mg), r = $('.m-half.r', mg), halves = [l, r];
+                const shade = $('.m-shade', mg), title = $('.m-title', mg);
+                /* each letter in its own mask, so it rises out of an invisible slot */
+                const chars = new SplitText(title, { type: 'chars', charsClass: 'split-char', mask: 'chars' }).chars;
+                /* responsive geometry: panel scale, half the gap (dx) and half the vertical stagger (dy), in px */
+                const g = {};
+                const calc = () => {
+                    const wide = innerWidth > 860;
+                    g.S = wide ? 0.62 : 0.72;
+                    g.dx = (wide ? Math.max(28, innerWidth * 0.045) : innerWidth * 0.03);
+                    g.dy = innerHeight * (wide ? 0.065 : 0.045);
+                };
+                calc();
+                ScrollTrigger.addEventListener('refreshInit', calc);
+                cleanups.push(() => ScrollTrigger.removeEventListener('refreshInit', calc));
+                gsap.set(halves, { force3D: true, transformOrigin: '50% 50%' });
+                /* the editorial frame around the panels: heading, rules, text + link */
+                const headWrap = $('.m-head-wrap', mg), copy = $('.m-copy', mg);
+                const hLines = $$('.m-line', mg), ruleH = $('.m-rule.h', mg), ruleV = $('.m-rule.v', mg);
+                const copyParts = [$('.m-desc', mg), $('.m-cta', mg)];
+                const imgs = halves.map((h) => $('img', h));
+                if (reduce) {
+                    gsap.set(shade, { opacity: 1 });
+                    gsap.set([headWrap, copy], { autoAlpha: 0 });
+                } else {
+                    /* heading: each line rises out of its mask, one after the other; the rules draw in; the text and the link
+                       follow. Plays as the section arrives and rewinds if you scroll back above it */
+                    const intro = gsap.timeline({ paused: true })
+                        .fromTo(hLines, { yPercent: 112, rotate: 2 }, { yPercent: 0, rotate: 0, duration: 1.3, stagger: 0.14, ease: 'expo.out' }, 0)
+                        .fromTo(ruleH, { scaleX: 0 }, { scaleX: 1, duration: 1.4, ease: 'expo.inOut' }, 0.25)
+                        .fromTo(ruleV, { scaleY: 0 }, { scaleY: 1, duration: 1.2, ease: 'expo.inOut' }, 0.35)
+                        .fromTo(copyParts, { y: 26, opacity: 0 }, { y: 0, opacity: 1, duration: 1.1, stagger: 0.12, ease: 'expo.out' }, 0.45);
+                    ScrollTrigger.create({ trigger: mg, start: 'top 55%', onEnter: () => intro.play(), onLeaveBack: () => intro.reverse() });
+                    /* parallax while the section comes up the screen: the two panels drift at slightly different speeds
+                       (the left one a little more) and settle exactly as the pin starts */
+                    gsap.fromTo(imgs, { yPercent: (i) => (i ? 3 : 5) }, {
+                        yPercent: 0, ease: 'none', scrollTrigger: { trigger: mg, start: 'top bottom', end: 'top top', scrub: 0.6 },
+                    });
+                    gsap.set(imgs, { scale: 1.12, transformOrigin: '50% 50%' });   // room for the parallax; the timeline brings it to 1
+                    gsap.set(chars, { yPercent: 115, rotate: 7, opacity: 0, filter: 'blur(10px)', transformOrigin: '0% 100%' });
+                    gsap.set(title, { letterSpacing: '0.22em', scale: 1.08 });
+                    const tl = gsap.timeline({
+                        scrollTrigger: {
+                            trigger: mg, start: 'top top', end: () => `+=${innerHeight * 2.6}`, pin: true, scrub: 1.2,
+                            anticipatePin: 1, invalidateOnRefresh: true,
+                            onUpdate: (st) => { mg.dataset.tone = st.progress > 0.72 ? 'dark' : 'light'; },
+                        },
+                    });
+                    /* the starting state comes from the "from" values (applied at once, and restored when scrolling back up) */
+                    tl.fromTo(halves, { scale: () => g.S }, { scale: () => g.S, duration: 0.001, immediateRender: true }, 0)
+                    /* the photo inside both panels settles from its slight zoom over the whole merge (identical in both
+                       halves, so the join stays seamless), and the editorial frame steps aside as the gap starts closing */
+                      .to(imgs, { scale: 1, duration: 2.9, ease: 'none' }, 0)
+                      .to(headWrap, { y: () => -innerHeight * 0.05, autoAlpha: 0, duration: 0.6, ease: 'power2.in' }, 0.45)
+                      .to(copy, { y: () => innerHeight * 0.05, autoAlpha: 0, duration: 0.6, ease: 'power2.in' }, 0.45)
+                    /* 1. vertical alignment: left panel down -> 0, right panel up -> 0 */
+                      .fromTo(halves, { y: (i) => (i ? -g.dy : g.dy) }, { y: 0, duration: 1.2, ease: 'power2.inOut', immediateRender: true }, 0)
+                    /* 2. close the gap: the panels slide together until they are one picture */
+                      .fromTo(halves, { x: (i) => (i ? g.dx : -g.dx) }, { x: 0, duration: 1.4, ease: 'power3.inOut', immediateRender: true }, 0.5)
+                    /* 3. after a short hold, the merged picture scales out to fill the screen */
+                      .fromTo(halves, { scale: () => g.S }, { scale: 1, duration: 0.85, ease: 'power2.inOut', immediateRender: false }, 2.05)
+                    /* 4. the new page: a light shade, then "Contact" while the photo is still settling: each letter rises
+                          out of its mask from the middle outwards, untilting and coming into focus, as the word tightens
+                          from wide spacing and settles from a slight zoom */
+                      .to(shade, { opacity: 1, duration: 0.5, ease: 'none' }, 2.45)
+                      .to(chars, { yPercent: 0, rotate: 0, opacity: 1, filter: 'blur(0px)', duration: 0.75, ease: 'expo.out', stagger: { each: 0.06, from: 'center' } }, 2.5)
+                      .to(title, { letterSpacing: '0em', scale: 1, duration: 1.0, ease: 'expo.out' }, 2.5)
+                      .to({}, { duration: 0.4 });
+                }
+            }
+        }
         /* ---------- footer ---------- */
         const foot = $('.lx-foot', root);
         if (foot) {
-        gsap.fromTo($('.lx-foot .dome', foot), { yPercent: 0, scaleX: 1 }, { yPercent: -38, scaleX: 0.7, ease: 'none', scrollTrigger: { trigger: foot, start: 'top bottom', end: 'top 20%', scrub: true } });
         gsap.fromTo($('.lx-foot .ghost', foot), { xPercent: -40 }, { xPercent: -60, ease: 'none', scrollTrigger: { trigger: foot, start: 'top bottom', end: 'bottom bottom', scrub: true } });
         const fChars = new SplitText($('.lx-foot .big .disp', foot), { type: 'chars', charsClass: 'char' }).chars;
         gsap.fromTo(fChars, { yPercent: 110, opacity: 0 }, { yPercent: 0, opacity: 1, stagger: { each: 0.04, from: 'center' }, duration: 1.4, ease: 'lux', scrollTrigger: { trigger: foot, start: 'top 40%' } });
