@@ -1,13 +1,14 @@
 import { usePage } from '@inertiajs/react';
 import { useEffect, useRef } from 'react';
 import { Mail, Office, Phone, WhatsApp } from '../Components/Icons';
-import { Cta, PageHero, Split } from '../Components/Site';
+import OfficeMap from '../Components/OfficeMap';
+import { PageHero, Split } from '../Components/Site';
 import SiteLayout from '../Layouts/SiteLayout';
 import { initLuxSections } from '../lib/lux';
 import { Faq, HomeContact } from './Home';
 
 /* Contact: the photo hero, the landing page's contact section (same form), "Questions, answered", then the office:
-   map on the left, phone / email / office / WhatsApp on the right. Every plain background is the landing page's
+   map on the left, phone / email / office / WhatsApp on the right (each card turns navy under the mouse). Every plain background is the landing page's
    lavender; colours and text selection follow the landing page. */
 export default function Contact({ faqs = [] }) {
     const { site } = usePage().props;
@@ -17,24 +18,20 @@ export default function Contact({ faqs = [] }) {
 
     return (
         <SiteLayout title="Contact" tower={false}>
-            <PageHero className="lux-gold" crumb="Contact" image="/images/skyline-up.webp" style={{ minHeight: '78svh' }} title={['Connect With', 'PTI Development', <span className="serif">Today</span>]}>
-                <p className="lead" data-hero-in>Visit our Mirpur office or WhatsApp us anytime.</p>
-            </PageHero>
+            <PageHero className="lux-gold hero-min ct-hero" crumb="Contact" image="/images/skyline-up.webp" title={['Connect With', 'PTI Development', <span className="serif">Today</span>]} />
 
             <div className="lx ct-lux" ref={lux}>
-                <HomeContact site={site} />
-                <Faq faqs={faqs} />
+                <HomeContact site={site} image="/images/lets-talk-keys.webp" />
+                <Faq faqs={faqs} openFirst />
             </div>
 
             <section className="section lux-gold ct-find" data-theme="light" data-floor="Find us">
                 <div className="wrap">
                     <div className="section-head">
-                        <span className="eyebrow" data-reveal>Our office</span>
-                        <Split>{[<>Pallabi, <span className="serif">Mirpur</span></>]}</Split>
+                        <Split>{[<>Our <span className="serif">office</span></>]}</Split>
                     </div>
                     <div className="ct-find-grid">
-                        <iframe className="map" title="PTI Development office map" loading="lazy" referrerPolicy="no-referrer-when-downgrade" data-reveal
-                            src={`https://www.google.com/maps?q=${encodeURIComponent(site.map_query || site.address)}&output=embed`} />
+                        <OfficeMap address={site.address_long || site.address} />
                         <div className="contact-cards">
                             <a className="c-card" href={`tel:${(site.phone || '').replace(/\s/g, '')}`} data-reveal><span className="ico"><Phone /></span><span><small>Call us</small><b>{site.phone}</b></span></a>
                             <a className="c-card" href={`mailto:${site.email}`} data-reveal><span className="ico"><Mail /></span><span><small>Email</small><b>{site.email}</b></span></a>
@@ -46,10 +43,6 @@ export default function Contact({ faqs = [] }) {
                     </div>
                 </div>
             </section>
-
-            <div className="lux-gold">
-                <Cta />
-            </div>
         </SiteLayout>
     );
 }

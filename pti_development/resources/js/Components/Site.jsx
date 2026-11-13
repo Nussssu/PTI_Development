@@ -1,11 +1,32 @@
 /* Small building blocks shared by every public page */
 import { router } from '@inertiajs/react';
-import { Children, Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { coverCurtain, ScrollTrigger } from '../lib/motion';
+import { Children, forwardRef, Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { coverCurtain, revealCurtain, ScrollTrigger } from '../lib/motion';
 import { Arrow, Facebook, Instagram, LinkedIn, Pin, Units } from './Icons';
 
 /* ---------- shared header menu + footer: identical on the landing page and every inner page ---------- */
-const MENU = [['/projects', 'Our Projects'], ['/contact', 'Book a visit'], ['/about', 'About'], ['/services', 'Services'], ['/contact', 'Contact']];
+const PTI_MARK = 'M0.00454068 18.3256H0V73.5928H18.4044V92H36.827V91.9728H73.5949V55.1674V18.3619H73.6085V0H0.00908136V18.3256H0.00454068ZM18.4271 18.3619H55.195V55.1674H36.7997V73.5701H18.4271V18.3619Z';
+
+/* true only for the first page shown after a fresh load / reload (Inertia visits keep this module alive) */
+export function claimPreloader() {
+    if (typeof window === 'undefined' || window.__ptiPreloaded) return false;
+    window.__ptiPreloaded = true;
+    return true;
+}
+
+/** The site preloader: only the PTI logo in the middle of a navy screen, with a loading bar under it. Motion: playLoader in lib/motion.js. */
+export const LogoPreloader = forwardRef(function LogoPreloader(_, ref) {
+    return (
+        <div className="lx-pre-host">
+            <div className="lx-pre" ref={ref} aria-hidden="true">
+                <svg className="emblem" viewBox="0 0 74 92"><path d={PTI_MARK} /></svg>
+                <div className="pre-bar"><i /></div>
+            </div>
+        </div>
+    );
+});
+
+const MENU = [['/projects', 'Our Projects'], ['/about', 'About'], ['/services', 'Services'], ['/contact#contact', 'Book a visit']];
 const FOOT_NAV = [['/', 'Home'], ['/about', 'About'], ['/services', 'Services'], ['/projects', 'Projects'], ['/contact', 'Contact']];
 
 /** Top-right "Menu" button; the site links open in a dropdown under it. `Link` decides how a link navigates. */
@@ -39,7 +60,12 @@ export function MenuDropdown({ Link = TLink }) {
 
 /** Site footer (logo, links, contact, big outlined name, legal + socials). */
 export function SiteFooter({ site, Link = TLink, ...rest }) {
-    const socials = [[site.facebook, 'Facebook', <Facebook key="f" />], [site.instagram, 'Instagram', <Instagram key="i" />], [site.linkedin, 'LinkedIn', <LinkedIn key="l" />]].filter(([href]) => href);
+    // social icons under the logo + description; each opens that network's login page
+    const socials = [
+        ['https://www.facebook.com/login/', 'Facebook', <Facebook key="f" />],
+        ['https://www.instagram.com/accounts/login/', 'Instagram', <Instagram key="i" />],
+        ['https://www.linkedin.com/login', 'LinkedIn', <LinkedIn key="l" />],
+    ];
     return (
         <footer className="footer" {...rest}>
             <div className="wrap">
@@ -47,9 +73,7 @@ export function SiteFooter({ site, Link = TLink, ...rest }) {
                     <div>
                         <Link className="footer-logo" href="/"><img src="/images/pti-logo-white.svg" alt="PTI Development" style={{ height: 64 }} /></Link>
                         <p style={{ marginTop: 24, maxWidth: '34ch', opacity: 0.7 }}>Shaping Dreams into Homes. {site.tagline}</p>
-                        {socials.length > 0 && (
-                            <div className="socials" style={{ marginTop: 24 }}>{socials.map(([href, label, icon]) => <a key={label} href={href} target="_blank" rel="noopener" aria-label={label}>{icon}</a>)}</div>
-                        )}
+                        <div className="socials" style={{ marginTop: 24 }}>{socials.map(([href, label, icon]) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}>{icon}</a>)}</div>
                     </div>
                     <div>
                         <h4>Links</h4>
@@ -74,15 +98,26 @@ export function SiteFooter({ site, Link = TLink, ...rest }) {
 export const pad = (n) => String(n).padStart(2, '0');
 
 /** Internal link that plays the "floors" curtain before visiting. */
+/** Go to another page of the site behind the logo preloader (same-page #hash links just glide there). */
+export function navigate(href) {
+    if (href === window.location.pathname) return;
+    const [path, hash] = href.split('#');
+    if (hash && path === window.location.pathname) {
+        const el = document.getElementById(hash);
+        if (el) { window.__lenis ? window.__lenis.scrollTo(el, { duration: 1.4 }) : el.scrollIntoView({ behavior: 'smooth' }); }
+        return;
+    }
+    sessionStorage.setItem('pti-nav', '1');
+    document.documentElement.classList.remove('menu-open');
+    coverCurtain(() => router.visit(href, { onFinish: () => revealCurtain() }));
+}
+
 export function TLink({ href, children, onClick, ...rest }) {
     const go = (e) => {
         onClick && onClick(e);
         if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0 || rest.target) return;
         e.preventDefault();
-        if (href === window.location.pathname) return;
-        sessionStorage.setItem('pti-nav', '1');
-        document.documentElement.classList.remove('menu-open');
-        coverCurtain(() => router.visit(href));
+        navigate(href);
     };
     return <a href={href} onClick={go} {...rest}>{children}</a>;
 }
@@ -135,7 +170,6 @@ export function ProjectCard({ project, index, total }) {
         <TLink className="p-card" href={`/projects/${project.slug}`} data-cursor="View" data-area={project.area}>
             <div className="p-card-media">
                 {project.image_url && <img src={project.image_url} alt={project.name} loading="lazy" />}
-                <span className="p-index">{pad(index + 1)} / {pad(total)}</span>
                 <span className="status">{project.status}</span>
             </div>
             <div className="p-card-body">
@@ -209,17 +243,17 @@ function FaqItem({ faq, n, open, onToggle }) {
     );
 }
 
+/** "Let's talk": laid out like the landing page's closing contact section (photo left, condensed serif + script
+    title right, on lavender), with the "Book the meeting" badge taking the form's place; it opens the Contact page. */
 export function Cta() {
     return (
-        <section className="cta" data-theme="dark" data-floor="Book a meeting">
-            <div className="cta-bg" data-parallax="12"><img src="/images/skyline-up.webp" alt="" loading="lazy" /></div>
-            <div className="wrap cta-inner">
-                <div>
-                    <span className="eyebrow" data-reveal>Let's talk</span>
-                    <Split style={{ marginTop: 22 }} className="">{['Ready to', <>Build Your <span className="serif">Dream?</span></>]}</Split>
-                    <p className="lead" data-reveal>We will show you finished and under construction projects, introduce you to the features of the areas and tell you about the real estate market in Dhaka.</p>
-                </div>
-                <TLink className="cta-badge" href="/contact" data-magnetic data-reveal aria-label="Book the meeting">
+        <section className="cta" data-theme="light" data-floor="Book a meeting">
+            <div className="cta-pic" data-reveal><img src="/images/lets-talk-keys.webp" alt="A PTI agent handing the keys of a new apartment to a smiling couple" loading="lazy" /></div>
+            <div className="cta-main">
+                <div className="cta-eyebrow" data-reveal>Let's talk</div>
+                <h2 className="cta-title" data-reveal>Ready to build <span className="cta-script">your dream?</span></h2>
+                <p className="cta-lead" data-reveal>We will show you finished and under construction projects, introduce you to the features of the areas and tell you about the real estate market in Dhaka.</p>
+                <TLink className="cta-badge" href="/contact#contact" data-magnetic data-reveal aria-label="Book the meeting">
                     <svg className="ring" viewBox="0 0 100 100"><defs><path id="cta-c" d="M50 50 m-38 0 a38 38 0 1 1 76 0 a38 38 0 1 1 -76 0" /></defs><text><textPath href="#cta-c">Book the meeting · Book the meeting ·</textPath></text></svg>
                     <Arrow size={34} />
                 </TLink>
@@ -246,7 +280,6 @@ export function PageHero({ crumb, image, imageStyle, video, children, title, sty
                     : <img src={image} alt="" style={imageStyle} />}
             </div>
             <div className="wrap">
-                <div className="crumbs" data-hero-in><TLink href="/">Home</TLink><span>/</span><span>{crumb}</span></div>
                 <HeroTitle>{title}</HeroTitle>
                 {children}
             </div>

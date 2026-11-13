@@ -7,7 +7,7 @@
   --cream: #F4EFE6;
   --stone: #E7DDCC;
   --mist: #CDD6DD;
-  --flame: #C8321F;
+  --flame: #B8955A;   /* was red; the site uses no red */
   --gold: #B8955A;
   --f-disp: "Libre Caslon Condensed", "Instrument Serif", Georgia, serif;
   --f-script: "Mrs Saint Delafield", cursive;
@@ -518,6 +518,11 @@
 .lx-vision--photo .label { position: static; display: flex; align-items: center; gap: 14px; margin: 0 0 clamp(18px, 2.4vw, 34px) 22vw;
   font-size: clamp(12px, .95vw, 15px); letter-spacing: .3em; color: #F0C9A8; }
 @media (max-width: 760px) { .lx-vision--photo .label { margin-left: 8vw; } }
+/* About: the vision text is smaller and sits still, left-aligned right under "Our vision" */
+.lx-vision--photo .rows { left: 22vw; right: 8vw; white-space: normal; }
+.lx-vision--photo .label { margin-left: 0; }
+.lx-vision--photo .row { font-size: clamp(26px, 2.7vw, 46px); line-height: 1.12; will-change: auto; }
+@media (max-width: 760px) { .lx-vision--photo .rows { left: 8vw; right: 8vw; } .lx-vision--photo .label { margin-left: 0; } .lx-vision--photo .row { font-size: clamp(22px, 6.4vw, 30px); } }
 /* About: vision + values side by side as one sideways track (desktop; see AboutTrack in About.jsx) */
 .ab-track-on .ab-track { display: flex; width: 200vw; will-change: transform; }
 .ab-track-on .ab-track > section { flex: none; width: 100vw; }
@@ -540,7 +545,7 @@
 .lx-stop b { display: block; font-family: var(--f-micro); font-stretch: 125%; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
 .lx-stop small { display: block; font-family: var(--f-micro); font-stretch: 125%; font-size: 10px; letter-spacing: .14em; opacity: .6; margin: 3px 0 10px; text-transform: uppercase; }
 .lx-stop i { display: block; width: 8px; height: 8px; margin: 0 auto; border-radius: 50%; background: var(--ink); box-shadow: 0 0 0 6px rgba(11,38,68,.08); }
-.lx-stop.office i { background: var(--flame); box-shadow: 0 0 0 6px rgba(200,50,31,.15); }
+.lx-stop.office i { background: var(--flame); box-shadow: 0 0 0 6px rgba(184,149,90,.18); }
 .lx-place .peek { position: absolute; left: 0; top: 10vh; width: 2.4vw; height: 80vh; overflow: hidden; }
 .lx-place .peek img { height: 100%; width: auto; }
 /* "The city you'll call home" content on the lower part of the cloud photo: same type, no box of its own */
@@ -673,4 +678,59 @@
 /* reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .lx *, .lx *::before, .lx *::after { animation: none !important; transition: none !important; }
+}
+
+/* =========================================================
+   Landing page, PHONES ONLY (max 860px)
+   ========================================================= */
+.lx-hscroll .h-slides { display: contents; }   /* desktop: the panels stay direct parts of the sideways track */
+@media (max-width: 860px) {
+  /* "We are in numbers": two square cards side by side */
+  .lx-innum .n-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .lx-innum .n-card { aspect-ratio: 1 / 1; }
+  .lx-innum .n-over { padding: 12px; }
+  .lx-innum .n-val { font-size: clamp(26px, 8.5vw, 44px); }
+  .lx-innum .n-label { margin-top: 6px; font-size: clamp(11px, 3.3vw, 15px); }
+
+  /* "Our Projects" aerial photo: the roundabout (the crossing roads) in the middle of the screen */
+  .lx-aerial .a-img img { left: 0; width: 100%; object-position: 55% 50%; }
+
+  /* "Our Projects": the projects in an off-canvas swipe slider (next card peeks in), square photos, smaller text */
+  .lx-hscroll .h-slides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-left: 6vw; gap: 4vw;
+    padding: 0 6vw; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .lx-hscroll .h-slides::-webkit-scrollbar { display: none; }
+  .lx-hscroll .h-slides { cursor: grab; user-select: none; }   /* can be dragged with the mouse too */
+  .lx-hscroll .h-slides > .h-panel, .lx-hscroll .h-slides > .h-panel.h-last { flex: 0 0 84vw; width: 84vw; padding: 7vh 0 6vh; scroll-snap-align: start; }
+  .lx-hscroll .h-slides > .h-panel:last-child { margin-right: 6vw; }
+  .lx-hscroll .h-img { aspect-ratio: 1 / 1; }
+  .lx-hscroll .h-title { font-size: clamp(30px, 9vw, 46px); margin-bottom: 2.4vh; }
+  .lx-hscroll .h-head { font-size: clamp(20px, 6vw, 28px); margin-bottom: 10px; }
+  .lx-hscroll .h-text { font-size: 13px; }
+  .lx-hscroll .h-meta { margin-top: 12px; }
+  .lx-hscroll .h-cta { margin-top: 3vh; width: 104px; height: 104px; }
+
+  /* "The city you'll call home": "Call home" stays together on one line, inside the screen */
+  .lx-place .head { width: 100%; }
+  .lx-place .head .disp { font-size: 13vw; white-space: nowrap; }
+  .lx-place .head .script { font-size: 13vw; }
+  .lx-place .head .l2 { margin-left: 8%; }
+
+  /* the heading sits on the photo (its lower part, below the clouds), in white over a soft shade */
+  .lx-clouds .cl-scene::after { content: ""; position: absolute; left: 0; right: 0; top: 45%; bottom: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(7, 26, 48, 0) 0%, rgba(7, 26, 48, .45) 100%); }
+  .lx-clouds .cl-place { padding: 48px 6vw 56px; }
+  .lx-clouds .cl-place .head { position: absolute; left: 6vw; right: 6vw; bottom: 100%; width: auto; margin: 0; padding-bottom: 7vw; }
+  .lx-clouds .cl-place .head .disp, .lx-clouds .cl-place .head .script { color: #fff; text-shadow: 0 4px 24px rgba(7, 26, 48, .45); }
+  /* the two parts below (text, then route) at a normal, even spacing */
+  .lx-clouds .cl-place .lower { margin-top: 0; gap: 40px; }
+  .lx-clouds .cl-place .lower h3 { margin-bottom: 12px; }
+  .lx-clouds .cl-place .lx-route { height: 320px; }
+
+  /* the route: the first and last stops' labels open inwards, so none is cut off at the screen edge */
+  .lx-place .lx-stop b, .lx-place .lx-stop small { white-space: normal; max-width: 30vw; }
+  .lx-place .lx-stop:nth-child(2) { transform: translate(-4px, -100%); text-align: left; }
+  .lx-place .lx-stop:nth-child(2) i { margin-left: 0; }
+  .lx-place .lx-stop:last-child { transform: translate(calc(-100% + 4px), -100%); text-align: right; }
+  .lx-place .lx-stop:last-child i { margin-right: 0; margin-left: auto; }
+  .lx-place .lx-stop:last-child b, .lx-place .lx-stop:last-child small { margin-left: auto; }
 }

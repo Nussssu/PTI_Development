@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
+import { Office, Pin } from '../Components/Icons';
 import { Odometer, Split, TLink } from '../Components/Site';
 import SiteLayout from '../Layouts/SiteLayout';
 import { initLuxSections } from '../lib/lux';
@@ -124,13 +125,11 @@ function AboutHero() {
                     <div className="ab-shade" />
                 </div>
                 <div className="ab-intro">
-                    <div className="crumbs" data-in><TLink href="/">Home</TLink><span>/</span><span>About</span></div>
                     <h1>
                         {['Our Legacy of', 'Construction', <span className="serif" key="s">Excellence</span>].map((l, i) => (
                             <span className="line-mask" key={i}><span>{l}</span></span>
                         ))}
                     </h1>
-                    <p className="lead" data-in>From modern property development to land share investment and full legal support, PTI delivers end-to-end solutions for Dhaka's real estate market.</p>
                 </div>
                 <div className="ab-story-wrap">
                     <div className="ab-story">
@@ -151,7 +150,7 @@ function AboutHero() {
    only the travelling lines are kept. Motion: the .lx-vision block in lib/lux.js. */
 function AboutVision() {
     return (
-        <section className="lx-vision lx-vision--photo" data-tone="dark">
+        <section className="lx-vision lx-vision--photo" data-tone="dark" id="vision" data-hash-offset="0.5">
             <div className="v-photo" aria-hidden="true"><img src="/images/hd/construction.webp" alt="" loading="lazy" /></div>
             <div className="rows disp">
                 <div className="label micro">Our vision</div>
@@ -209,11 +208,7 @@ function AboutTrack({ values }) {
                     },
                 },
             });
-            /* 1. vision: the three rows travel in from the right, the photo eases out, the label fades in */
-            rows.forEach((r, i) => {
-                const from = [40, 62, 28][i] || 40;
-                tl.fromTo(r, { x: () => innerWidth * from / 100 }, { x: () => -(r.scrollWidth - innerWidth * 0.62), duration: V }, 0);
-            });
+            /* 1. vision: the text stays fixed under "Our vision" (no travel); the photo eases out, the label fades in */
             const label = vision.querySelector('.label');
             if (label) tl.fromTo(label, { opacity: 0 }, { opacity: 1, duration: 0.15 * V }, 0);
             tl.fromTo(vision.querySelector('.v-photo img'), { scale: 1.12 }, { scale: 1, duration: V }, 0);
@@ -271,16 +266,27 @@ export default function About({ values, stats, team, projects = [], services = [
             {team.length > 0 && (
                 <section className="section lux-gold" data-theme="light" data-floor="Our people">
                     <div className="wrap">
-                        <div className="section-head split">
-                            <div>
-                                <Split>{['Meet Our', <span className="serif">Visionaries</span>]}</Split>
-                            </div>
+                        <div className="section-head team-head">
+                            <Split>{['Meet Our Visionaries']}</Split>
                         </div>
                         <div className="team-grid">
                             {team.map((m, i) => (
-                                <div className={`member ${i < 2 ? 'lead-member' : ''}`} data-reveal key={m.id}>
-                                    <div className="member-photo">{m.photo_url && <img src={m.photo_url} alt={m.name} loading="lazy" />}</div>
-                                    <div><h3>{m.name}</h3><small>{m.role}</small></div>
+                                /* hover (or tap / keyboard focus): the photo eases down into a small square avatar and a
+                                   profile card (cover, name, role, workplace, contact) fills the frame */
+                                <div className={`member ${i < 2 ? 'lead-member' : ''}`} data-reveal key={m.id} tabIndex={0} aria-label={`${m.name}, ${m.role}`}>
+                                    <div className="member-photo">
+                                        <div className="m-profile" aria-hidden="true">
+                                            <div className="m-cover" />
+                                            <div className="m-info">
+                                                <b>{m.name}</b>
+                                                <span className="m-role">{m.role}</span>
+                                                <span className="m-row"><Office />Works at PTI Development</span>
+                                                <span className="m-row"><Pin />PTI Development office, Mirpur, Dhaka</span>
+                                                <TLink className="m-btn" href="/contact" tabIndex={-1}>Contact</TLink>
+                                            </div>
+                                        </div>
+                                        {m.photo_url && <img src={m.photo_url} alt={m.name} loading="lazy" />}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -289,7 +295,7 @@ export default function About({ values, stats, team, projects = [], services = [
             )}
 
             <div className="lx" ref={quote}>
-                <Quote flower={false} sideImage="/images/quote-construction.webp" />
+                <Quote flower={false} sideImage="/images/about-pti-street.webp" />
             </div>
         </SiteLayout>
     );

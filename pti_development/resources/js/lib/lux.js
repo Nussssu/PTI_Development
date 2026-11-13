@@ -641,7 +641,7 @@ export function initLux(root, { skipIntro = false } = {}) {
                 const g = {};
                 const calc = () => {
                     const wide = innerWidth > 860;
-                    g.S = wide ? 0.62 : 0.72;
+                    g.S = wide ? 0.62 : 1;      // phones: no shrink, the picture is cut to a square instead (see below)
                     g.dx = (wide ? Math.max(28, innerWidth * 0.045) : innerWidth * 0.03);
                     g.dy = innerHeight * (wide ? 0.065 : 0.045);
                 };
@@ -701,6 +701,19 @@ export function initLux(root, { skipIntro = false } = {}) {
                       .to(chars, { yPercent: 0, rotate: 0, opacity: 1, filter: 'blur(0px)', duration: 0.75, ease: 'expo.out', stagger: { each: 0.06, from: 'center' } }, 2.5)
                       .to(title, { letterSpacing: '0em', scale: 1, duration: 1.0, ease: 'expo.out' }, 2.5)
                       .to({}, { duration: 0.4 });
+                    /* phones: the two halves together form a centred square (the picture cut, not squeezed), clear of the
+                       heading above and the text below; at step 3 the square opens out to the full page */
+                    if (innerWidth <= 860) {
+                        const sq = () => {
+                            const W = innerWidth, H = innerHeight, side = Math.min(W * 0.86, H * 0.56);
+                            return { t: (H - side) / 2, o: (W - side) / 2, m: W / 2 - 1 };
+                        };
+                        const clipL = (full) => () => { const q = sq(); return full ? `inset(0px ${q.m}px 0px 0px)` : `inset(${q.t}px ${q.m}px ${q.t}px ${q.o}px)`; };
+                        const clipR = (full) => () => { const q = sq(); return full ? `inset(0px 0px 0px ${q.m}px)` : `inset(${q.t}px ${q.o}px ${q.t}px ${q.m}px)`; };
+                        tl.fromTo(l, { clipPath: clipL(false) }, { clipPath: clipL(true), duration: 0.85, ease: 'power2.inOut', immediateRender: true }, 2.05)
+                          .fromTo(r, { clipPath: clipR(false) }, { clipPath: clipR(true), duration: 0.85, ease: 'power2.inOut', immediateRender: true }, 2.05);
+                        cleanups.push(() => gsap.set(halves, { clearProps: 'clipPath' }));
+                    }
                 }
             }
         }
@@ -813,7 +826,7 @@ export function initLuxSections(root) {
         /* ---------- vision: three rows of type travel horizontally ---------- */
         const vision = $('.lx-vision', root);
         if (vision) {
-        const rows = $$('.lx-vision .row', vision);
+        const rows = vision.classList.contains('lx-vision--photo') ? [] : $$('.lx-vision .row', vision); // About: text stays still
         const bigs = $$('.lx-vision .big span', vision);
         const countryEl = $('.lx-vision .country', vision);
         const country = countryEl ? new SplitText(countryEl, { type: 'chars', charsClass: 'char' }).chars : [];

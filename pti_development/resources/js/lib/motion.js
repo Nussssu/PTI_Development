@@ -137,9 +137,17 @@ export function initMotion(root) {
         const track = $('.ph-track', root);
         if (!track) return;
         const section = track.closest('.projects-h');
-        const dist = () => track.scrollWidth - window.innerWidth + window.innerWidth * 0.05;
+        /* project page "Related Projects": the strip travels exactly until the last card's right edge meets the page
+           margin, so it ends on a whole card with nothing cut off at the right */
+        const related = section.classList.contains('pj-related');
+        const relEnd = () => {
+            const last = track.lastElementChild;
+            const margin = parseFloat(getComputedStyle(track).paddingLeft) || 0;
+            return Math.max(1, last.offsetLeft + last.offsetWidth - (window.innerWidth - margin));
+        };
+        const dist = () => (related ? relEnd() : track.scrollWidth - window.innerWidth + window.innerWidth * 0.05);
         const tw = gsap.to(track, {
-            x: () => -dist() + window.innerWidth * 0.3 - 40, ease: 'none',
+            x: () => (related ? -relEnd() : -dist() + window.innerWidth * 0.3 - 40), ease: 'none',
             scrollTrigger: { trigger: section, start: 'top top', end: () => '+=' + dist(), pin: true, scrub: 1, invalidateOnRefresh: true, anticipatePin: 1 },
         });
         const bar = $('.ph-progress i', section);
@@ -214,32 +222,43 @@ function buildIntro(root) {
     return tl;
 }
 
-/* Floors-stack page transition */
+/* Page change: the same logo preloader as a fresh load (PTI logo in the middle + loading bar). It lives on <body>,
+   outside React, so it stays up while Inertia swaps the page and is lifted once the new page is in. */
+const PTI_MARK = 'M0.00454068 18.3256H0V73.5928H18.4044V92H36.827V91.9728H73.5949V55.1674V18.3619H73.6085V0H0.00908136V18.3256H0.00454068ZM18.4271 18.3619H55.195V55.1674H36.7997V73.5701H18.4271V18.3619Z';
+let navLoader = null, navSafety = 0;
 export function coverCurtain(onDone) {
-    const bands = document.querySelectorAll('.floors-curtain i');
-    if (!bands.length || prefersReducedMotion()) return onDone();
-    gsap.to(bands, { scaleX: 1, duration: 0.55, stagger: 0.06, ease: 'power3.inOut', onComplete: onDone });
+    if (prefersReducedMotion()) return onDone();
+    if (navLoader) navLoader.remove();
+    navLoader = document.createElement('div');
+    navLoader.className = 'lx-pre-host is-nav';
+    navLoader.setAttribute('aria-hidden', 'true');
+    navLoader.innerHTML = `<div class="lx-pre"><svg class="emblem" viewBox="0 0 74 92"><path d="${PTI_MARK}"/></svg><div class="pre-bar"><i></i></div></div>`;
+    document.body.appendChild(navLoader);
+    const pre = navLoader.firstChild;
+    gsap.fromTo(pre, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power2.out', onComplete: onDone });
+    gsap.fromTo($('.emblem', pre), { scale: 0.86 }, { scale: 1, duration: 0.6, ease: 'expo.out' });
+    clearTimeout(navSafety);
+    navSafety = setTimeout(revealCurtain, 12000);   // never leave the screen covered (e.g. a failed visit)
 }
 
 export function revealCurtain() {
-    const bands = document.querySelectorAll('.floors-curtain i');
-    gsap.set(bands, { scaleX: 1, transformOrigin: (i) => (i % 2 ? 'left' : 'right') });
-    gsap.to(bands, { scaleX: 0, duration: 0.6, stagger: 0.05, ease: 'power3.inOut', delay: 0.05 });
+    clearTimeout(navSafety);
+    const host = navLoader;
+    if (!host) return;
+    navLoader = null;
+    gsap.to(host.firstChild, { clipPath: 'inset(0% 0% 100% 0%)', duration: 0.9, ease: 'expo.inOut', delay: 0.15, onComplete: () => host.remove() });
 }
 
+/* the site preloader: the PTI logo fades and scales in at the centre, holds, then the navy cover lifts away and the
+   page intro plays */
 export function playLoader(loaderEl, onReveal, onGone) {
-    const path = $('path', loaderEl);
-    const cnt = $('.loader-count span', loaderEl);
-    const o = { v: 0 };
-    gsap.set(path, { strokeDasharray: 1, strokeDashoffset: 1 });
+    const emblem = $('.emblem', loaderEl), bar = $('.pre-bar', loaderEl);
+    gsap.set(emblem, { opacity: 0, scale: 0.82 });
     return gsap.timeline({ onComplete: onGone })
-        .to(path, { strokeDashoffset: 0, duration: 1.1, ease: 'power2.inOut' }, 0)
-        .to(o, { v: 100, duration: 1.3, ease: 'power2.inOut', onUpdate: () => { cnt.textContent = String(Math.round(o.v)).padStart(3, '0'); } }, 0)
-        .to($('.loader-bar i', loaderEl), { scaleX: 1, duration: 1.3, ease: 'power2.inOut' }, 0)
-        .to(path, { fill: '#F0C9A8', duration: 0.4 }, 1)
-        .to($('.loader-inner', loaderEl), { y: -30, opacity: 0, duration: 0.5, ease: 'power2.in' }, 1.45)
-        .add(onReveal, 1.6)
-        .to(loaderEl, { clipPath: 'inset(0 0 100% 0)', duration: 1, ease: 'expo.inOut' }, 1.7);
+        .to(emblem, { opacity: 1, scale: 1, duration: 1.1, ease: 'expo.out' }, 0.1)
+        .to([emblem, bar], { opacity: 0, duration: 0.6, ease: 'power2.in' }, 1.5)
+        .add(onReveal, 1.8)
+        .to(loaderEl, { clipPath: 'inset(0% 0% 100% 0%)', duration: 1.1, ease: 'expo.inOut' }, 1.7);
 }
 
 export { gsap, ScrollTrigger };

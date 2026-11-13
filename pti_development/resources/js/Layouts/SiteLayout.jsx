@@ -1,7 +1,7 @@
 import { Head, usePage } from '@inertiajs/react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { MenuDropdown, SiteFooter, TLink } from '../Components/Site';
-import { initMotion, playLoader, prefersReducedMotion, revealCurtain } from '../lib/motion';
+import { claimPreloader, LogoPreloader, MenuDropdown, SiteFooter, TLink } from '../Components/Site';
+import { initMotion, playLoader, prefersReducedMotion, revealCurtain, ScrollTrigger } from '../lib/motion';
 import RisingTower from '../lib/tower';
 
 const SiteCtx = createContext({ openVideo: () => {} });
@@ -50,8 +50,8 @@ function SiteChrome() {
     );
 }
 
-/** `tower={false}` drops the Rising Tower and gives its right-hand lane back to the content. */
-export default function SiteLayout({ title, children, tower: withTower = true }) {
+/** The Rising Tower is off across the site; `tower` (true) would bring it back and reserve its right-hand lane. */
+export default function SiteLayout({ title, children, tower: withTower = false }) {
     const page = usePage();
     const site = page.props.site || {};
     const url = page.url;
@@ -59,7 +59,8 @@ export default function SiteLayout({ title, children, tower: withTower = true })
     const loaderRef = useRef(null);
     const motionRef = useRef(null);
     const [video, setVideo] = useState(null);
-    const [showLoader] = useState(() => typeof window !== 'undefined' && sessionStorage.getItem('pti-seen') !== '1' && !prefersReducedMotion());
+    // the logo preloader plays on every fresh page load (not on moves inside the site)
+    const [showLoader] = useState(() => !prefersReducedMotion() && claimPreloader());
     const [loaderGone, setLoaderGone] = useState(false);
 
     const path = url.split('?')[0];
@@ -75,16 +76,28 @@ export default function SiteLayout({ title, children, tower: withTower = true })
         document.documentElement.classList.toggle('no-tower', !withTower);
         const tower = withTower && sections.length ? new RisingTower(sections, { onFloorClick: (s) => motion.scrollTo(s) }) : null;
         const timers = [];
+        /* a link like /about#vision: once the page has settled, glide to that section. Inside a pinned stage the
+           pin's own spacer is the target; data-hash-offset (screen heights) scrolls a little into the pin. */
+        const toHash = () => {
+            const id = decodeURIComponent(window.location.hash.slice(1));
+            const el = id && document.getElementById(id);
+            if (!el) return;
+            ScrollTrigger.refresh();
+            const box = el.closest('.pin-spacer') || el;
+            const y = box.getBoundingClientRect().top + window.scrollY + (+el.dataset.hashOffset || 0) * window.innerHeight;
+            if (motion.lenis) motion.lenis.scrollTo(y, { duration: 1.8 });
+            else window.scrollTo({ top: y, behavior: 'smooth' });
+        };
         const start = () => {
             motion.intro.play();
             timers.push(setTimeout(() => tower && tower.start(), 700));
+            timers.push(setTimeout(toHash, 900));
         };
 
         const fromNav = sessionStorage.getItem('pti-nav') === '1';
         sessionStorage.removeItem('pti-nav');
         let loaderTl;
         if (showLoader && loaderRef.current) {
-            sessionStorage.setItem('pti-seen', '1');
             loaderTl = playLoader(loaderRef.current, start, () => setLoaderGone(true));
         } else {
             if (fromNav) revealCurtain();
@@ -116,24 +129,9 @@ export default function SiteLayout({ title, children, tower: withTower = true })
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    /* ---------- cursor + magnetic ---------- */
+    /* ---------- magnetic buttons (the system mouse pointer is used as is) ---------- */
     useEffect(() => {
         if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-        const c = document.createElement('div');
-        c.className = 'cursor';
-        c.innerHTML = '<div class="cursor-ring"></div><div class="cursor-dot"></div>';
-        document.body.appendChild(c);
-        const ring = c.firstChild, dot = c.lastChild;
-        let mx = innerWidth / 2, my = innerHeight / 2, rx = mx, ry = my, raf;
-        const move = (e) => { mx = e.clientX; my = e.clientY; dot.style.transform = `translate(${mx}px,${my}px)`; };
-        const loop = () => { rx += (mx - rx) * 0.16; ry += (my - ry) * 0.16; ring.style.transform = `translate(${rx}px,${ry}px)`; raf = requestAnimationFrame(loop); };
-        const over = (e) => {
-            const lab = e.target.closest('[data-cursor]');
-            const link = e.target.closest('a, button, .tw-floor');
-            c.classList.toggle('has-label', !!lab);
-            c.classList.toggle('is-link', !!link && !lab);
-            ring.textContent = lab ? lab.dataset.cursor : '';
-        };
         const magMove = (e) => {
             const m = e.target.closest('[data-magnetic]');
             if (!m) return;
@@ -147,18 +145,11 @@ export default function SiteLayout({ title, children, tower: withTower = true })
             m.style.transform = '';
             setTimeout(() => { m.style.transition = ''; }, 600);
         };
-        addEventListener('mousemove', move);
-        document.addEventListener('mouseover', over);
         document.addEventListener('mousemove', magMove);
         document.addEventListener('mouseout', magOut);
-        loop();
         return () => {
-            cancelAnimationFrame(raf);
-            removeEventListener('mousemove', move);
-            document.removeEventListener('mouseover', over);
             document.removeEventListener('mousemove', magMove);
             document.removeEventListener('mouseout', magOut);
-            c.remove();
         };
     }, []);
 
@@ -191,17 +182,7 @@ export default function SiteLayout({ title, children, tower: withTower = true })
                     </div>
                 </div>
 
-                <div className="floors-curtain" aria-hidden="true">{Array.from({ length: 6 }, (_, i) => <i key={i} />)}</div>
-
-                {showLoader && !loaderGone && (
-                    <div className="loader" ref={loaderRef}>
-                        <div className="loader-inner">
-                            <svg viewBox="0 0 74 92"><path d="M0.00454068 18.3256H0V73.5928H18.4044V92H36.827V91.9728H73.5949V55.1674V18.3619H73.6085V0H0.00908136V18.3256H0.00454068ZM18.4271 18.3619H55.195V55.1674H36.7997V73.5701H18.4271V18.3619Z" pathLength="1" /></svg>
-                            <div className="loader-bar"><i></i></div>
-                            <div className="loader-count">LAYING FOUNDATION <span>000</span></div>
-                        </div>
-                    </div>
-                )}
+                {showLoader && !loaderGone && <LogoPreloader ref={loaderRef} />}
             </div>
         </SiteCtx.Provider>
     );

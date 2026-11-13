@@ -22,3 +22,5 @@ vendor/
 # Test & build caches
 .phpunit.result.cache
 .phpunit.cache/
+vite-hot*
+

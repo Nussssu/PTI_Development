@@ -115,8 +115,12 @@ class DatabaseSeeder extends Seeder
 
         // Placeholder carried over from the original site. Replace it from the admin panel.
         $this->replace(Testimonial::class, [
-            ['name' => 'Hannah Schmitt', 'role' => 'Owner PTI Dream Tower-1', 'is_published' => true,
-                'quote' => 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cursus nibh mauris, nec turpis orci lectus maecenas. Suspendisse sed magna eget nibh in turpis. Consequat duis diam lacus arcu.'],
+            ['name' => 'Tanvir Ahmed', 'role' => 'Apartment owner, PTI Dream Tower-1', 'is_published' => true,
+                'quote' => 'From the first site visit to the day we got our keys, PTI kept every promise. The paperwork was clear, the handover was on time, and the building feels even better than the plans.'],
+            ['name' => 'Farhana Rahman', 'role' => 'Homeowner, Mirpur', 'is_published' => true,
+                'quote' => 'What we valued most was the honesty. Every cost was explained up front, and the team was always there to answer our questions. Our family finally has a home we are proud of.'],
+            ['name' => 'Mahmudul Hasan', 'role' => 'Land owner & joint-venture partner', 'is_published' => true,
+                'quote' => 'I handed over my family land with a lot of worry. PTI built with real care for quality, shared updates at every stage and delivered exactly what was agreed.'],
         ]);
     }
 

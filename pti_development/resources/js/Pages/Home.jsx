@@ -1,20 +1,20 @@
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import '../../css/lux.css';
 import { gsap } from 'gsap';
 import { initLux } from '../lib/lux';
-import { Field, MenuDropdown, SiteFooter } from '../Components/Site';
+import { claimPreloader, Field, MenuDropdown, navigate, SiteFooter } from '../Components/Site';
 
 const MARK = 'M0.00454068 18.3256H0V73.5928H18.4044V92H36.827V91.9728H73.5949V55.1674V18.3619H73.6085V0H0.00908136V18.3256H0.00454068ZM18.4271 18.3619H55.195V55.1674H36.7997V73.5701H18.4271V18.3619Z';
 const Mark = ({ className }) => <svg className={className} viewBox="0 0 74 92" aria-hidden="true"><path d={MARK} /></svg>;
 const B = '/images/botanical/';
 const pad = (n) => String(n).padStart(2, '0');
 
-/* internal navigation (landing page has its own chrome, so a plain visit) */
+/* internal navigation: the same logo preloader as every other page change */
 const go = (href) => (e) => {
     if (e.metaKey || e.ctrlKey || e.shiftKey) return;
     e.preventDefault();
-    router.visit(href);
+    navigate(href);
 };
 /* link for the shared header menu / footer on this page */
 const HomeLink = ({ href, onClick, ...rest }) => <a href={href} onClick={(e) => { onClick?.(e); go(href)(e); }} {...rest} />;
@@ -97,7 +97,7 @@ function Hero() {
             <section className="lx-hero" data-tone="dark">
                 <div className="hero-stage">
                     <div className="hero-tower">
-                        <img src="/images/hero-tower-pool-dusk.webp" alt="PTI residential tower lit up at dusk, rising above palms, garden lights and a long swimming pool" fetchpriority="high" draggable="false" />
+                        <img src="/images/hero-tower-dusk.webp" alt="PTI residential tower at dusk, rising above flowering trees, palms and a lit swimming pool" fetchpriority="high" draggable="false" />
                         <div className="tower-grade" />
                     </div>
                 </div>
@@ -189,8 +189,19 @@ function Arch({ values, site }) {
  * scene below it and the scene's top edge melts into that colour, so the picture and the page read as one
  * surface. The quote sits in that sky. Testimonials come from the admin panel. Motion lives in lib/lux.js.
  */
-function Says({ testimonials }) {
-    if (!testimonials.length) return null;
+/* shown when the admin panel has no real testimonials yet (placeholder "Lorem ipsum" entries are skipped) */
+const CLIENT_SAYS = [
+    { id: 'cs1', name: 'Tanvir Ahmed', role: 'Apartment owner, PTI Dream Tower-1', photo_url: null,
+      quote: 'From the first site visit to the day we got our keys, PTI kept every promise. The paperwork was clear, the handover was on time, and the building feels even better than the plans.' },
+    { id: 'cs2', name: 'Farhana Rahman', role: 'Homeowner, Mirpur', photo_url: null,
+      quote: 'What we valued most was the honesty. Every cost was explained up front, and the team was always there to answer our questions. Our family finally has a home we are proud of.' },
+    { id: 'cs3', name: 'Mahmudul Hasan', role: 'Land owner & joint-venture partner', photo_url: null,
+      quote: 'I handed over my family land with a lot of worry. PTI built with real care for quality, shared updates at every stage and delivered exactly what was agreed.' },
+];
+
+function Says({ testimonials: fromAdmin }) {
+    const real = fromAdmin.filter((t) => t.quote && !/lorem ipsum/i.test(t.quote));
+    const testimonials = real.length ? real : CLIENT_SAYS;
     return (
         <section className="lx-says" data-tone="light">
             <div className="s-band">
@@ -335,19 +346,68 @@ function Showcase({ projects: all }) {
     /* Darul Fazle Tower: its new HD photo in this section */
     projects.forEach((p, i) => { if (/darul\s*fazle/i.test(p.name)) projects[i] = { ...p, image: null, image_url: '/images/projects-hd/darul-fazle-tower.webp' }; });
     const last = projects.length - 1;
+    /* phones: the project slider can also be dragged sideways with the mouse (click and drag); a drag never opens a link */
+    const slides = useRef(null);
+    useEffect(() => {
+        const el = slides.current;
+        if (!el) return undefined;
+        let down = false, moved = false, startX = 0, startLeft = 0;
+        const isSlider = () => el.scrollWidth > el.clientWidth + 1 && getComputedStyle(el).display === 'flex';
+        const onDown = (e) => {
+            if (e.pointerType !== 'mouse' || e.button !== 0 || !isSlider()) return;
+            down = true; moved = false; startX = e.clientX; startLeft = el.scrollLeft;
+            el.style.scrollSnapType = 'none';
+            el.style.cursor = 'grabbing';
+        };
+        const onMove = (e) => {
+            if (!down) return;
+            const dx = e.clientX - startX;
+            if (Math.abs(dx) > 4) moved = true;
+            el.scrollLeft = startLeft - dx;
+            e.preventDefault();
+        };
+        const onUp = () => {
+            if (!down) return;
+            down = false;
+            el.style.cursor = '';
+            /* settle on the nearest project, then hand the snapping back to the browser */
+            const panels = [...el.children];
+            const pad = parseFloat(getComputedStyle(el).scrollPaddingLeft) || 0;
+            const target = panels.reduce((best, p) => (Math.abs(p.offsetLeft - pad - el.scrollLeft) < Math.abs(best.offsetLeft - pad - el.scrollLeft) ? p : best), panels[0]);
+            el.scrollTo({ left: target.offsetLeft - pad, behavior: 'smooth' });
+            setTimeout(() => { el.style.scrollSnapType = ''; }, 450);
+        };
+        const onClick = (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } };
+        const noDrag = (e) => e.preventDefault();   // stop the browser's own image drag
+        el.addEventListener('pointerdown', onDown);
+        window.addEventListener('pointermove', onMove);
+        window.addEventListener('pointerup', onUp);
+        el.addEventListener('click', onClick, true);
+        el.addEventListener('dragstart', noDrag);
+        return () => {
+            el.removeEventListener('pointerdown', onDown);
+            window.removeEventListener('pointermove', onMove);
+            window.removeEventListener('pointerup', onUp);
+            el.removeEventListener('click', onClick, true);
+            el.removeEventListener('dragstart', noDrag);
+        };
+    }, []);
     return (
         <div className="lx-hscroll" data-tone="light">
             <div className="h-track">
                 <Aerial />
+                {/* phones: the projects sit in a sideways swipe slider; desktop: this wrapper is layout-neutral (display: contents) */}
+                <div className="h-slides" ref={slides}>
                 {projects.map((p, i) => (
                     <TrackPanel key={p.id} lines={titleLines(p.name)} img={hdImage(p)} alt={p.name}
                         head={p.location}
                         text={p.description || `${p.units} thoughtfully planned residences by PTI Development, with clear pricing, documented paperwork and lasting quality.`}
-                        meta={<><span>{pad(i + 1)} / {pad(projects.length)}</span><span>{p.units} units</span><span>{p.status}</span></>}
+                        meta={<><span>{p.units} units</span><span>{p.status}</span></>}
                         href="/projects" last={i === last} cta={i === last ? <>View all<br />projects</> : null}>
                         {i === last && <div className="c-flower tr" aria-hidden="true"><canvas className="c-flora" data-src={`${B}projects-tr-white.webp`} data-anchor="top" data-side="-1" data-pads="0.09,0,0,0.09" /></div>}
                     </TrackPanel>
                 ))}
+                </div>
             </div>
         </div>
     );
@@ -455,7 +515,7 @@ function Merge() {
             <div className="m-copy">
                 <span className="m-rule v" aria-hidden="true" />
                 <p className="m-desc">Every PTI home starts with light, air and the street around it: calm proportions, honest materials and spaces planned to be lived in for generations.</p>
-                <a className="micro m-cta" href="/about" onClick={go('/about')}><span>Explore our vision</span><i aria-hidden="true" /></a>
+                <a className="micro m-cta" href="/about#vision" onClick={go('/about#vision')}><span>Explore our vision</span><i aria-hidden="true" /></a>
             </div>
             <div className="m-shade" aria-hidden="true" />
             <h2 className="disp m-title">Contact</h2>
@@ -464,22 +524,42 @@ function Merge() {
 }
 
 /* contact form under the full-page picture (same fields and endpoint as the Contact page), then the footer */
-function HomeContact({ site }) {
-    const { flash = {} } = usePage().props;
+function HomeContact({ site, image = '/images/contact-keys.webp' }) {
     const form = useForm({ first_name: '', last_name: '', email: '', phone: '', message: '', website: '' });
+    const [sent, setSent] = useState(false);
+    const [toast, setToast] = useState(null);
+    useEffect(() => {
+        if (!toast) return undefined;
+        const t = setTimeout(() => setToast(null), 4500);
+        return () => clearTimeout(t);
+    }, [toast]);
     const bind = (k) => ({ value: form.data[k], onChange: (e) => form.setData(k, e.target.value), error: form.errors[k] });
     const submit = (e) => {
         e.preventDefault();
-        form.post('/inquiries', { preserveScroll: true, onSuccess: () => form.reset() });
+        form.post('/inquiries', {
+            preserveScroll: true,
+            onSuccess: (page) => {
+                form.reset();
+                setSent(true);
+                setToast(page.props.flash?.success || 'Thank you! Your message has been sent. We will be in touch shortly.');
+            },
+        });
     };
     return (
         <section className="lx-contact" data-tone="light" id="contact">
-            <div className="k-pic"><img src="/images/contact-keys.webp" alt="A PTI agent handing the keys of a new home to a couple" loading="lazy" /></div>
+            <div className="k-pic"><img src={image} alt="A PTI agent handing the keys of a new home to a couple" loading="lazy" /></div>
             <div className="k-main">
             <div className="k-head">
                 <div className="micro k-eyebrow">Get in touch</div>
                 <h2 className="disp k-title">Let&rsquo;s build <span className="script">your home</span></h2>
             </div>
+            {sent ? (
+                <div className="k-sent" role="status">
+                    <p className="k-sent-title">Message sent.</p>
+                    <p className="k-sent-text">Thank you for reaching out. Our team will get back to you shortly.</p>
+                    <button className="k-btn" type="button" onClick={() => { setSent(false); form.clearErrors(); }}>Send another message</button>
+                </div>
+            ) : (
             <form className="form k-form" onSubmit={submit} noValidate>
                 <input type="text" name="website" className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.data.website} onChange={(e) => form.setData('website', e.target.value)} />
                 <Field id="k1" label="First Name" autoComplete="given-name" {...bind('first_name')} />
@@ -489,10 +569,17 @@ function HomeContact({ site }) {
                 <Field id="k5" label="Message" full textarea {...bind('message')} />
                 <div className="k-send">
                     <button className="k-btn" type="submit" disabled={form.processing}>{form.processing ? 'Sending…' : 'Send message'}</button>
-                    {flash.success && form.wasSuccessful && <p className="k-ok" role="status">{flash.success}</p>}
                 </div>
             </form>
+            )}
             </div>
+            {toast && (
+                <div className="k-toast" role="status" aria-live="polite">
+                    <span className="k-toast-ico" aria-hidden="true">✓</span>
+                    <span>{toast}</span>
+                    <button type="button" aria-label="Close" onClick={() => setToast(null)}>×</button>
+                </div>
+            )}
         </section>
     );
 }
@@ -774,14 +861,20 @@ function Gallery({ projects }) {
     );
 }
 
-function Faq({ faqs }) {
+/* one answer open at a time, all closed at first */
+const closeOthers = (e) => {
+    if (!e.currentTarget.open) return;
+    e.currentTarget.parentElement.querySelectorAll('details[open]').forEach((d) => { if (d !== e.currentTarget) d.open = false; });
+};
+
+function Faq({ faqs, openFirst = false }) {
     if (!faqs.length) return null;
     return (
         <section className="lx-faq" data-tone="light">
             <h2 className="disp">Questions,<br />answered</h2>
             <div>
                 {faqs.map((f, i) => (
-                    <details key={f.id} open={i === 0}>
+                    <details key={f.id} name="faq" open={openFirst && i === 0} onToggle={closeOthers}>
                         <summary>{f.question}</summary>
                         <p className="body">{f.answer}</p>
                     </details>
@@ -791,11 +884,15 @@ function Faq({ faqs }) {
     );
 }
 
+/* The landing page's preloader is always its own door: the hero's pointed arch rising out of the navy cover
+   (lib/lux.js), on every visit. The logo preloader of the inner pages never covers it, so on a fresh load here we
+   only mark the load as done (the next inner page then opens without its preloader). */
 export default function Home({ projects, stats, faqs, services = [], values = [], testimonials = [] }) {
     const { site } = usePage().props;
     const root = useRef(null);
 
     useEffect(() => {
+        claimPreloader();
         document.documentElement.classList.remove('has-motion', 'menu-open');
         document.documentElement.classList.add('no-tower'); // no Rising Tower here: the footer uses the full width
         const destroy = initLux(root.current, { skipIntro: true });
@@ -814,7 +911,7 @@ export default function Home({ projects, stats, faqs, services = [], values = []
             <CloudPass projects={projects} site={site} />
             <VideoDoor />
             <Merge />
-            <HomeContact site={site} />
+            <HomeContact site={site} image="/images/lets-talk-keys.webp" />
             {/* the sections that followed (Step Inside -> FAQ) now live on the About page (see About.jsx) */}
             <SiteFooter site={site} Link={HomeLink} data-tone="dark" />
         </div>
