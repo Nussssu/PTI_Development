@@ -2,7 +2,74 @@
 import { router } from '@inertiajs/react';
 import { Children, Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { coverCurtain, ScrollTrigger } from '../lib/motion';
-import { Arrow, Pin, Units } from './Icons';
+import { Arrow, Facebook, Instagram, LinkedIn, Pin, Units } from './Icons';
+
+/* ---------- shared header menu + footer: identical on the landing page and every inner page ---------- */
+const MENU = [['/projects', 'Our Projects'], ['/contact', 'Book a visit'], ['/about', 'About'], ['/services', 'Services'], ['/contact', 'Contact']];
+const FOOT_NAV = [['/', 'Home'], ['/about', 'About'], ['/services', 'Services'], ['/projects', 'Projects'], ['/contact', 'Contact']];
+
+/** Top-right "Menu" button; the site links open in a dropdown under it. `Link` decides how a link navigates. */
+export function MenuDropdown({ Link = TLink }) {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+    useEffect(() => {
+        if (!open) return;
+        const onDown = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
+        const onKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+        document.addEventListener('pointerdown', onDown);
+        document.addEventListener('keydown', onKey);
+        return () => { document.removeEventListener('pointerdown', onDown); document.removeEventListener('keydown', onKey); };
+    }, [open]);
+    return (
+        <nav className={`lx-menu${open ? ' is-open' : ''}`} aria-label="Main" ref={ref}>
+            <button type="button" className="lx-menu-btn" aria-expanded={open} aria-controls="lx-menu-list" onClick={() => setOpen((o) => !o)}>
+                <span className="lbl">{open ? 'Close' : 'Menu'}</span>
+                <span className="ico" aria-hidden="true"><i /><i /></span>
+            </button>
+            <ul className="lx-menu-list" id="lx-menu-list" inert={!open} aria-hidden={!open}>
+                {MENU.map(([href, label], i) => (
+                    <li key={label} style={{ '--i': i }}>
+                        <Link className={i === 0 ? 'primary' : ''} href={href} onClick={() => setOpen(false)}>{label}</Link>
+                    </li>
+                ))}
+            </ul>
+        </nav>
+    );
+}
+
+/** Site footer (logo, links, contact, big outlined name, legal + socials). */
+export function SiteFooter({ site, Link = TLink, ...rest }) {
+    const socials = [[site.facebook, 'Facebook', <Facebook key="f" />], [site.instagram, 'Instagram', <Instagram key="i" />], [site.linkedin, 'LinkedIn', <LinkedIn key="l" />]].filter(([href]) => href);
+    return (
+        <footer className="footer" {...rest}>
+            <div className="wrap">
+                <div className="footer-grid">
+                    <div>
+                        <Link className="footer-logo" href="/"><img src="/images/pti-logo-white.svg" alt="PTI Development" style={{ height: 64 }} /></Link>
+                        <p style={{ marginTop: 24, maxWidth: '34ch', opacity: 0.7 }}>Shaping Dreams into Homes. {site.tagline}</p>
+                        {socials.length > 0 && (
+                            <div className="socials" style={{ marginTop: 24 }}>{socials.map(([href, label, icon]) => <a key={label} href={href} target="_blank" rel="noopener" aria-label={label}>{icon}</a>)}</div>
+                        )}
+                    </div>
+                    <div>
+                        <h4>Links</h4>
+                        <div className="footer-links">{FOOT_NAV.map(([h, t]) => <Link key={h} href={h}>{t}</Link>)}</div>
+                    </div>
+                    <div className="footer-contact">
+                        <h4 style={{ marginBottom: 2 }}>Contact</h4>
+                        <div><small>Phone</small><a href={`tel:${site.phone?.replace(/\s/g, '')}`}>{site.phone}</a></div>
+                        <div><small>Email</small><a href={`mailto:${site.email}`}>{site.email}</a></div>
+                        <div><small>Address</small>{site.address}</div>
+                    </div>
+                </div>
+                <div className="footer-big" aria-hidden="true">PTI Development</div>
+                <div className="footer-bottom">
+                    <span>© {new Date().getFullYear()} {site.company} All Rights Reserved.</span>
+                </div>
+            </div>
+        </footer>
+    );
+}
 
 export const pad = (n) => String(n).padStart(2, '0');
 
@@ -161,10 +228,23 @@ export function Cta() {
     );
 }
 
-export function PageHero({ crumb, image, imageStyle, children, title, style, className = '' }) {
+export function PageHero({ crumb, image, imageStyle, video, children, title, style, className = '' }) {
+    const videoRef = useRef(null);
+    useEffect(() => {
+        const v = videoRef.current;
+        if (!v) return;
+        // Respect reduced-motion: keep the poster frame, never autoplay.
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { v.pause(); v.removeAttribute('autoplay'); return; }
+        v.play().catch(() => {});
+    }, [video]);
+
     return (
         <section className={`page-hero ${className}`} data-theme="dark" data-floor={crumb} style={style}>
-            <div className="bg"><img src={image} alt="" style={imageStyle} /></div>
+            <div className="bg">
+                {video
+                    ? <video ref={videoRef} src={video} poster={image} style={imageStyle} autoPlay muted loop playsInline preload="auto" aria-hidden="true" />
+                    : <img src={image} alt="" style={imageStyle} />}
+            </div>
             <div className="wrap">
                 <div className="crumbs" data-hero-in><TLink href="/">Home</TLink><span>/</span><span>{crumb}</span></div>
                 <HeroTitle>{title}</HeroTitle>

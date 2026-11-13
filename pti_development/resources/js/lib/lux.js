@@ -117,17 +117,11 @@ export function initLux(root, { skipIntro = false } = {}) {
 
     const mm = gsap.matchMedia();
     const ctx = gsap.context(() => {
-        /* ---------- chrome: meter, badge, tone ---------- */
-        const bar = $('.lx-meter .bar i', chrome);
-        const num = $('.lx-meter .num', chrome);
+        /* ---------- chrome: badge, tone ---------- */
         const badge = $('.lx-badge .ring', chrome);
         let rot = 0;
         const tones = $$('[data-tone]', root);
         const tick = () => {
-            const max = document.documentElement.scrollHeight - innerHeight;
-            const p = max > 0 ? lenis.scroll / max : 0;
-            bar.style.transform = `scaleY(${p})`;
-            num.textContent = String(Math.round(p * 100)).padStart(2, '0');
             rot += 0.12 + Math.min(6, Math.abs(lenis.velocity) * 0.06);
             badge.style.transform = `rotate(${rot}deg)`;
             let tone = 'dark';
@@ -174,7 +168,6 @@ export function initLux(root, { skipIntro = false } = {}) {
         const titleMain = $('.lx-hero .t-main', root);
         const titleChars = $$('.lx-hero .t-main .char', root);
         const subWords = $$('.lx-hero .t-sub .word', root);
-        const eyebrowLines = $$('.lx-hero .t-eyebrow i', root);
         const eyebrowWord = $('.lx-hero .t-eyebrow .word', root);
         const vw = () => hero.clientWidth;
         const vh = () => hero.clientHeight;
@@ -214,7 +207,6 @@ export function initLux(root, { skipIntro = false } = {}) {
         gsap.set(titleChars, { yPercent: 115, opacity: 0 });
         gsap.set(subWords, { yPercent: 120, opacity: 0 });
         gsap.set(titleMain, { letterSpacing: '0.12em' });
-        gsap.set(eyebrowLines, { scaleX: 0 });
         gsap.set(eyebrowWord, { yPercent: 120, opacity: 0 });
 
         /* INTRO (scroll is locked meanwhile):
@@ -230,7 +222,6 @@ export function initLux(root, { skipIntro = false } = {}) {
             .to(heroArch, { w: 135, y: archEndY, ease: 'heroDive', duration: 2.2, onUpdate: drawArch }, 1.3)
             .to(tower, { scale: 1.36, ease: 'power2.out', duration: ZOOM_AT }, 0)
             .to(tower, { scale: 1, ease: 'heroDive', duration: 2.4 }, ZOOM_AT)
-            .to(eyebrowLines, { scaleX: 1, ease: 'power3.out', duration: 1.2 }, ZOOM_AT + 0.15)
             .to(eyebrowWord, { yPercent: 0, opacity: 1, ease: 'power3.out', duration: 1.0 }, ZOOM_AT + 0.2)
             .to(titleMain, { letterSpacing: '0.01em', ease: 'power3.out', duration: 2.0 }, ZOOM_AT + 0.25)
             .to(titleChars, { yPercent: 0, opacity: 1, ease: 'power3.out', duration: 1.0, stagger: 0.045 }, ZOOM_AT + 0.3)
@@ -805,7 +796,13 @@ export function initLuxSections(root) {
         if ($('.lx-slider', root)) gsap.fromTo($('.lx-slider .frame', root), { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.8, ease: 'luxInOut', scrollTrigger: { trigger: $('.lx-slider', root), start: 'top 80%' } });
 
         /* ---------- quote band ---------- */
-        if ($('.lx-quote', root)) gsap.fromTo($('.lx-quote .bg', root), { yPercent: -10 }, { yPercent: 10, ease: 'none', scrollTrigger: { trigger: $('.lx-quote', root), start: 'top bottom', end: 'bottom top', scrub: true } });
+        if ($('.lx-quote .bg', root)) gsap.fromTo($('.lx-quote .bg', root), { yPercent: -10 }, { yPercent: 10, ease: 'none', scrollTrigger: { trigger: $('.lx-quote', root), start: 'top bottom', end: 'bottom top', scrub: true } });
+        /* side-image version (About): the photo wipes open from the left and settles */
+        const qImg = $('.lx-quote .q-img', root);
+        if (qImg) {
+            gsap.fromTo(qImg, { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.4, ease: 'luxInOut', scrollTrigger: { trigger: qImg, start: 'top 80%' } });
+            gsap.fromTo($('img', qImg), { scale: 1.25 }, { scale: 1, duration: 1.8, ease: 'lux', scrollTrigger: { trigger: qImg, start: 'top 80%' } });
+        }
         linesUp($$('.lx-quote blockquote .disp', root), 0.08);
         reveal($$('.lx-quote blockquote .micro', root));
         $$('.lx-hang .lx-flora', root).forEach((f) => {
@@ -818,17 +815,22 @@ export function initLuxSections(root) {
         if (vision) {
         const rows = $$('.lx-vision .row', vision);
         const bigs = $$('.lx-vision .big span', vision);
-        const country = new SplitText($('.lx-vision .country', vision), { type: 'chars', charsClass: 'char' }).chars;
+        const countryEl = $('.lx-vision .country', vision);
+        const country = countryEl ? new SplitText(countryEl, { type: 'chars', charsClass: 'char' }).chars : [];
         const vt = gsap.timeline({ scrollTrigger: { trigger: vision, start: 'top top', end: '+=180%', pin: true, scrub: 1 } });
         rows.forEach((r, i) => {
             const from = [40, 62, 28][i] || 40;
             vt.fromTo(r, { x: () => innerWidth * from / 100 }, { x: () => -(r.scrollWidth - innerWidth * 0.62), ease: 'none', duration: 1 }, 0);
         });
-        vt.fromTo(bigs, { xPercent: 60, opacity: 0 }, { xPercent: 0, opacity: 1, stagger: 0.12, ease: 'power2.out', duration: 0.4 }, 0.05)
-            .fromTo(country, { opacity: 0, y: 14 }, { opacity: 1, y: 0, stagger: 0.03, duration: 0.2 }, 0.3)
-            .fromTo($('.lx-vision .label', vision), { opacity: 0 }, { opacity: 1, duration: 0.15 }, 0)
-            .fromTo($('.lx-vision .note', vision), { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.25 }, 0.45)
-            .fromTo($('.lx-vision .lx-flora', vision), { yPercent: 40, rotation: 6 }, { yPercent: -6, rotation: 0, ease: 'none', duration: 1 }, 0);
+        /* the decorations are optional (the About page's photo version only keeps the travelling rows) */
+        const label = $('.lx-vision .label', vision), note = $('.lx-vision .note', vision), flora = $('.lx-vision .lx-flora', vision);
+        if (bigs.length) vt.fromTo(bigs, { xPercent: 60, opacity: 0 }, { xPercent: 0, opacity: 1, stagger: 0.12, ease: 'power2.out', duration: 0.4 }, 0.05);
+        if (country.length) vt.fromTo(country, { opacity: 0, y: 14 }, { opacity: 1, y: 0, stagger: 0.03, duration: 0.2 }, 0.3);
+        if (label) vt.fromTo(label, { opacity: 0 }, { opacity: 1, duration: 0.15 }, 0);
+        if (note) vt.fromTo(note, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.25 }, 0.45);
+        if (flora) vt.fromTo(flora, { yPercent: 40, rotation: 6 }, { yPercent: -6, rotation: 0, ease: 'none', duration: 1 }, 0);
+        const photo = $('.lx-vision .v-photo img', vision);
+        if (photo) vt.fromTo(photo, { scale: 1.12 }, { scale: 1, ease: 'none', duration: 1 }, 0); // slow push-out behind the rows
         }
 
         /* ---------- "Book a site visit" section: the circle and the drifting photo strip ---------- */
@@ -855,7 +857,7 @@ export function initLuxSections(root) {
 
         /* ---------- services: pinned three-act sequence ---------- */
         const svc = $('.lx-services', root);
-        const slides = $$('.lx-services .slide', svc);
+        const slides = svc ? $$('.lx-services .slide', svc) : [];
         if (slides.length) {
             let cur = -1;
             const bar = $('.lx-services .p i', svc);

@@ -20,7 +20,7 @@ export default function ProjectsIndex({ projects }) {
     }, [filter]);
 
     return (
-        <SiteLayout title="Projects">
+        <SiteLayout title="Projects" tower={false}>
             <PageHero crumb="Projects" image="/images/hero-night.webp" imageStyle={{ objectPosition: '70% center' }} title={['Towers Rising', <>Across <span className="serif">Dhaka</span></>]}>
                 <p className="lead" data-hero-in>{projects.length} residential towers in strategic Dhaka locations{areaList ? `, from ${areaList}` : ''}.</p>
             </PageHero>

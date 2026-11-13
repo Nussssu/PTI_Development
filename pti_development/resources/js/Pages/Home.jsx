@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import '../../css/lux.css';
 import { gsap } from 'gsap';
 import { initLux } from '../lib/lux';
-import { Field } from '../Components/Site';
+import { Field, MenuDropdown, SiteFooter } from '../Components/Site';
 
 const MARK = 'M0.00454068 18.3256H0V73.5928H18.4044V92H36.827V91.9728H73.5949V55.1674V18.3619H73.6085V0H0.00908136V18.3256H0.00454068ZM18.4271 18.3619H55.195V55.1674H36.7997V73.5701H18.4271V18.3619Z';
 const Mark = ({ className }) => <svg className={className} viewBox="0 0 74 92" aria-hidden="true"><path d={MARK} /></svg>;
@@ -16,6 +16,8 @@ const go = (href) => (e) => {
     e.preventDefault();
     router.visit(href);
 };
+/* link for the shared header menu / footer on this page */
+const HomeLink = ({ href, onClick, ...rest }) => <a href={href} onClick={(e) => { onClick?.(e); go(href)(e); }} {...rest} />;
 
 function Circle({ href, children, className = '', onClick }) {
     return (
@@ -53,22 +55,7 @@ function Chrome() {
                 </svg>
                 <Mark className="mark" />
             </a>
-            <nav className="lx-nav" aria-label="Main">
-                <a className="primary" href="/projects" onClick={go('/projects')}><span>Our</span><span>Projects</span></a>
-                <div className="links">
-                    <a href="/contact" onClick={go('/contact')}>Book a visit</a>
-                    <a href="/about" onClick={go('/about')}>About</a>
-                    <a href="/services" onClick={go('/services')}>Services</a>
-                    <a href="/contact" onClick={go('/contact')}>Contact</a>
-                </div>
-            </nav>
-            <div className="lx-meter" aria-hidden="true">
-                <div className="bar"><i /></div>
-                <div className="num">00</div>
-                <div className="bar"><i style={{ transform: 'scaleY(1)', opacity: 0.25 }} /></div>
-                <div className="lbl">Scroll</div>
-                <div className="arrow" />
-            </div>
+            <MenuDropdown Link={HomeLink} />
         </div>
     );
 }
@@ -101,6 +88,9 @@ function Preloader({ show }) {
  * subtext reveal in the centre (staggered), all at once. The scene itself never scrolls:
  * the hero stays pinned while the next section rises over it. Motion lives in lib/lux.js.
  */
+/* one line, stretched to the width of "a Better Life" (see .t-sub in lux.css) */
+const HERO_SUB = 'Thoughtfully designed for comfort and modern living.';
+
 function Hero() {
     return (
         <>
@@ -112,7 +102,7 @@ function Hero() {
                     </div>
                 </div>
                 <div className="hero-title">
-                    <div className="t-eyebrow"><i /><span className="w"><span className="word">Premium living in Dhaka</span></span><i /></div>
+                    <div className="t-eyebrow"><span className="w"><span className="word">Premium living in Dhaka</span></span></div>
                     <h1 className="t-main" aria-label="Homes for a Better Life">
                         {[['Homes', 'for'], ['a', 'Better', 'Life']].map((line, li) => (
                             <span className="ln" key={li} aria-hidden="true">
@@ -120,8 +110,8 @@ function Hero() {
                             </span>
                         ))}
                     </h1>
-                    <p className="t-sub" aria-label="Thoughtfully designed residences that bring comfort, nature, and modern living together.">
-                        {'Thoughtfully designed residences that bring comfort, nature, and modern living together.'.split(' ').map((w, i) => (
+                    <p className="t-sub" aria-label={HERO_SUB}>
+                        {HERO_SUB.split(' ').map((w, i) => (
                             <span className="w" key={i} aria-hidden="true"><span className="word">{w}</span></span>
                         ))}
                     </p>
@@ -134,6 +124,12 @@ function Hero() {
 
 /* images for the three promises (same order as the values: craftsmanship, transparency, investment) */
 const PROMISE_IMG = ['/images/hd/construction.webp', '/images/hd/skyline.webp', '/images/hd/land.webp'];
+/* one-line descriptions under the slider image, sized to the image width (admin text is the fallback) */
+const PROMISE_LINE = {
+    'Quality Craftsmanship': 'Precise, durable and high-standard construction.',
+    Transparency: 'Clear, documented pricing and honest paperwork.',
+    'Halal Investment': 'Ethical practices with safe and halal ownership.',
+};
 
 /**
  * Section 2 (after the hero): the lavender gothic dome rises over the hero with the curved title, crest
@@ -179,7 +175,7 @@ function Arch({ values, site }) {
                 {/* description of each promise, under the image + pager; switches with the slide */}
                 <div className="b-descs">
                     {promises.map((v, i) => (
-                        <p className="b-desc" key={v.id} aria-hidden={i !== 0}>{v.text}</p>
+                        <p className="b-desc" key={v.id} aria-hidden={i !== 0}>{PROMISE_LINE[v.title] || v.text}</p>
                     ))}
                 </div>
                 </div>
@@ -573,19 +569,23 @@ function Collection({ projects }) {
     );
 }
 
-function Quote() {
+function Quote({ flower = true, sideImage }) {
     return (
         <>
-            <section className="lx-quote" data-tone="dark">
-                <div className="bg"><img src="/images/hd/construction.webp" alt="" /></div>
+            <section className={`lx-quote${sideImage ? ' lx-quote--side' : ''}`} data-tone={sideImage ? 'light' : 'dark'}>
+                {sideImage
+                    ? <div className="q-img"><img src={sideImage} alt="Building under construction with tower cranes" loading="lazy" /></div>
+                    : <div className="bg"><img src="/images/hd/construction.webp" alt="" /></div>}
                 <blockquote>
                     <p className="disp">Every square foot we build is a commitment, to trust, to safety, and to the dreams of our clients.</p>
                     <div className="micro">Md. Ruhul Amin<br />Chairman, PTI Development</div>
                 </blockquote>
             </section>
-            <div className="lx-hang">
-                <Flora src={`${B}krishnachura-corner.webp`} style={{ top: '-16vh', left: '-6vw', width: '56vw' }} anchor="0% 0%" origin="0% 0%" depth={0.5} sway={1.4} />
-            </div>
+            {flower && (
+                <div className="lx-hang">
+                    <Flora src={`${B}krishnachura-corner.webp`} style={{ top: '-16vh', left: '-6vw', width: '56vw' }} anchor="0% 0%" origin="0% 0%" depth={0.5} sway={1.4} />
+                </div>
+            )}
         </>
     );
 }
@@ -715,10 +715,10 @@ function Services({ services }) {
     );
 }
 
-function Values({ values }) {
+function Values({ values, image = '/images/hd/rooftop.webp' }) {
     return (
         <section className="lx-values" data-tone="dark">
-            <div className="bg"><img src="/images/hd/rooftop.webp" alt="" /></div>
+            <div className="bg"><img src={image} alt="" /></div>
             <ul className="list">{values.map((v) => <li key={v.id}>{v.title}</li>)}</ul>
             <div className="text">
                 <div className="micro">What we stand for</div>
@@ -791,36 +791,15 @@ function Faq({ faqs }) {
     );
 }
 
-function Footer({ site }) {
-    const tel = `tel:${(site.phone || '').replace(/\s/g, '')}`;
-    return (
-        <footer className="lx-foot" data-tone="dark">
-            <div className="ghost script" aria-hidden="true">Shopno</div>
-            <div className="big">
-                <div className="disp">Book a visit</div>
-                <div className="script">we'll show you around</div>
-            </div>
-            <div className="cols">
-                <div><div className="micro">Call</div><a href={tel}>{site.phone}</a>{site.whatsapp && <a href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener">WhatsApp us</a>}</div>
-                <div><div className="micro">Write</div><a href={`mailto:${site.email}`}>{site.email}</a></div>
-                <div><div className="micro">Visit</div><p>{site.address_long}</p></div>
-                <div><div className="micro">Explore</div>
-                    {[['/projects', 'Projects'], ['/about', 'About'], ['/services', 'Services'], ['/contact', 'Contact']].map(([h, t]) => <a key={h} href={h} onClick={go(h)}>{t}</a>)}
-                </div>
-            </div>
-            <div className="legal micro"><span>© {new Date().getFullYear()} {site.company}</span><span>{site.tagline}</span></div>
-        </footer>
-    );
-}
-
 export default function Home({ projects, stats, faqs, services = [], values = [], testimonials = [] }) {
     const { site } = usePage().props;
     const root = useRef(null);
 
     useEffect(() => {
         document.documentElement.classList.remove('has-motion', 'menu-open');
+        document.documentElement.classList.add('no-tower'); // no Rising Tower here: the footer uses the full width
         const destroy = initLux(root.current, { skipIntro: true });
-        return destroy;
+        return () => { destroy?.(); document.documentElement.classList.remove('no-tower'); };
     }, []);
 
     return (
@@ -837,10 +816,10 @@ export default function Home({ projects, stats, faqs, services = [], values = []
             <Merge />
             <HomeContact site={site} />
             {/* the sections that followed (Step Inside -> FAQ) now live on the About page (see About.jsx) */}
-            <Footer site={site} />
+            <SiteFooter site={site} Link={HomeLink} data-tone="dark" />
         </div>
     );
 }
 
 /* sections shown on the About page, below its own content */
-export { Portal, Collection, Quote, Vision, Place, Sky, Services, Values, Numbers, Gallery, Faq };
+export { Portal, Collection, Quote, Vision, Place, Sky, Services, Values, Numbers, Gallery, Faq, HomeContact };

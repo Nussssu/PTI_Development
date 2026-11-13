@@ -70,6 +70,8 @@ class SiteController extends Controller
 
     public function contact(): Response
     {
-        return Inertia::render('Contact');
+        return Inertia::render('Contact', [
+            'faqs' => Faq::where('is_published', true)->ordered()->get(),
+        ]);
     }
 }

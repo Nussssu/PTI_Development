@@ -42,20 +42,6 @@
 .lx-badge svg.ring { position: absolute; inset: 0; width: 100%; height: 100%; }
 .lx-badge svg.ring text { font-family: var(--f-micro); font-stretch: 125%; font-weight: 600; font-size: 8.6px; letter-spacing: .32em; fill: currentColor; }
 .lx-badge .mark { width: 30px; height: auto; fill: currentColor; }
-.lx-nav { position: absolute; top: 40px; right: 44px; text-align: right; display: grid; justify-items: end; gap: 18px; }
-.lx-nav .primary { font-family: var(--f-disp); font-weight: 500; text-transform: uppercase; font-size: 23px; line-height: 1.02; letter-spacing: -.005em; }
-.lx-nav .primary span { display: block; width: fit-content; margin-left: auto; background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat; transition: background-size .6s var(--ease); }
-.lx-nav .primary:hover span { background-size: 0 1px; background-position: 100% 100%; }
-.lx-nav .links { display: grid; gap: 4px; justify-items: end; }
-.lx-nav .links a { font-family: var(--f-micro); font-stretch: 125%; font-size: 10px; font-weight: 600; letter-spacing: .26em; text-transform: uppercase; opacity: .9; }
-.lx-nav .links a:hover { opacity: .55; }
-.lx-meter { position: absolute; left: 62px; top: 32vh; bottom: 40px; width: 40px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
-.lx-meter .bar { width: 1px; height: 22vh; background: currentColor; opacity: .25; position: relative; overflow: hidden; }
-.lx-meter .bar i { position: absolute; inset: 0; background: currentColor; opacity: 1; transform-origin: top; transform: scaleY(0); }
-.lx-meter .num { font-family: var(--f-micro); font-stretch: 125%; font-size: 10px; font-weight: 700; letter-spacing: .1em; }
-.lx-meter .lbl { margin-top: auto; writing-mode: vertical-rl; transform: rotate(180deg); font-family: var(--f-micro); font-stretch: 125%; font-size: 9px; font-weight: 600; letter-spacing: .32em; }
-.lx-meter .arrow { width: 1px; height: 38px; background: currentColor; position: relative; }
-.lx-meter .arrow::after { content: ""; position: absolute; left: -3px; bottom: 0; width: 7px; height: 7px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); }
 
 /* ---------- circular CTA ---------- */
 .lx-circle { position: relative; width: 180px; height: 180px; display: grid; place-items: center; text-align: left; border-radius: 50%; }
@@ -108,24 +94,23 @@
   linear-gradient(180deg, rgba(6, 14, 28, .32) 0%, rgba(6, 14, 28, 0) 10%); }
 
 /* centred title: words are masks, letters (main) / words (sub) rise into them */
+/* the block shrinks to its widest line ("a Better Life"); the subline is then stretched to exactly that width */
 .lx-hero .hero-title { position: absolute; z-index: 6; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; color: #fff;
+  width: fit-content; margin-inline: auto;
   pointer-events: none; filter: drop-shadow(0 4px 28px rgba(6, 20, 42, .45)); }
-.lx-hero .t-eyebrow { display: flex; align-items: center; justify-content: center; gap: 22px; margin-bottom: 26px;
+.lx-hero .t-eyebrow { display: flex; align-items: center; justify-content: center; margin-bottom: 26px;
   font-family: var(--f-micro); font-size: clamp(11px, .9vw, 14px); letter-spacing: .3em; text-transform: uppercase; white-space: nowrap; }
-.lx-hero .t-eyebrow i { display: block; width: 72px; height: 1px; background: currentColor; flex: none; }
-.lx-hero .t-eyebrow i:first-child { transform-origin: 100% 50%; }
-.lx-hero .t-eyebrow i:last-child { transform-origin: 0 50%; }
 .lx-hero .t-main { margin: 0; font-family: var(--f-disp); font-weight: 400; text-transform: none; font-size: clamp(52px, 6.4vw, 128px); line-height: .98; letter-spacing: .01em; }
 .lx-hero .t-main .ln { display: flex; justify-content: center; column-gap: .24em; white-space: nowrap; }
-.lx-hero .t-sub { display: flex; flex-wrap: wrap; justify-content: center; column-gap: .32em; max-width: min(34em, 86vw); margin: 26px auto 0;
-  font-size: clamp(15px, 1.15vw, 19px); line-height: 1.55; }
+.lx-hero .t-sub { container-type: inline-size; width: 0; min-width: 100%; display: flex; flex-wrap: nowrap; justify-content: space-between; margin: 26px 0 0;
+  line-height: 1.55; white-space: nowrap; }
+.lx-hero .t-sub > .w { font-size: 3.7cqi; }
 .lx-hero .hero-title .w { display: inline-block; overflow: hidden; padding: .08em .03em .03em; }
 .lx-hero .hero-title .char, .lx-hero .hero-title .word { display: inline-block; opacity: 0; } /* rise offset set by JS */
 @media (max-width: 760px) {
-  .lx-hero .t-eyebrow { gap: 12px; margin-bottom: 16px; letter-spacing: .22em; }
-  .lx-hero .t-eyebrow i { width: 32px; }
+  .lx-hero .t-eyebrow { margin-bottom: 16px; letter-spacing: .22em; }
   .lx-hero .t-main { font-size: clamp(40px, 12vw, 64px); }
-  .lx-hero .t-sub { font-size: 15px; margin-top: 16px; max-width: 22em; }
+  .lx-hero .t-sub { margin-top: 16px; }
 }
 
 /* ---------- arch: gothic lavender dome + "three promises" slider (ERA boutique-concept layout) ---------- */
@@ -219,7 +204,7 @@
 }
 
 /* ---------- contact form under the full-page picture, before the footer ---------- */
-.lx-contact { position: relative; z-index: 5; background: var(--cream); color: var(--ink); padding: 18vh var(--pad) 20vh;
+.lx-contact { position: relative; z-index: 5; background: #eae5f3; color: var(--ink); padding: 18vh var(--pad) 20vh;
   display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 6vw; align-items: center; }
 .lx-contact .k-pic { overflow: hidden; aspect-ratio: 4 / 5; }
 .lx-contact .k-pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
@@ -268,8 +253,10 @@
 .lx-bslider .b-img { width: min(36vw, 640px); aspect-ratio: 2 / 1; margin: 5vh auto 0; overflow: hidden; }
 .lx-bslider .b-img img { width: 100%; height: 100%; object-fit: cover; will-change: transform; }
 .lx-bslider .b-desc { max-width: 34em; margin: 6vh auto 0; font-size: clamp(15px, 1.05vw, 18px); line-height: 1.6; }
-.lx-bslider .b-descs { display: grid; margin-top: 4vh; }
-.lx-bslider .b-descs .b-desc { grid-area: 1 / 1; align-self: start; margin: 0 auto; }
+/* same width as the image above; each description is one line stretched edge to edge */
+.lx-bslider .b-descs { display: grid; width: min(36vw, 640px); margin: 4vh auto 0; container-type: inline-size; }
+.lx-bslider .b-descs .b-desc { grid-area: 1 / 1; align-self: start; margin: 0; max-width: none; width: 100%;
+  font-size: 3.9cqi; white-space: nowrap; text-align: justify; text-align-last: justify; }
 .lx-bslider .split-line-mask { overflow: hidden; }
 .lx-bslider .b-pager { display: flex; align-items: center; justify-content: center; gap: 26px; margin-top: 22px; }
 .lx-bslider .b-pager button { background: none; border: 0; color: inherit; cursor: pointer; padding: 6px 10px; font-size: 20px; line-height: 1; }
@@ -279,6 +266,7 @@
 @media (max-width: 760px) {
   .lx-bslider .b-title { white-space: normal; font-size: clamp(36px, 11vw, 60px); }
   .lx-bslider .b-img { width: 100%; }
+  .lx-bslider .b-descs { width: 100%; }
   .lx-bslider .b-pager .bar { width: 120px; }
 }
 
@@ -498,6 +486,13 @@
 .lx-quote blockquote { position: absolute; right: var(--pad); top: 50%; transform: translateY(-50%); width: min(720px, 80vw); margin: 0; }
 .lx-quote blockquote .disp { font-size: clamp(30px, 3.2vw, 56px); line-height: .98; }
 .lx-quote blockquote .micro { margin-top: 30px; }
+/* About version: no background photo; the photo sits on the left, as tall as the quote beside it */
+.lx-quote--side { height: auto; background: #eae5f3; color: var(--ink); display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: clamp(32px, 5vw, 96px); align-items: stretch; padding: 16vh var(--pad); }
+.lx-quote--side .q-img { position: relative; overflow: hidden; min-height: 300px; }
+.lx-quote--side .q-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.lx-quote--side blockquote { position: static; transform: none; width: auto; align-self: center; }
+@media (max-width: 760px) { .lx-quote--side { grid-template-columns: 1fr; padding: 12vh var(--pad); } .lx-quote--side .q-img { min-height: 0; aspect-ratio: 4 / 3; } }
 .lx-hang { position: relative; height: 0; z-index: 5; }
 
 /* ---------- vision (horizontal type) ---------- */
@@ -511,6 +506,21 @@
 .lx-vision .note { position: absolute; left: var(--pad); bottom: 9vh; width: 300px; text-align: center; }
 .lx-vision .note svg { width: 34px; fill: var(--ink); margin: 18px auto 0; display: block; }
 @media (max-width: 760px) { .lx-vision .label { left: 8vw; top: 18vh; } .lx-vision .rows { top: 26vh; } .lx-vision .big { top: auto; bottom: 26vh; } .lx-vision .country { right: 8vw; top: auto; bottom: 22vh; } .lx-vision .note { bottom: 4vh; width: 84vw; left: 8vw; } }
+/* About page version: construction photo behind, only the travelling rows (white, vertically centred) */
+.lx-vision--photo { background: var(--night); color: #fff; }
+.lx-vision--photo .v-photo { position: absolute; inset: 0; overflow: hidden; }
+.lx-vision--photo .v-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 40%; will-change: transform; }
+.lx-vision--photo .v-photo::after { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(7, 26, 48, .55) 0%, rgba(7, 26, 48, .38) 45%, rgba(7, 26, 48, .7) 100%); }
+.lx-vision--photo .rows { top: 50%; transform: translateY(-50%); z-index: 1; }
+.lx-vision--photo .row { color: #fff; text-shadow: 0 4px 30px rgba(7, 26, 48, .35); }
+.lx-vision--photo .row + .row { margin-top: .08em; }
+.lx-vision--photo .label { position: static; display: flex; align-items: center; gap: 14px; margin: 0 0 clamp(18px, 2.4vw, 34px) 22vw;
+  font-size: clamp(12px, .95vw, 15px); letter-spacing: .3em; color: #F0C9A8; }
+@media (max-width: 760px) { .lx-vision--photo .label { margin-left: 8vw; } }
+/* About: vision + values side by side as one sideways track (desktop; see AboutTrack in About.jsx) */
+.ab-track-on .ab-track { display: flex; width: 200vw; will-change: transform; }
+.ab-track-on .ab-track > section { flex: none; width: 100vw; }
 
 /* ---------- place (location) ---------- */
 .lx-place { position: relative; min-height: 120svh; padding: 20vh var(--pad) 12vh; background: var(--cream); overflow: hidden; }
@@ -654,12 +664,8 @@
 
 /* ---------- small screens: hide side chrome ---------- */
 @media (max-width: 860px) {
-  .lx-meter { display: none; }
   .lx-badge { top: 16px; left: 16px; width: 84px; height: 84px; }
   .lx-badge svg.ring text { font-size: 9.5px; }
-  .lx-nav { top: 20px; right: 18px; }
-  .lx-nav .primary { font-size: 18px; }
-  .lx-nav .links { display: none; }
   .lx-sky .cloud { width: 145vw; }
   .lx-sky .c0 { width: 190vw !important; left: -42vw !important; }
 }

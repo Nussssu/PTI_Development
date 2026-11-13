@@ -1,20 +1,17 @@
 import { Head, usePage } from '@inertiajs/react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { Facebook, Instagram, LinkedIn } from '../Components/Icons';
-import { pad, TLink } from '../Components/Site';
+import { MenuDropdown, SiteFooter, TLink } from '../Components/Site';
 import { initMotion, playLoader, prefersReducedMotion, revealCurtain } from '../lib/motion';
 import RisingTower from '../lib/tower';
 
 const SiteCtx = createContext({ openVideo: () => {} });
 export const useSite = () => useContext(SiteCtx);
 
-const NAV = [['/', 'Home'], ['/about', 'About'], ['/services', 'Services'], ['/projects', 'Projects'], ['/contact', 'Contact']];
-
 /* ---------- header in the landing page's style: the rotating ring badge (top left, back to Home) and the stacked menu
    (top right). Its colour follows the section under it: white on dark sections, navy on light ones. The ring turns
-   slowly and speeds up with the scroll. On phones the links fold into the menu button. ---------- */
+   slowly and speeds up with the scroll. The Menu dropdown is the same component the landing page uses. ---------- */
 const MARK = 'M0.00454068 18.3256H0V73.5928H18.4044V92H36.827V91.9728H73.5949V55.1674V18.3619H73.6085V0H0.00908136V18.3256H0.00454068ZM18.4271 18.3619H55.195V55.1674H36.7997V73.5701H18.4271V18.3619Z';
-function SiteChrome({ menuOpen, onBurger }) {
+function SiteChrome() {
     const ref = useRef(null);
     useEffect(() => {
         const el = ref.current, ring = el.querySelector('.ring');
@@ -33,7 +30,7 @@ function SiteChrome({ menuOpen, onBurger }) {
                     light = t === 'light' || t === 'white';
                 }
             }
-            el.classList.toggle('on-light', light && !document.documentElement.classList.contains('menu-open'));
+            el.classList.toggle('on-light', light);
             raf = requestAnimationFrame(tick);
         };
         raf = requestAnimationFrame(tick);
@@ -48,28 +45,19 @@ function SiteChrome({ menuOpen, onBurger }) {
                 </svg>
                 <svg className="mark" viewBox="0 0 74 92" aria-hidden="true"><path d={MARK} /></svg>
             </TLink>
-            <nav className="sc-nav" aria-label="Main">
-                <TLink className="primary" href="/projects"><span>Our</span><span>Projects</span></TLink>
-                <div className="links">
-                    <TLink href="/contact">Book a visit</TLink>
-                    <TLink href="/about">About</TLink>
-                    <TLink href="/services">Services</TLink>
-                    <TLink href="/contact">Contact</TLink>
-                </div>
-            </nav>
-            <button className="burger sc-burger" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={onBurger}><i></i><i></i></button>
+            <MenuDropdown />
         </div>
     );
 }
 
-export default function SiteLayout({ title, children }) {
+/** `tower={false}` drops the Rising Tower and gives its right-hand lane back to the content. */
+export default function SiteLayout({ title, children, tower: withTower = true }) {
     const page = usePage();
     const site = page.props.site || {};
     const url = page.url;
     const mainRef = useRef(null);
     const loaderRef = useRef(null);
     const motionRef = useRef(null);
-    const [menuOpen, setMenuOpen] = useState(false);
     const [video, setVideo] = useState(null);
     const [showLoader] = useState(() => typeof window !== 'undefined' && sessionStorage.getItem('pti-seen') !== '1' && !prefersReducedMotion());
     const [loaderGone, setLoaderGone] = useState(false);
@@ -84,7 +72,8 @@ export default function SiteLayout({ title, children }) {
         const motion = initMotion(mainRef.current.parentElement);
         motionRef.current = motion;
         const sections = Array.from(mainRef.current.querySelectorAll('[data-floor]'));
-        const tower = sections.length ? new RisingTower(sections, { onFloorClick: (s) => motion.scrollTo(s) }) : null;
+        document.documentElement.classList.toggle('no-tower', !withTower);
+        const tower = withTower && sections.length ? new RisingTower(sections, { onFloorClick: (s) => motion.scrollTo(s) }) : null;
         const timers = [];
         const start = () => {
             motion.intro.play();
@@ -108,6 +97,7 @@ export default function SiteLayout({ title, children }) {
             tower && tower.destroy();
             motion.destroy();
             root.classList.remove('menu-open');
+            document.documentElement.classList.remove('no-tower');
         };
     }, []);
 
@@ -172,12 +162,11 @@ export default function SiteLayout({ title, children }) {
         };
     }, []);
 
-    /* ---------- menu + modal lock scrolling ---------- */
+    /* ---------- modal locks scrolling ---------- */
     useEffect(() => {
-        document.documentElement.classList.toggle('menu-open', menuOpen);
         const lenis = motionRef.current && motionRef.current.lenis;
-        if (lenis) (menuOpen || video ? lenis.stop() : lenis.start());
-    }, [menuOpen, video]);
+        if (lenis) (video ? lenis.stop() : lenis.start());
+    }, [video]);
 
     useEffect(() => {
         const esc = (e) => e.key === 'Escape' && setVideo(null);
@@ -185,50 +174,15 @@ export default function SiteLayout({ title, children }) {
         return () => removeEventListener('keydown', esc);
     }, []);
 
-    const socials = [[site.facebook, 'Facebook', <Facebook key="f" />], [site.instagram, 'Instagram', <Instagram key="i" />], [site.linkedin, 'LinkedIn', <LinkedIn key="l" />]].filter(([href]) => href);
-
     return (
         <SiteCtx.Provider value={{ openVideo: setVideo }}>
             <Head title={title} />
             <div className="site">
-                <SiteChrome menuOpen={menuOpen} onBurger={() => setMenuOpen(!menuOpen)} />
-
-                <div className="mobile-menu" aria-hidden={!menuOpen}>
-                    {NAV.map(([h, t], i) => (
-                        <TLink key={h} className="big" href={h} onClick={() => setMenuOpen(false)}><small>{pad(i + 1)}</small>{t}</TLink>
-                    ))}
-                    <div className="mm-foot"><a href={`tel:${site.phone?.replace(/\s/g, '')}`}>{site.phone}</a><a href={`mailto:${site.email}`}>{site.email}</a></div>
-                </div>
+                <SiteChrome />
 
                 <main ref={mainRef}>{children}</main>
 
-                <footer className="footer">
-                    <div className="wrap">
-                        <div className="footer-grid">
-                            <div>
-                                <TLink className="footer-logo" href="/"><img src="/images/pti-logo-white.svg" alt="PTI Development" style={{ height: 64 }} /></TLink>
-                                <p style={{ marginTop: 24, maxWidth: '34ch', opacity: 0.7 }}>Shaping Dreams into Homes. {site.tagline}</p>
-                            </div>
-                            <div>
-                                <h4>Links</h4>
-                                <div className="footer-links">{NAV.map(([h, t]) => <TLink key={h} href={h}>{t}</TLink>)}</div>
-                            </div>
-                            <div className="footer-contact">
-                                <h4 style={{ marginBottom: 2 }}>Contact</h4>
-                                <div><small>Phone</small><a href={`tel:${site.phone?.replace(/\s/g, '')}`}>{site.phone}</a></div>
-                                <div><small>Email</small><a href={`mailto:${site.email}`}>{site.email}</a></div>
-                                <div><small>Address</small>{site.address}</div>
-                            </div>
-                        </div>
-                        <div className="footer-big" aria-hidden="true">PTI Development</div>
-                        <div className="footer-bottom">
-                            <span>© {new Date().getFullYear()} {site.company} All Rights Reserved.</span>
-                            {socials.length > 0 && (
-                                <div className="socials">{socials.map(([href, label, icon]) => <a key={label} href={href} target="_blank" rel="noopener" aria-label={label}>{icon}</a>)}</div>
-                            )}
-                        </div>
-                    </div>
-                </footer>
+                <SiteFooter site={site} />
 
                 <div className={`modal ${video ? 'is-open' : ''}`} onClick={(e) => e.target === e.currentTarget && setVideo(null)}>
                     <button className="modal-close" aria-label="Close video" onClick={() => setVideo(null)}>✕</button>

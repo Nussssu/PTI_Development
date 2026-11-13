@@ -89,8 +89,23 @@ export function initMotion(root) {
             gsap.fromTo($('.p-card-media', c), { clipPath: 'inset(100% 0 0 0)' }, { clipPath: 'inset(0% 0 0 0)', duration: 1.3, ease: 'expo.inOut', scrollTrigger: { trigger: c, start: 'top 90%' } });
         });
 
+        // scroll-driven stats: the numbers stay in place and their digits spin with the scroll, one after another
+        $$('[data-scrub-stats]', root).forEach((sec) => {
+            const cards = $$('.num-card, .stat-plain', sec);
+            if (!cards.length) return;
+            const tl = gsap.timeline({ scrollTrigger: { trigger: sec, start: 'top 90%', end: 'center 45%', scrub: 0.8 } });
+            cards.forEach((card, i) => {
+                const at = i * 0.1;
+                $$('.odo-col', card).forEach((col, k) => {
+                    const d = +col.dataset.d;
+                    tl.fromTo(col.firstElementChild, { yPercent: 0 }, { yPercent: -((10 + d) / 20) * 100, ease: 'power2.out', duration: 1 + k * 0.12 }, at);
+                });
+            });
+        });
+
         // odometers roll like an elevator display
         $$('.num-card', root).forEach((card) => {
+            if (card.closest('[data-scrub-stats]')) return;
             ScrollTrigger.create({
                 trigger: card, start: 'top 85%', once: true,
                 onEnter: () => {
@@ -114,10 +129,7 @@ export function initMotion(root) {
 
         // process steps
         $$('.process-step', root).forEach((p, i) => gsap.fromTo(p, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 1, delay: i * 0.12, ease: 'expo.out', scrollTrigger: { trigger: p.parentElement, start: 'top 85%' } }));
-
-        // footer outline text drifts
-        const fb = $('.footer-big', root);
-        if (fb) gsap.fromTo(fb, { xPercent: 8 }, { xPercent: -14, ease: 'none', scrollTrigger: { trigger: fb.closest('.footer'), start: 'top bottom', end: 'bottom bottom', scrub: true } });
+        // (footer "PTI Development" stays put so the whole name is always visible)
     }, root);
 
     // desktop-only: horizontal projects + stacking service cards
@@ -189,7 +201,7 @@ function buildIntro(root) {
 
     const ph = $('.page-hero', root);
     if (ph) {
-        const img = $('.bg img', ph);
+        const img = $('.bg img, .bg video', ph);
         gsap.set($('.bg', ph), { clipPath: 'inset(100% 0 0 0)' });
         gsap.set($$('h1 .line-mask > span', ph), { yPercent: 110 });
         gsap.set($$('[data-hero-in]', ph), { opacity: 0, y: 30 });
@@ -224,7 +236,7 @@ export function playLoader(loaderEl, onReveal, onGone) {
         .to(path, { strokeDashoffset: 0, duration: 1.1, ease: 'power2.inOut' }, 0)
         .to(o, { v: 100, duration: 1.3, ease: 'power2.inOut', onUpdate: () => { cnt.textContent = String(Math.round(o.v)).padStart(3, '0'); } }, 0)
         .to($('.loader-bar i', loaderEl), { scaleX: 1, duration: 1.3, ease: 'power2.inOut' }, 0)
-        .to(path, { fill: '#D9A55B', duration: 0.4 }, 1)
+        .to(path, { fill: '#F0C9A8', duration: 0.4 }, 1)
         .to($('.loader-inner', loaderEl), { y: -30, opacity: 0, duration: 0.5, ease: 'power2.in' }, 1.45)
         .add(onReveal, 1.6)
         .to(loaderEl, { clipPath: 'inset(0 0 100% 0)', duration: 1, ease: 'expo.inOut' }, 1.7);
