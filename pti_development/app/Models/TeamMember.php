@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class TeamMember extends Model
 {
+    use \App\Models\Concerns\Auditable;
+
+    protected string $auditAs = 'team member';
+
     use HasMediaUrls;
 
     protected $guarded = ['id'];

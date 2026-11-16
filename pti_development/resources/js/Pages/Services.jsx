@@ -2,25 +2,36 @@ import { Fragment, useEffect, useRef } from 'react';
 import { Check } from '../Components/Icons';
 import { Btn, Cta, pad, PageHero, Split } from '../Components/Site';
 import SiteLayout from '../Layouts/SiteLayout';
+import { isOn, richLines, useImg, useSection } from '../lib/cms';
 import { gsap, prefersReducedMotion, ScrollTrigger } from '../lib/motion';
 
+// defaults (the same as in App\Cms\Templates\Services.php): used when the page has no CMS data
 const STEPS = [
-    ['Meet & explore', 'We show you finished and under construction projects and the features of each area.'],
-    ['Choose with clarity', 'Transparent pricing and verified land titles, all clear and documented.'],
-    ['Secure & sign', 'Detailed contract reviews, proper documentation and no hidden fees.'],
-    ['Build & hand over', 'Transparent project updates and handovers as promised.'],
+    { title: 'Meet & explore', text: 'We show you finished and under construction projects and the features of each area.' },
+    { title: 'Choose with clarity', text: 'Transparent pricing and verified land titles, all clear and documented.' },
+    { title: 'Secure & sign', text: 'Detailed contract reviews, proper documentation and no hidden fees.' },
+    { title: 'Build & hand over', text: 'Transparent project updates and handovers as promised.' },
 ];
 
 export default function Services({ services }) {
+    // texts / images from Admin → Pages → Services (the services themselves: Collections → Services)
+    const hero = useSection('hero');
+    const morph = useSection('services');
+    const journey = useSection('journey');
+    const cta = useSection('cta');
+
     return (
         <SiteLayout title="Services" tower={false}>
-            <PageHero crumb="Services" className="svc-hero" video="/videos/services-hero.mp4" style={{ minHeight: '100svh' }} title={['Services Built on', <>Trust &amp; <span className="serif">Expertise</span></>]} />
+            {isOn(hero) && (
+                <PageHero crumb="Services" className="svc-hero" image={hero.image} video={hero.video === undefined ? '/videos/services-hero.mp4' : hero.video || undefined} style={{ minHeight: '100svh' }}
+                    title={richLines(hero.title ?? 'Services Built on\nTrust & *Expertise*')} />
+            )}
 
-            <ServiceMorph services={services} />
+            {isOn(morph) && <ServiceMorph services={services} c={morph} />}
 
-            <Journey />
+            {isOn(journey) && <Journey c={journey} />}
 
-            <Cta />
+            <Cta c={cta} />
         </SiteLayout>
     );
 }
@@ -62,7 +73,7 @@ function Words({ text }) {
     ));
 }
 
-function ServiceMorph({ services }) {
+function ServiceMorph({ services, c = {} }) {
     const ref = useRef(null);
     const list = services.slice(0, 3);
 
@@ -210,7 +221,7 @@ function ServiceMorph({ services }) {
                             <h2 className="sm-eyebrow">{s.title}</h2>
                             <p className="sm-head"><Words text={s.description} /></p>
                             <ul className="svc-list sm-list">{(s.points || []).map((p) => <li key={p}><Check />{p}</li>)}</ul>
-                            <div className="sm-cta"><Btn href="/projects" className="ghost">Our Projects</Btn></div>
+                            <div className="sm-cta"><Btn href={c.button?.href || '/projects'} className="ghost">{c.button?.label || 'Our Projects'}</Btn></div>
                         </div>
                         <div className="sm-media">
                             <div className="sm-mask"><img src={imgFor(s, i)} alt={s.title} decoding="async" /></div>
@@ -229,8 +240,10 @@ function ServiceMorph({ services }) {
  * ------------------------------------------------------------------------- */
 const JOURNEY_IMG = '/images/journey-panorama.webp';
 
-function Journey() {
+function Journey({ c = {} }) {
     const ref = useRef(null);
+    const bg = useImg(c.image, JOURNEY_IMG);
+    const steps = (c.steps?.length ? c.steps : STEPS).filter((st) => st.title || st.text);
 
     useEffect(() => {
         const sec = ref.current;
@@ -263,6 +276,25 @@ function Journey() {
             mm.add('(max-width: 860px)', () => {
                 gsap.fromTo(img, { x: 0 }, { x: pan, ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: true, invalidateOnRefresh: true } });
             });
+            /* phones: vertical timeline. The gold line grows from the first dot down to the last one as the steps
+               scroll up through the screen, and each dot lights when the line reaches it */
+            mm.add('(max-width: 620px)', () => {
+                const proc = sec.querySelector('.process');
+                const last = steps[steps.length - 1];
+                const span = () => Math.max(1, last.offsetTop);              // first dot -> last dot
+                const setSpan = () => proc.style.setProperty('--jr-h', span() + 'px');
+                setSpan();
+                const light = (p) => steps.forEach((st) => st.classList.toggle('is-on', p * span() >= st.offsetTop - 1));
+                const tw = gsap.fromTo(fill, { scaleY: 0 }, {
+                    scaleY: 1, ease: 'none',
+                    scrollTrigger: {
+                        trigger: proc, start: 'top 65%', end: () => '+=' + span(), scrub: 0.4, invalidateOnRefresh: true,
+                        onRefresh: setSpan, onUpdate: (st) => light(st.progress),
+                    },
+                });
+                light(0);
+                return () => { tw.scrollTrigger && tw.scrollTrigger.kill(); proc.style.removeProperty('--jr-h'); steps.forEach((st) => st.classList.remove('is-on')); };
+            });
             ScrollTrigger.refresh();
         };
         // build after the services stage above (it waits for fonts), so pin spacing is measured in page order
@@ -272,16 +304,16 @@ function Journey() {
 
     return (
         <section className="section journey" data-theme="dark" data-floor="How it works" ref={ref}>
-            <div className="jr-bg" aria-hidden="true"><img src={JOURNEY_IMG} alt="" decoding="async" /></div>
+            <div className="jr-bg" aria-hidden="true"><img src={bg} alt="" decoding="async" /></div>
             <div className="blueprint-grid"></div>
             <div className="wrap" style={{ position: 'relative' }}>
                 <div className="section-head">
-                    <Split>{['From first visit', <>to <span className="serif gold">handover</span></>]}</Split>
+                    <Split>{richLines(c.title ?? 'From first visit\nto *handover*', 'serif gold')}</Split>
                 </div>
                 <div className="process">
                     <span className="jr-fill" aria-hidden="true"></span>
-                    {STEPS.map(([t, d], i) => (
-                        <div className="process-step" key={t}><span className="pn">{pad(i + 1)}</span><h3>{t}</h3><p>{d}</p></div>
+                    {steps.map((st, i) => (
+                        <div className="process-step" key={i}><span className="pn">{pad(i + 1)}</span><h3>{st.title}</h3><p>{st.text}</p></div>
                     ))}
                 </div>
             </div>

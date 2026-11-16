@@ -205,6 +205,14 @@ ul { margin: 0; padding: 0; list-style: none; }
   background: linear-gradient(currentColor, currentColor) 0 100% / 100% 1px no-repeat; transition: background-size .6s cubic-bezier(.19, 1, .22, 1); }
 .lx-menu-list a.primary:hover { opacity: 1; background-size: 0 1px; background-position: 100% 100%; }
 @media (max-width: 860px) { .lx-menu { top: 24px; right: 18px; } }
+/* picking a menu item: its text rolls up and a gold copy rolls back in from below, the others fade back (Site.jsx) */
+.lx-menu-list .mi { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .12em; margin-bottom: -.12em; }
+.lx-menu-list .mi > span { display: inline-block; position: relative; }
+.lx-menu-list .mi > span::after { content: attr(data-text); position: absolute; left: 0; top: calc(100% + .12em); white-space: nowrap; color: #B8955A; }
+.lx-menu-list li.is-picked .mi > span { animation: lx-menu-roll .55s cubic-bezier(.76, 0, .24, 1) forwards; }
+.lx-menu-list.has-pick li:not(.is-picked) { opacity: .25; transition: opacity .3s; }
+@keyframes lx-menu-roll { to { transform: translateY(calc(-100% - .12em)); } }
+@media (prefers-reduced-motion: reduce) { .lx-menu-list li.is-picked .mi > span { animation: none; } }
 @media (max-width: 860px) {
   .sc-badge { top: 16px; left: 16px; width: 84px; height: 84px; }
   .sc-badge svg.ring text { font-size: 9.5px; }
@@ -444,6 +452,12 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 }
 /* project page "Related Projects": no fade at the right end, the last card is shown whole */
 .pj-related .ph-track-wrap { -webkit-mask-image: none; mask-image: none; }
+/* desktop (pinned strip): the cards are sized to the screen height so each whole card (photo + name + facts) stays
+   on screen under the heading; = (screen - top padding - heading - its gap - card text - bottom gap) / photo ratio */
+@media (min-width: 1100px) {
+  .pj-related .section-head { margin-bottom: 48px; }
+  .pj-related .ph-track .p-card { width: max(220px, min(clamp(270px, 28vw, 380px), calc((100svh - min(12vw, 170px) - 72px - 48px - 84px - 32px) / 1.25))); }
+}
 .ph-track { display: flex; gap: clamp(16px, 2vw, 28px); padding-left: var(--wrap-left); padding-right: 30vw; will-change: transform; }
 .ph-progress { height: 2px; background: var(--line-light); margin-top: 48px; position: relative; overflow: hidden; }
 .ph-progress i { position: absolute; inset: 0; background: var(--gold); transform-origin: left; transform: scaleX(0); }
@@ -451,6 +465,13 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
   .ph-track { overflow-x: auto; scroll-snap-type: x mandatory; padding-right: var(--gutter); scrollbar-width: none; }
   .ph-track::-webkit-scrollbar { display: none; }
   .ph-progress { display: none; }
+}
+/* phones: project page "Related Projects" as an off-canvas slider: one card plus the next one peeking in, snapping
+   card by card; it can also be dragged with the mouse (Projects/Show.jsx) */
+@media (max-width: 620px) {
+  .pj-related .ph-track { scroll-padding-left: var(--wrap-left); cursor: grab; user-select: none; -webkit-overflow-scrolling: touch; }
+  .pj-related .ph-track .p-card { width: 78vw; }
+  .pj-related .ph-track img { -webkit-user-drag: none; }
 }
 
 .p-card { flex: none; width: clamp(270px, 28vw, 380px); scroll-snap-align: start; color: inherit; display: block; }
@@ -501,7 +522,10 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 /* each column as wide as its number, equal space between them (1000+ no longer crowds 2) */
 [data-scrub-stats] .numbers-grid { grid-template-columns: repeat(4, auto); justify-content: space-between; column-gap: 32px; }
 @media (max-width: 1000px) { [data-scrub-stats] .numbers-grid { grid-template-columns: repeat(2, auto); row-gap: 40px; } }
-@media (max-width: 520px) { [data-scrub-stats] .numbers-grid { grid-template-columns: 1fr; } }
+/* phones: two numbers side by side, digits scaled down so "1000+" fits a half-width column */
+@media (max-width: 520px) { [data-scrub-stats] .numbers-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 20px; row-gap: 32px; }
+  [data-scrub-stats] .stat-plain .odo { font-size: clamp(40px, 12vw, 64px); }
+  [data-scrub-stats] .stat-plain p { font-size: 13px; } }
 .stat-plain p { margin-top: 12px; font-size: 14px; line-height: 1.5; opacity: .7; max-width: 22ch; }
 .num-label { font-size: 15px; text-transform: capitalize; opacity: .8; border-top: 1px solid var(--line-light); padding-top: 14px; }
 
@@ -603,7 +627,11 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .socials a { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line-light); display: grid; place-items: center; transition: background .3s, color .3s, border-color .3s; }
 .socials a:hover { background: var(--peach); color: var(--ink); border-color: var(--peach); }
 @media (max-width: 860px) { .footer-grid { grid-template-columns: 1fr 1fr; } .footer-grid > :first-child { grid-column: 1 / -1; } }
-@media (max-width: 520px) { .footer-grid { grid-template-columns: 1fr; } }
+/* phones: Links and Contact stay side by side (logo block above them, full width) */
+@media (max-width: 520px) { .footer-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 40px 20px; }
+  .footer-contact { gap: 14px; font-size: 14px; }
+  .footer-contact a, .footer-contact > div { overflow-wrap: anywhere; }
+  .footer-bottom { justify-content: center; text-align: center; } }
 
 /* =========================================================
    INNER PAGES
@@ -724,8 +752,21 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .team-grid .member.lead-member { grid-column: span 6; }
 .team-grid .lead-member .member-photo { aspect-ratio: 6/5; }
 .team-grid .lead-member:is(:hover, :focus-within) .member-photo img { width: 96px; height: 96px; }
-@media (max-width: 960px) { .team-grid .member { grid-column: span 4; } .team-grid .member.lead-member { grid-column: span 6; } }
-@media (max-width: 620px) { .team-grid .member { grid-column: span 6; } .team-grid .member.lead-member { grid-column: span 12; } }
+/* the bigger lead avatar reaches further down, so push the name below it (34 + 96 + 4px ring + gap) */
+.team-grid .lead-member .m-info { padding-top: 76px; }
+@media (max-width: 960px) { .team-grid .member { grid-column: span 4; } .team-grid .member.lead-member { grid-column: span 6; }
+  /* lead cards are much smaller here: keep the standard avatar so the profile still fits */
+  .team-grid .lead-member:is(:hover, :focus-within) .member-photo img { width: 76px; height: 76px; }
+  .team-grid .lead-member .m-info { padding-top: 50px; } }
+@media (max-width: 620px) { .team-grid .member { grid-column: span 6; } .team-grid .member.lead-member { grid-column: span 12; }
+  /* two-up phone cards are tiny: compact profile (smaller cover/avatar/type, address rows dropped) so nothing is clipped */
+  .team-grid .member:not(.lead-member) .m-cover { height: 52px; }
+  .team-grid .member:not(.lead-member):is(:hover, :focus-within) .member-photo img { top: 22px; left: 12px; width: 56px; height: 56px; box-shadow: 0 0 0 3px #fff, 0 8px 18px rgba(7, 26, 48, .18); }
+  .team-grid .member:not(.lead-member) .m-info { gap: 6px; padding: 36px 12px 12px; }
+  .team-grid .member:not(.lead-member) .m-info b { font-size: 14px; }
+  .team-grid .member:not(.lead-member) .m-role { font-size: 12px; padding-bottom: 6px; }
+  .team-grid .member:not(.lead-member) .m-row { display: none; }
+  .team-grid .member:not(.lead-member) .m-btn { padding: 7px 14px; font-size: 12px; } }
 
 /* Services stack */
 .svc-stack { display: grid; gap: 28px; }
@@ -782,6 +823,12 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
   .svc-morph .sm-panel { grid-template-columns: 1fr; }
   .svc-morph .sm-media { height: 120vw; max-height: 620px; }
 }
+/* phones: the photo square (82% of the media box, centred) fills the text column exactly, so the copy -> photo and
+   photo -> next service spacing is a normal gap instead of the box's empty bands */
+@media (max-width: 620px) {
+  .svc-morph .sm-media { width: calc(100% / .82); height: auto; max-height: none; aspect-ratio: 1 / 1; margin: calc(-9% / .82) 0 calc(-9% / .82) calc(-9% / .82); }
+  .svc-morph .sm-panel + .sm-panel { margin-top: 64px; }
+}
 
 /* Process (services page) */
 .process { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; border-top: 1px solid var(--line-light); }
@@ -804,6 +851,20 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .journey.is-live .process-step::before { z-index: 2; background: var(--ink); box-shadow: inset 0 0 0 1px var(--gold); transition: background .35s, box-shadow .35s, transform .35s; }
 .journey.is-live .process-step.is-on::before { background: var(--gold); box-shadow: 0 0 0 6px rgba(240, 201, 168, .18); transform: scale(1.25); }
 @media (max-width: 860px) { .journey .jr-fill { display: none; } }
+/* phones: a vertical timeline. The dots run down the left on a faint track and the gold line grows downward with the
+   scroll (Services.jsx), lighting each dot as it reaches it; the line stops at the last dot (--jr-h). */
+@media (max-width: 620px) {
+  .journey .process { grid-template-columns: 1fr; gap: 40px; border-top: 0; padding-left: 30px; --jr-h: 100%; }
+  .journey .process::before { content: ""; position: absolute; left: 4px; top: 6px; width: 1px; height: var(--jr-h); background: var(--line-light); }
+  .journey .process-step { padding: 0; }
+  .journey .process-step::before { top: 2px; left: -30px; z-index: 2; background: var(--ink); box-shadow: inset 0 0 0 1px var(--gold); transition: background .35s, box-shadow .35s, transform .35s; }
+  .journey .process-step.is-on::before { background: var(--gold); box-shadow: 0 0 0 6px rgba(240, 201, 168, .18); transform: scale(1.25); }
+  .journey .jr-fill { display: block; left: 4px; top: 6px; width: 2px; height: var(--jr-h); margin-left: -.5px; transform-origin: 50% 0; transform: scaleY(0); }
+}
+@media (max-width: 620px) and (prefers-reduced-motion: reduce) {
+  .journey .jr-fill { transform: none; }
+  .journey .process-step::before { background: var(--gold); }
+}
 
 /* Projects grid */
 .filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 48px; }
@@ -816,7 +877,14 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .projects-grid .p-card:nth-child(3n+2) { transform: translateY(60px); }
 .projects-grid .p-card.is-hidden { display: none; }
 @media (max-width: 960px) { .projects-grid { grid-template-columns: repeat(2, 1fr); } .projects-grid .p-card:nth-child(3n+2) { transform: none; } }
-@media (max-width: 560px) { .projects-grid { grid-template-columns: 1fr; } }
+/* phones: two project cards side by side */
+@media (max-width: 560px) { .projects-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px 12px; }
+  /* half-width cards: badge on one line, smaller title and facts */
+  .projects-grid .status { left: 10px; bottom: 10px; padding: 5px 9px; gap: 6px; font-size: 10px; white-space: nowrap; }
+  .projects-grid .p-card-body { padding-top: 12px; gap: 6px; }
+  .projects-grid .p-card-body h3 { font-size: 16px; }
+  .projects-grid .p-facts { gap: 4px; font-size: 12px; }
+  .projects-grid .p-facts svg { width: 13px; height: 13px; } }
 /* Projects page: one standard space between the grid and "Let's talk" (the middle column sits 60px lower) */
 .section.pj-list { padding-bottom: calc(clamp(64px, 7vw, 104px) + 60px); }
 .pj-list-cta .cta { padding-top: clamp(64px, 7vw, 104px); }
@@ -834,6 +902,8 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
   100% { opacity: 1; box-shadow: 0 0 0 0 rgba(184,149,90,0); }
 }
 .pj-title { margin: 16px 0 0; font-size: clamp(40px, 4.6vw, 72px); font-weight: 600; letter-spacing: -.035em; line-height: 1.02; }
+/* phones: names like "PTI Shopno Tower-1" wrap between words, never leaving the "1" alone after the hyphen */
+@media (max-width: 620px) { .pj-title { font-size: clamp(30px, 9vw, 40px); text-wrap: balance; } }
 .pj-addr { display: flex; gap: 10px; align-items: center; margin: 16px 0 0; font-size: clamp(15px, 1.15vw, 18px); opacity: .85; }
 .pj-addr svg { flex: none; color: #B8955A; }
 .pj-top { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(24px, 3vw, 48px); margin-top: clamp(28px, 3.5vw, 48px); align-items: stretch; }
@@ -914,6 +984,34 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .pj-gallery.n1 .pj-shot { aspect-ratio: 16 / 9; }
 .pj-shot img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .8s var(--ease); }
 .pj-shot:hover img { transform: scale(1.04); }
+/* gallery layout: one large tile (2x2), four small, then two wide tiles; photos fill it in order, the rest are placeholders */
+.pj-gallery.pj-bento { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: clamp(150px, 15vw, 230px); }
+.pj-bento .pj-shot { aspect-ratio: auto; height: 100%; }
+.pj-bento .s1 { grid-column: span 2; grid-row: span 2; }
+.pj-bento .s6, .pj-bento .s7 { grid-column: span 2; }
+.pj-ph { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px; text-align: center; color: rgba(11, 38, 68, .55);
+  background: repeating-linear-gradient(135deg, rgba(11, 38, 68, .035) 0 12px, transparent 12px 24px), #ece6f3; border: 1.5px dashed rgba(11, 38, 68, .2); }
+.pj-ph svg { margin-bottom: 4px; opacity: .7; }
+.pj-ph b { font-size: 14px; font-weight: 600; color: var(--navy); }
+.pj-ph small { font-size: 12px; opacity: .8; }
+.pj-bento .s1.pj-ph svg { width: 48px; height: 48px; }
+.pj-bento .s1.pj-ph b { font-size: 17px; }
+/* desktop: Related Projects keeps its own top space (it pins under the header), so the gallery drops its bottom
+   padding and the gap between the two is the page's usual section spacing */
+@media (min-width: 1100px) { .pj-gallery-sec { padding-bottom: 0; } }
+@media (max-width: 640px) {
+  /* phones: a staggered mosaic. Tall main photo left + two stacked right, one wide tile across, then mirrored
+     (two stacked left + a tall one right) */
+  .pj-gallery.pj-bento { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 36vw; gap: 10px; }
+  .pj-bento .s1 { grid-column: 1; grid-row: 1 / span 2; }
+  .pj-bento .s2 { grid-column: 2; grid-row: 1; }
+  .pj-bento .s3 { grid-column: 2; grid-row: 2; }
+  .pj-bento .s4 { grid-column: 1 / span 2; grid-row: 3; }
+  .pj-bento .s5 { grid-column: 1; grid-row: 4; }
+  .pj-bento .s6 { grid-column: 2; grid-row: 4 / span 2; }
+  .pj-bento .s7 { grid-column: 1; grid-row: 5; }
+  .pj-ph b { font-size: 13px; }
+}
 
 @media (max-width: 1000px) {
   .pj-top, .pj-body { grid-template-columns: 1fr; }
@@ -996,6 +1094,11 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .ct-find .c-card:hover { background: var(--navy); color: #fff; }
 .ct-find .c-card:hover .ico { background: rgba(255, 255, 255, .12); }
 @media (max-width: 860px) { .ct-find-grid { grid-template-columns: 1fr; } .ct-find .map { height: 360px; min-height: 0; } }
+/* phones: "Our office" matches the "Questions, answered" heading above it (same font for both words, same size) */
+@media (max-width: 620px) {
+  .ct-find .section-head .h2, .ct-find .section-head .h2 .serif { font-family: "Libre Caslon Condensed", "Instrument Serif", Georgia, serif; font-weight: 500; font-style: normal; text-transform: uppercase; letter-spacing: -.01em; }
+  .ct-find .section-head .h2 { font-size: clamp(54px, 6vw, 110px); line-height: .86; }
+}
 /* office map (Components/OfficeMap.jsx): navy + gold office marker, no red pin */
 .office-map { z-index: 0; overflow: hidden; }
 .office-map-wrap { display: flex; flex-direction: column; gap: 12px; min-height: 100%; }

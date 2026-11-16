@@ -2,24 +2,15 @@
 
 namespace App\Mail;
 
+use App\Models\EmailTemplate;
 use App\Models\Inquiry;
-use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 
-class NewInquiry extends Mailable
+/** The "new lead" alert to the team (template: lead_notification). */
+class NewInquiry extends TemplateMail
 {
-    public function __construct(public Inquiry $inquiry) {}
-
-    public function envelope(): Envelope
+    public function __construct(public Inquiry $inquiry)
     {
-        $kind = $this->inquiry->source === 'site_visit' ? 'Site visit request' : 'Website enquiry';
-
-        return new Envelope(subject: $kind.' from '.$this->inquiry->full_name);
-    }
-
-    public function content(): Content
-    {
-        return new Content(view: 'mail.inquiry');
+        $t = EmailTemplate::for('lead_notification')->fill_in(EmailTemplate::varsFor($inquiry));
+        parent::__construct($t['subject'], $t['body'], null, null, $inquiry->email ?: null);
     }
 }

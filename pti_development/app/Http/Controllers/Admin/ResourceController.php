@@ -19,11 +19,107 @@ class ResourceController extends Controller
     public function index(string $resource): Response
     {
         $r = Resources::get($resource);
+        $items = $r['model']::query()->orderBy('sort_order')->orderBy('id')->get();
+        $has = fn ($n) => collect($r['fields'])->contains('name', $n);
+
+        $stats = [['label' => 'Total '.strtolower($r['label']), 'value' => $items->count()]];
+        if ($has('is_published')) {
+            $stats[] = ['label' => 'Published', 'value' => $items->where('is_published', true)->count()];
+            $stats[] = ['label' => 'Draft', 'value' => $items->where('is_published', false)->count()];
+        }
+        if ($has('is_featured')) {
+            $stats[] = ['label' => 'Featured', 'value' => $items->where('is_featured', true)->count()];
+        }
 
         return Inertia::render('Admin/Resource/Index', [
             'resource' => Resources::public($resource),
-            'items' => $r['model']::query()->orderBy('sort_order')->orderBy('id')->get(),
+            'items' => $items,
+            'stats' => $stats,
+            // tabs = the values of one field (e.g. project status), with counts
+            'tabs' => isset($r['tabs']) ? $items->groupBy($r['tabs'])->map->count() : null,
         ]);
+    }
+
+    /** Flip a yes/no field from the list (Featured, Published). */
+    public function toggle(string $resource, int $id, string $field): RedirectResponse
+    {
+        $r = Resources::get($resource);
+        $f = collect($r['fields'])->firstWhere('name', $field);
+        abort_unless($f && $f['type'] === 'boolean', 404);
+        $item = $r['model']::findOrFail($id);
+        $item->{$field} = ! $item->{$field};
+        $item->save();
+
+        return back()->with('success', '"'.\App\Support\Audit::label($item).'": '.strtolower($f['label']).' '.($item->{$field} ? 'on' : 'off').'.');
+    }
+
+    /** Move an item up / down in the order (the order on the website). */
+    public function move(Request $request, string $resource, int $id): RedirectResponse
+    {
+        $r = Resources::get($resource);
+        $dir = $request->validate(['dir' => 'required|in:up,down'])['dir'];
+        $items = $r['model']::query()->orderBy('sort_order')->orderBy('id')->get();
+        $pos = $items->search(fn ($i) => $i->id === $id);
+        abort_if($pos === false, 404);
+        $swap = $dir === 'up' ? $pos - 1 : $pos + 1;
+        if ($swap < 0 || $swap >= $items->count()) {
+            return back();
+        }
+
+        $order = $items->all();
+        [$order[$pos], $order[$swap]] = [$order[$swap], $order[$pos]];
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order) {
+            foreach ($order as $n => $item) {
+                if ((int) $item->sort_order !== $n + 1) {
+                    $item->sort_order = $n + 1;
+                    $item->saveQuietly();
+                }
+            }
+        });
+        \App\Support\Audit::log('reordered', 'Moved '.strtolower($r['singular']).' "'.\App\Support\Audit::label($order[$swap]).'" '.$dir, $order[$swap]);
+
+        return back();
+    }
+
+    /** Copy an item (images copied too). The copy starts unpublished so it can be edited first. */
+    public function duplicate(string $resource, int $id): RedirectResponse
+    {
+        $r = Resources::get($resource);
+        $item = $r['model']::findOrFail($id);
+        $copy = $item->replicate();
+
+        foreach ($r['fields'] as $f) {
+            $n = $f['name'];
+            if ($f['type'] === 'image') {
+                $copy->{$n} = Media::copy($item->getRawOriginal($n));
+            } elseif ($f['type'] === 'gallery') {
+                $copy->{$n} = array_map([Media::class, 'copy'], $item->{$n} ?? []);
+            }
+        }
+        foreach (['name', 'title'] as $t) {
+            if (collect($r['fields'])->contains('name', $t)) {
+                $copy->{$t} = mb_substr($item->{$t}.' (copy)', 0, 120);
+                break;
+            }
+        }
+        if (collect($r['fields'])->contains('name', 'slug')) {
+            $base = ($item->slug ?: \Illuminate\Support\Str::slug($item->name ?? 'item')).'-copy';
+            $slug = $base;
+            for ($n = 2; $r['model']::where('slug', $slug)->exists(); $n++) {
+                $slug = $base.'-'.$n;
+            }
+            $copy->slug = $slug;
+        }
+        if (collect($r['fields'])->contains('name', 'is_published')) {
+            $copy->is_published = false;
+        }
+        if (collect($r['fields'])->contains('name', 'is_featured')) {
+            $copy->is_featured = false;
+        }
+        $copy->sort_order = (int) $r['model']::max('sort_order') + 1;
+        $copy->save();
+
+        return redirect()->route('admin.resource.edit', [$resource, $copy->id])->with('success', $r['singular'].' duplicated. It is hidden until you publish it.');
     }
 
     public function create(string $resource): Response

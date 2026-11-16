@@ -28,29 +28,106 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::middleware('auth')->group(function () {
         Route::post('/logout', [Admin\AuthController::class, 'logout'])->name('logout');
-        Route::get('/', Admin\DashboardController::class)->name('dashboard');
 
-        Route::get('/inquiries', [Admin\InquiryController::class, 'index'])->name('inquiries.index');
-        Route::get('/inquiries/{inquiry}', [Admin\InquiryController::class, 'show'])->name('inquiries.show');
-        Route::patch('/inquiries/{inquiry}/toggle', [Admin\InquiryController::class, 'toggle'])->name('inquiries.toggle');
-        Route::delete('/inquiries/{inquiry}', [Admin\InquiryController::class, 'destroy'])->name('inquiries.destroy');
-
-        Route::get('/settings', [Admin\SettingsController::class, 'edit'])->name('settings');
-        Route::put('/settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
-        Route::put('/settings/password', [Admin\SettingsController::class, 'password'])->name('settings.password');
-
-        // generic content CRUD: projects, services, team, values, stats, faqs, testimonials
-        Route::controller(Admin\ResourceController::class)
-            ->prefix('content/{resource}')
-            ->whereIn('resource', array_keys(\App\Admin\Resources::all()))
-            ->name('resource.')
-            ->group(function () {
-                Route::get('/', 'index')->name('index');
-                Route::get('/create', 'create')->name('create');
-                Route::post('/', 'store')->name('store');
-                Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
-                Route::put('/{id}', 'update')->whereNumber('id')->name('update');
-                Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+        // everyone signed in: dashboard + own security
+        Route::middleware('area:content')->group(function () {
+            Route::get('/', Admin\DashboardController::class)->name('dashboard');
+            Route::controller(Admin\SecurityController::class)->prefix('security')->name('security.')->group(function () {
+                Route::get('/', 'edit')->name('edit');
+                Route::put('/profile', 'profile')->name('profile');
+                Route::put('/password', 'password')->name('password');
+                Route::post('/logout-others', 'logoutOthers')->name('logout-others');
             });
+        });
+
+        /* Leads (inbox) */
+        Route::middleware('area:leads')->controller(Admin\InquiryController::class)->prefix('inquiries')->name('inquiries.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/export', 'export')->name('export');
+            Route::post('/import', 'import')->name('import');
+            Route::post('/bulk', 'bulk')->name('bulk');
+            Route::get('/{inquiry}', 'show')->name('show');
+            Route::patch('/{inquiry}/toggle', 'toggle')->name('toggle');
+            Route::get('/{inquiry}/edit', 'edit')->name('edit');
+            Route::put('/{inquiry}', 'update')->name('update');
+            Route::post('/{inquiry}/reply', 'reply')->middleware('throttle:20,1')->name('reply');
+            Route::delete('/{inquiry}', 'destroy')->name('destroy');
+        });
+
+        /* Content: pages (sections + SEO), header & footer, media library, collections */
+        Route::middleware('area:content')->group(function () {
+            Route::controller(Admin\PageController::class)->prefix('pages')->name('pages.')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::post('/', 'store')->name('store');
+                Route::get('/{page}/edit', 'edit')->name('edit');
+                Route::put('/{page}', 'update')->name('update');
+                Route::post('/{page}/duplicate', 'duplicate')->name('duplicate');
+                Route::patch('/{page}/toggle', 'toggle')->name('toggle');
+                Route::delete('/{page}', 'destroy')->name('destroy');
+            });
+            Route::get('/layout', [Admin\BlockController::class, 'edit'])->name('layout');
+            Route::put('/layout/{key}', [Admin\BlockController::class, 'update'])->whereIn('key', ['header', 'footer'])->name('layout.update');
+            Route::controller(Admin\MediaController::class)->prefix('media')->name('media.')->group(function () {
+                Route::get('/', 'index')->name('index');
+                Route::get('/list', 'list')->name('list');
+                Route::post('/', 'store')->name('store');
+                Route::patch('/{media}', 'update')->name('update');
+                Route::delete('/{media}', 'destroy')->name('destroy');
+            });
+
+            // generic content CRUD: projects, services, team, values, stats, faqs, testimonials
+            Route::controller(Admin\ResourceController::class)
+                ->prefix('content/{resource}')
+                ->whereIn('resource', array_keys(\App\Admin\Resources::all()))
+                ->name('resource.')
+                ->group(function () {
+                    Route::get('/', 'index')->name('index');
+                    Route::get('/create', 'create')->name('create');
+                    Route::post('/', 'store')->name('store');
+                    Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+                    Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+                    Route::patch('/{id}/toggle/{field}', 'toggle')->whereNumber('id')->name('toggle');
+                    Route::patch('/{id}/move', 'move')->whereNumber('id')->name('move');
+                    Route::post('/{id}/duplicate', 'duplicate')->whereNumber('id')->name('duplicate');
+                    Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+                });
+        });
+
+        /* System & administration */
+        Route::middleware('area:system')->group(function () {
+            Route::get('/settings', [Admin\SettingsController::class, 'edit'])->name('settings');
+            Route::put('/settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
+
+            Route::controller(Admin\MailController::class)->prefix('email')->name('email.')->group(function () {
+                Route::get('/smtp', 'smtp')->name('smtp');
+                Route::put('/smtp', 'saveSmtp')->name('smtp.update');
+                Route::post('/smtp/test', 'test')->middleware('throttle:10,1')->name('smtp.test');
+                Route::get('/templates', 'templates')->name('templates');
+                Route::put('/templates/{key}', 'saveTemplate')->name('templates.update');
+                Route::post('/templates/{key}/test', 'sendTemplateTest')->middleware('throttle:10,1')->name('templates.test');
+                Route::post('/preview', 'preview')->name('preview');
+            });
+
+            Route::get('/audit', [Admin\AuditController::class, 'index'])->name('audit');
+            Route::get('/audit/export', [Admin\AuditController::class, 'export'])->name('audit.export');
+            Route::delete('/audit', [Admin\AuditController::class, 'purge'])->name('audit.purge');
+        });
+
+        Route::middleware('area:users')->controller(Admin\UserController::class)->prefix('users')->name('users.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{user}', 'update')->name('update');
+            Route::delete('/{user}', 'destroy')->name('destroy');
+        });
+
+        Route::middleware('area:code')->group(function () {
+            Route::get('/code', [Admin\CodeController::class, 'edit'])->name('code');
+            Route::put('/code', [Admin\CodeController::class, 'update'])->name('code.update');
+        });
     });
 });
+
+/* ---------------- Pages made in the admin panel (copies of the site's pages), e.g. /offers ---------------- */
+Route::get('/{slug}', [SiteController::class, 'page'])
+    ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
+    ->name('page');

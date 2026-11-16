@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 
 class Project extends Model
 {
+    use \App\Models\Concerns\Auditable;
+
     use HasMediaUrls;
 
     protected $guarded = ['id'];

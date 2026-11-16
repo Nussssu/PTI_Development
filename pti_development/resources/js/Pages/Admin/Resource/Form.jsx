@@ -129,7 +129,7 @@ function FieldInput({ field, form, item }) {
     }
 }
 
-export default function ResourceForm({ resource, item }) {
+export default function ResourceForm({ resource, item, modal = false, onCancel }) {
     const base = `/admin/content/${resource.slug}`;
     const form = useForm(initialData(resource.fields, item));
     const [dirty, setDirty] = useState(false);
@@ -139,17 +139,16 @@ export default function ResourceForm({ resource, item }) {
         e.preventDefault();
         if (item) {
             form.transform((d) => ({ ...d, _method: 'put' }));
-            form.post(`${base}/${item.id}`, { forceFormData: true, preserveScroll: true });
+            form.post(`${base}/${item.id}`, { forceFormData: true, preserveScroll: true, onSuccess: () => onCancel?.() });
         } else {
-            form.post(base, { forceFormData: true, preserveScroll: true });
+            form.post(base, { forceFormData: true, preserveScroll: true, onSuccess: () => onCancel?.() });
         }
     };
 
     const errorFor = (name) => form.errors[name] || Object.entries(form.errors).find(([k]) => k.startsWith(name + '.'))?.[1];
     const title = item ? `Edit ${resource.singular.toLowerCase()}` : `New ${resource.singular.toLowerCase()}`;
 
-    return (
-        <AdminLayout title={title} actions={<Link className="a-btn ghost" href={base}>← Back to {resource.label.toLowerCase()}</Link>}>
+    const content = (
             <form className="a-card a-form" onSubmit={submit}>
                 <div className="a-form-grid">
                     {resource.fields.map((f) => (
@@ -165,10 +164,11 @@ export default function ResourceForm({ resource, item }) {
                 <div className="a-form-foot">
                     {form.progress && <progress value={form.progress.percentage} max="100" />}
                     {dirty && !form.processing && <span className="a-muted">Unsaved changes</span>}
-                    <Link className="a-btn ghost" href={base}>Cancel</Link>
+                    {onCancel ? <button type="button" className="a-btn ghost" onClick={onCancel}>Cancel</button> : <Link className="a-btn ghost" href={base}>Cancel</Link>}
                     <button className="a-btn primary" disabled={form.processing}>{form.processing ? 'Saving…' : item ? 'Save changes' : `Create ${resource.singular.toLowerCase()}`}</button>
                 </div>
             </form>
-        </AdminLayout>
     );
+    if (modal) return <div className="a-modal" onMouseDown={(e) => e.target === e.currentTarget && onCancel?.()}><div className="a-modal-box wide"><div className="a-modal-head"><h2>{title}</h2><button type="button" className="a-icon-btn" onClick={onCancel} aria-label="Close">x</button></div>{content}</div></div>;
+    return <AdminLayout title={title} actions={<Link className="a-btn ghost" href={base}>Back to {resource.label.toLowerCase()}</Link>}>{content}</AdminLayout>;
 }

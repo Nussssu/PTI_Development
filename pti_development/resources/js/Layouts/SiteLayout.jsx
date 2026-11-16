@@ -1,8 +1,9 @@
-import { Head, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { claimPreloader, LogoPreloader, MenuDropdown, SiteFooter, TLink } from '../Components/Site';
 import { initMotion, playLoader, prefersReducedMotion, revealCurtain, ScrollTrigger } from '../lib/motion';
 import RisingTower from '../lib/tower';
+import { Seo, useBlocks } from '../lib/cms';
 
 const SiteCtx = createContext({ openVideo: () => {} });
 export const useSite = () => useContext(SiteCtx);
@@ -13,6 +14,7 @@ export const useSite = () => useContext(SiteCtx);
 const MARK = 'M0.00454068 18.3256H0V73.5928H18.4044V92H36.827V91.9728H73.5949V55.1674V18.3619H73.6085V0H0.00908136V18.3256H0.00454068ZM18.4271 18.3619H55.195V55.1674H36.7997V73.5701H18.4271V18.3619Z';
 function SiteChrome() {
     const ref = useRef(null);
+    const header = useBlocks().header || {};
     useEffect(() => {
         const el = ref.current, ring = el.querySelector('.ring');
         const reduce = prefersReducedMotion();
@@ -41,9 +43,11 @@ function SiteChrome() {
             <TLink className="sc-badge" href="/" aria-label="PTI Development home">
                 <svg className="ring" viewBox="0 0 120 120" aria-hidden="true">
                     <defs><path id="sc-ring" d="M60 60 m-47 0 a47 47 0 1 1 94 0 a47 47 0 1 1 -94 0" /></defs>
-                    <text><textPath href="#sc-ring">PTI DEVELOPMENT · SHAPING DREAMS · DHAKA ·</textPath></text>
+                    <text><textPath href="#sc-ring">{header.ring_text || 'PTI DEVELOPMENT · SHAPING DREAMS · DHAKA ·'}</textPath></text>
                 </svg>
-                <svg className="mark" viewBox="0 0 74 92" aria-hidden="true"><path d={MARK} /></svg>
+                {header.logo
+                    ? <img className="mark" src={header.logo} alt="" aria-hidden="true" style={{ objectFit: 'contain' }} />
+                    : <svg className="mark" viewBox="0 0 74 92" aria-hidden="true"><path d={MARK} /></svg>}
             </TLink>
             <MenuDropdown />
         </div>
@@ -167,7 +171,7 @@ export default function SiteLayout({ title, children, tower: withTower = false }
 
     return (
         <SiteCtx.Provider value={{ openVideo: setVideo }}>
-            <Head title={title} />
+            <Seo title={title} />
             <div className="site">
                 <SiteChrome />
 

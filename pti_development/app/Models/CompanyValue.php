@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class CompanyValue extends Model
 {
+    use \App\Models\Concerns\Auditable;
+
+    protected string $auditAs = 'value';
+
     use HasMediaUrls;
 
     protected $guarded = ['id'];

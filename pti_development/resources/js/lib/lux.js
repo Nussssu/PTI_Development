@@ -830,7 +830,11 @@ export function initLuxSections(root) {
         const bigs = $$('.lx-vision .big span', vision);
         const countryEl = $('.lx-vision .country', vision);
         const country = countryEl ? new SplitText(countryEl, { type: 'chars', charsClass: 'char' }).chars : [];
-        const vt = gsap.timeline({ scrollTrigger: { trigger: vision, start: 'top top', end: '+=180%', pin: true, scrub: 1 } });
+        // About's photo version (still text, used here on phones) is not held at all: the next section follows right
+        // under it and the page scrolls straight on, the photo easing out as it passes; the landing page keeps its pinned travel
+        const vt = vision.classList.contains('lx-vision--photo')
+            ? gsap.timeline({ scrollTrigger: { trigger: vision, start: 'top bottom', end: 'bottom top', scrub: true } })
+            : gsap.timeline({ scrollTrigger: { trigger: vision, start: 'top top', end: '+=180%', pin: true, scrub: 1 } });
         rows.forEach((r, i) => {
             const from = [40, 62, 28][i] || 40;
             vt.fromTo(r, { x: () => innerWidth * from / 100 }, { x: () => -(r.scrollWidth - innerWidth * 0.62), ease: 'none', duration: 1 }, 0);

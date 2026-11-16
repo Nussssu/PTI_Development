@@ -6,8 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,19 +30,20 @@ class SettingsController extends Controller
         $rules['whatsapp'] = 'nullable|regex:/^[0-9]{8,15}$/';
         $rules['facebook'] = $rules['instagram'] = $rules['linkedin'] = 'nullable|url|max:255';
 
-        Setting::put($request->validate($rules, ['whatsapp.regex' => 'Digits only, with country code (e.g. 8801608770711).']));
+        $before = Setting::all_values();
+        $data = $request->validate($rules, ['whatsapp.regex' => 'Digits only, with country code (e.g. 8801608770711).']);
+        Setting::put($data);
+
+        $changes = [];
+        foreach ($data as $k => $v) {
+            if ((string) ($before[$k] ?? '') !== (string) $v) {
+                $changes[$k] = [$before[$k] ?? null, $v];
+            }
+        }
+        if ($changes) {
+            \App\Support\Audit::log('settings', 'Updated site settings ('.implode(', ', array_keys($changes)).')', null, $changes);
+        }
 
         return back()->with('success', 'Settings saved.');
-    }
-
-    public function password(Request $request): RedirectResponse
-    {
-        $data = $request->validate([
-            'current_password' => 'required|current_password',
-            'password' => ['required', 'confirmed', Password::min(8)],
-        ]);
-        $request->user()->update(['password' => Hash::make($data['password'])]);
-
-        return back()->with('success', 'Password updated.');
     }
 }

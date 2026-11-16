@@ -13,8 +13,8 @@ class Media
         if (! $path) {
             return null;
         }
-        if (str_starts_with($path, 'http')) {
-            return $path;
+        if (str_starts_with($path, 'http') || str_starts_with($path, '/')) {
+            return $path;   // remote URL, or a file shipped with the site (public/images/...)
         }
 
         return '/storage/'.ltrim($path, '/');
@@ -25,9 +25,22 @@ class Media
         return $file->store('uploads/'.$folder, 'public');
     }
 
+    /** Copy an uploaded file (for duplicates, so deleting one copy never removes the other's image). */
+    public static function copy(?string $path): ?string
+    {
+        if (! $path || str_starts_with($path, 'http') || str_starts_with($path, '/') || ! Storage::disk('public')->exists($path)) {
+            return $path;
+        }
+        $info = pathinfo($path);
+        $new = ($info['dirname'] !== '.' ? $info['dirname'].'/' : '').$info['filename'].'-copy-'.substr(md5(uniqid('', true)), 0, 6).(isset($info['extension']) ? '.'.$info['extension'] : '');
+        Storage::disk('public')->copy($path, $new);
+
+        return $new;
+    }
+
     public static function delete(?string $path): void
     {
-        if ($path && ! str_starts_with($path, 'http')) {
+        if ($path && ! str_starts_with($path, 'http') && ! str_starts_with($path, '/')) {
             Storage::disk('public')->delete($path);
         }
     }

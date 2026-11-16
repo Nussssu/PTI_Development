@@ -27,7 +27,7 @@ class DatabaseSeeder extends Seeder
 
         User::updateOrCreate(
             ['email' => env('ADMIN_EMAIL', 'admin@ptidlbd.com')],
-            ['name' => 'PTI Admin', 'password' => Hash::make(env('ADMIN_PASSWORD', 'password'))]
+            ['name' => 'PTI Admin', 'password' => Hash::make(env('ADMIN_PASSWORD', 'password')), 'role' => 'super_admin', 'is_active' => true]
         );
 
         Setting::put(collect(Setting::FIELDS)->map(fn ($f) => $f[1])->all());

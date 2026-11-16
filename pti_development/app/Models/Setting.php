@@ -47,4 +47,25 @@ class Setting extends Model
         }
         Cache::forget('site-settings');
     }
+
+    /**
+     * Settings that are not site details (SMTP / Gmail, custom code, ...): any key outside FIELDS.
+     * Cached together; read with extra('key').
+     */
+    public static function extra(?string $key = null, mixed $default = null): mixed
+    {
+        $all = Cache::rememberForever('site-settings-extra', fn () => static::whereNotIn('key', array_keys(self::FIELDS))->pluck('value', 'key')->all());
+
+        return $key === null ? $all : ($all[$key] ?? $default);
+    }
+
+    public static function putExtra(array $values): void
+    {
+        foreach ($values as $key => $value) {
+            if (! array_key_exists($key, self::FIELDS)) {
+                static::updateOrCreate(['key' => $key], ['value' => $value]);
+            }
+        }
+        Cache::forget('site-settings-extra');
+    }
 }

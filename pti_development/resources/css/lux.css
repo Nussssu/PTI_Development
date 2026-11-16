@@ -694,6 +694,8 @@
 
   /* "Our Projects" aerial photo: the roundabout (the crossing roads) in the middle of the screen */
   .lx-aerial .a-img img { left: 0; width: 100%; object-position: 55% 50%; }
+  /* the "Our Projects" title sits in the middle of the photo (stretched about its own centre so it stays centred) */
+  .lx-aerial .a-title { top: 50%; transform-origin: 50% 50%; transform: translateY(-50%) scaleY(1.14); }
 
   /* "Our Projects": the projects in an off-canvas swipe slider (next card peeks in), square photos, smaller text */
   .lx-hscroll .h-slides { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding-left: 6vw; gap: 4vw;

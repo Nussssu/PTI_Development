@@ -26,7 +26,9 @@ class Resources
                 'label' => 'Projects',
                 'singular' => 'Project',
                 'icon' => 'building',
-                'columns' => ['image', 'name', 'area', 'units', 'status', 'is_published'],
+                'columns' => ['image', 'name', 'area', 'units', 'status', 'is_featured', 'is_published'],
+                'tabs' => 'status',
+                'view' => '/projects/{slug}',
                 'fields' => [
                     ['name' => 'name', 'label' => 'Project name', 'type' => 'text', 'rules' => 'required|string|max:120'],
                     ['name' => 'slug', 'label' => 'URL slug', 'type' => 'text', 'rules' => 'nullable|alpha_dash|max:140', 'help' => 'Leave empty to generate from the name.'],
@@ -141,7 +143,7 @@ class Resources
     /** Navigation data for the admin sidebar (no model classes). */
     public static function nav(): array
     {
-        return collect(static::all())->map(fn ($r, $slug) => [
+        return collect(static::all())->reject(fn ($r, $slug) => in_array($slug, ['services', 'stats'], true))->map(fn ($r, $slug) => [
             'slug' => $slug, 'label' => $r['label'], 'icon' => $r['icon'],
         ])->values()->all();
     }

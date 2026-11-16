@@ -1,9 +1,8 @@
-import { useForm } from '@inertiajs/react';
-import AdminLayout from '../../Layouts/AdminLayout';
+import { Link, useForm } from '@inertiajs/react';
+import AdminLayout, { Icon } from '../../Layouts/AdminLayout';
 
 export default function Settings({ fields, values }) {
     const form = useForm(values);
-    const pw = useForm({ current_password: '', password: '', password_confirmation: '' });
 
     return (
         <AdminLayout title="Settings">
@@ -23,17 +22,14 @@ export default function Settings({ fields, values }) {
                     <div className="a-form-foot"><button className="a-btn primary" disabled={form.processing}>{form.processing ? 'Saving…' : 'Save settings'}</button></div>
                 </form>
 
-                <form className="a-card a-form" onSubmit={(e) => { e.preventDefault(); pw.put('/admin/settings/password', { preserveScroll: true, onSuccess: () => pw.reset() }); }}>
-                    <div className="a-card-head"><h2>Change password</h2></div>
-                    {[['current_password', 'Current password', 'current-password'], ['password', 'New password', 'new-password'], ['password_confirmation', 'Confirm new password', 'new-password']].map(([k, label, ac]) => (
-                        <label key={k} className="a-field">
-                            <span>{label}</span>
-                            <input type="password" autoComplete={ac} value={pw.data[k]} onChange={(e) => pw.setData(k, e.target.value)} />
-                            {pw.errors[k] && <small className="a-error">{pw.errors[k]}</small>}
-                        </label>
-                    ))}
-                    <div className="a-form-foot"><button className="a-btn primary" disabled={pw.processing}>Update password</button></div>
-                </form>
+                <div className="a-card">
+                    <div className="a-card-head"><h2>More settings</h2></div>
+                    <div className="a-recent">
+                        <Link href="/admin/email/smtp" className="a-recent-item"><span className="a-stat-ico"><Icon name="mail" /></span><span><b>Email setup</b><small className="a-muted">SMTP and email templates</small></span></Link>
+                        <Link href="/admin/security" className="a-recent-item"><span className="a-stat-ico"><Icon name="lock" /></span><span><b>My security</b><small className="a-muted">Your password and devices</small></span></Link>
+                        <Link href="/admin/layout" className="a-recent-item"><span className="a-stat-ico"><Icon name="layout" /></span><span><b>Menus</b><small className="a-muted">Header and footer links</small></span></Link>
+                    </div>
+                </div>
             </div>
         </AdminLayout>
     );

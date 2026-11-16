@@ -1,43 +1,109 @@
-import { Link, router } from '@inertiajs/react';
-import { useState } from 'react';
-import AdminLayout from '../../../Layouts/AdminLayout';
+import { Link, router, useForm } from '@inertiajs/react';
+import { useEffect, useRef, useState } from 'react';
+import AdminLayout, { Icon, IconBtn, askDelete } from '../../../Layouts/AdminLayout';
 import { when } from '../Dashboard';
+import axios from 'axios';
+import LeadDetail from '../../../Components/Admin/LeadDetail';
 
-const FILTERS = [['all', 'All'], ['unread', 'Unread'], ['contact', 'Contact form'], ['site_visit', 'Site visits']];
+const TONES = { all: 'ink', new: 'violet', in_progress: 'blue', replied: 'teal', archived: 'grey' };
 
-export default function InquiriesIndex({ inquiries, filter, search }) {
-    const [q, setQ] = useState(search);
-    const go = (params) => router.get('/admin/inquiries', { filter, search: q, ...params }, { preserveState: true, replace: true });
+/** Leads inbox: status tabs with counts, search + type + date filters, bulk actions, CSV import / export. */
+export default function InquiriesIndex({ inquiries, filters, counts, unread, statuses, types }) {
+    const [f, setF] = useState(filters);
+    const [picked, setPicked] = useState([]);
+    const [importing, setImporting] = useState(false);
+    const [viewing, setViewing] = useState(null);
+    const openView = (i) => setViewing(i.id);
+    const go = (params = {}) => router.get('/admin/inquiries', clean({ ...f, ...params }), { preserveState: true, replace: true, onSuccess: () => setPicked([]) });
+    const setTab = (status) => { setF((x) => ({ ...x, status })); go({ status, page: undefined }); };
+    const remove = (i) => askDelete({ title: `Delete the lead from “${i.first_name}”?`, text: 'The lead, its message and its replies are deleted permanently.' }).then((ok) => ok && router.delete(`/admin/inquiries/${i.id}`, { preserveScroll: true }));
+    const ids = inquiries.data.map((i) => i.id);
+    const allPicked = ids.length > 0 && ids.every((id) => picked.includes(id));
+    const bulk = async (action) => {
+        if (!picked.length) return;
+        if (action === 'delete' && !(await askDelete({ title: `Delete ${picked.length} lead${picked.length > 1 ? 's' : ''}?`, text: 'The selected leads, their messages and replies are deleted permanently.' }))) return;
+        router.post('/admin/inquiries/bulk', { ids: picked, action }, { preserveScroll: true, onSuccess: () => setPicked([]) });
+    };
+    const exportUrl = `/admin/inquiries/export?${new URLSearchParams(clean(filters)).toString()}`;
+    const filtered = filters.search || filters.type || filters.from || filters.to;
 
     return (
-        <AdminLayout title="Inquiries">
-            <div className="a-toolbar">
-                <div className="a-tabs">
-                    {FILTERS.map(([k, label]) => (
-                        <button key={k} className={filter === k ? 'is-active' : ''} onClick={() => go({ filter: k, page: 1 })}>{label}</button>
-                    ))}
-                </div>
-                <form onSubmit={(e) => { e.preventDefault(); go({ page: 1 }); }} className="a-search">
-                    <input type="search" placeholder="Search name, email or phone" value={q} onChange={(e) => setQ(e.target.value)} />
-                </form>
+        <AdminLayout title="Leads" actions={<>
+            <button className="a-btn" onClick={() => setImporting(true)}><Icon name="upload" /> Import CSV</button>
+            <a className="a-btn" href={exportUrl}><Icon name="download" /> Export CSV</a>
+        </>}>
+            <div className="a-leads">
+
+            <div className="a-chips">
+                {[['', 'Total', 'all'], ...Object.entries(statuses).map(([k, l]) => [k, l, k]), ['unread', 'Unread', 'new']].map(([k, label, tone]) => (
+                    <button key={label} className={`a-chip tone-${TONES[tone] || 'ink'} ${f.status === k ? 'is-active' : ''}`} onClick={() => setTab(k)}>
+                        <i /> {label} <b>{k === '' ? counts.all : k === 'unread' ? unread : counts[k]}</b>
+                    </button>
+                ))}
             </div>
+
+            <form className="a-card a-filters" onSubmit={(e) => { e.preventDefault(); go({ page: undefined }); }}>
+                <input className="grow" type="search" placeholder="Search name, email, phone, project or text…" value={f.search} onChange={(e) => setF({ ...f, search: e.target.value })} />
+                <select value={f.status} onChange={(e) => setF({ ...f, status: e.target.value })}>
+                    <option value="">All statuses</option>
+                    {Object.entries(statuses).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                    <option value="unread">Unread</option>
+                </select>
+                <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })}>
+                    <option value="">All types</option>
+                    {Object.entries(types).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                </select>
+                <label className="a-date"><span>From</span><input type="date" value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} /></label>
+                <label className="a-date"><span>To</span><input type="date" value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} /></label>
+                <button className="a-btn">Search</button>
+                {(filtered || f.status) && <button type="button" className="a-btn ghost" onClick={() => { const e = { status: '', type: '', search: '', from: '', to: '' }; setF(e); go(e); }}>Clear</button>}
+            </form>
+
+            {picked.length > 0 && (
+                <div className="a-bulk">
+                    <b>{picked.length} selected</b>
+                    <button className="a-btn sm" onClick={() => bulk('read')}>Mark read</button>
+                    <button className="a-btn sm" onClick={() => bulk('unread')}>Mark unread</button>
+                    <select className="a-btn sm" value="" onChange={(e) => e.target.value && bulk(e.target.value)}>
+                        <option value="">Set status…</option>
+                        {Object.entries(statuses).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                    </select>
+                    <button className="a-btn sm danger" onClick={() => bulk('delete')}>Delete</button>
+                    <button className="a-btn sm ghost" onClick={() => setPicked([])}>Cancel</button>
+                </div>
+            )}
 
             <div className="a-card flush">
                 {inquiries.data.length === 0 ? (
-                    <p className="a-empty">No inquiries match.</p>
+                    <p className="a-empty">{counts.all === 0 && !filtered && !f.status ? 'No leads yet. Messages from the contact form and site-visit requests will appear here.' : 'No leads match these filters.'}</p>
                 ) : (
                     <table className="a-table">
-                        <thead><tr><th>Name</th><th>Type</th><th>Contact</th><th>Message</th><th>Received</th><th /></tr></thead>
+                        <thead><tr>
+                            <th className="a-td-check"><input type="checkbox" checked={allPicked} onChange={() => setPicked(allPicked ? [] : ids)} aria-label="Select all" /></th>
+                            <th>From</th><th>Type</th><th>Message</th><th>Status</th><th>Received</th><th style={{ width: 190 }}>Action</th>
+                        </tr></thead>
                         <tbody>
                             {inquiries.data.map((i) => (
-                                <tr key={i.id} className={i.read_at ? '' : 'unread'}>
-                                    <td><Link className="a-strong" href={`/admin/inquiries/${i.id}`}>{i.first_name} {i.last_name}</Link></td>
-                                    <td><span className={`a-pill ${i.source}`}>{i.source === 'site_visit' ? 'Site visit' : 'Contact'}</span>{i.project && <div className="a-muted sm">{i.project.name}</div>}</td>
-                                    <td>{i.phone}{i.email && <div className="a-muted sm">{i.email}</div>}</td>
+                                <tr key={i.id} className={`${i.read_at ? '' : 'unread'} ${picked.includes(i.id) ? 'picked' : ''}`}>
+                                    <td className="a-td-check"><input type="checkbox" checked={picked.includes(i.id)} onChange={() => setPicked((p) => (p.includes(i.id) ? p.filter((x) => x !== i.id) : [...p, i.id]))} aria-label={`Select ${i.first_name}`} /></td>
+                                    <td>
+                                        <Link className="a-strong" href={`/admin/inquiries/${i.id}`}>{i.first_name} {i.last_name}</Link>
+                                        <div className="a-muted sm">{i.phone}{i.email ? ` · ${i.email}` : ''}</div>
+                                    </td>
+                                    <td><span className={`a-pill ${i.source}`}>{types[i.source] || i.source}</span>{i.project && <div className="a-muted sm">{i.project.name}</div>}</td>
                                     <td><span className="a-clip">{i.message || '—'}</span></td>
-                                    <td className="a-muted">{when(i.created_at)}</td>
+                                    <td>
+                                        <span className={`a-pill st-${i.status}`}>{statuses[i.status] || i.status}</span>
+                                        {i.replies_count > 0 && <div className="a-muted sm">↩ {i.replies_count} repl{i.replies_count > 1 ? 'ies' : 'y'}</div>}
+                                    </td>
+                                    <td className="a-muted sm">{when(i.created_at)}</td>
                                     <td className="a-row-actions">
-                                        <button className="a-btn ghost sm" onClick={() => router.patch(`/admin/inquiries/${i.id}/toggle`, {}, { preserveScroll: true })}>{i.read_at ? 'Mark unread' : 'Mark read'}</button>
+                                        <div className="a-ibtns">
+                                            <IconBtn icon="eye" label="View message" onClick={() => openView(i)} />
+                                            <IconBtn icon="reply" label={i.email ? 'Reply by email' : 'No email address (call instead)'} href={`/admin/inquiries/${i.id}#reply`} disabled={!i.email} />
+                                            <IconBtn icon="edit" label="Edit" href={`/admin/inquiries/${i.id}/edit`} />
+                                            <IconBtn icon="trash" tone="danger" label="Delete" onClick={() => remove(i)} />
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -48,11 +114,84 @@ export default function InquiriesIndex({ inquiries, filter, search }) {
 
             {inquiries.last_page > 1 && (
                 <div className="a-pager">
-                    {inquiries.links.map((l, k) => (
-                        <Link key={k} href={l.url || '#'} preserveState className={`${l.active ? 'is-active' : ''} ${!l.url ? 'disabled' : ''}`} dangerouslySetInnerHTML={{ __html: l.label }} />
-                    ))}
+                    {inquiries.links.map((l, k) => <Link key={k} href={l.url || '#'} preserveState className={`${l.active ? 'is-active' : ''} ${!l.url ? 'disabled' : ''}`} dangerouslySetInnerHTML={{ __html: l.label }} />)}
                 </div>
             )}
+
+            {importing && <ImportModal onClose={() => setImporting(false)} />}
+            {viewing && <ViewModal id={viewing} types={types} onClose={() => setViewing(null)} />}
+            </div>
         </AdminLayout>
     );
 }
+
+/** The whole lead (message, reply box, replies sent, details, status) in a pop-up over the list. */
+function ViewModal({ id, types, onClose }) {
+    const [data, setData] = useState(null);
+    const [err, setErr] = useState('');
+    const load = (refresh = true) => axios.get(`/admin/inquiries/${id}`, { params: refresh ? { refresh: 1 } : {}, headers: { Accept: 'application/json' } })
+        .then((r) => setData(r.data)).catch(() => setErr('Could not load this lead.'));
+    // opening it marks it read (like the full page), so refresh the list behind the pop-up too
+    useEffect(() => { load(false).then(() => router.reload({ only: ['inquiries', 'counts', 'unread', 'admin'] })); }, [id]);
+    useEffect(() => {
+        const esc = (e) => e.key === 'Escape' && onClose();
+        addEventListener('keydown', esc);
+        return () => removeEventListener('keydown', esc);
+    }, []);
+    const i = data?.inquiry;
+    const remove = () => askDelete({ title: `Delete the lead from “${i?.first_name || 'this person'}”?`, text: 'The lead, its message and its replies are deleted permanently.' }).then((ok) => ok && router.delete(`/admin/inquiries/${id}`, { preserveScroll: true, onSuccess: onClose }));
+
+    return (
+        <div className="a-modal" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+            <div className="a-modal-box a-leads a-view" role="dialog" aria-modal="true" aria-label={i ? `Lead from ${i.first_name}` : 'Lead'}>
+                <div className="a-modal-head">
+                    <div>
+                        <h2>{i ? `${i.first_name} ${i.last_name || ''}` : 'Loading…'}</h2>
+                        {i && (
+                            <div className="a-view-tags">
+                                <span className={`a-pill ${i.source}`}>{types[i.source] || i.source}</span>
+                                <span className={`a-pill st-${i.status}`}>{data.statuses[i.status] || i.status}</span>
+                            </div>
+                        )}
+                    </div>
+                    <div className="a-ibtns">
+                        {i && <IconBtn icon="edit" label="Edit" href={`/admin/inquiries/${id}/edit`} />}
+                        {i && <IconBtn icon="trash" tone="danger" label="Delete" onClick={remove} />}
+                        <button type="button" className="a-icon-btn" onClick={onClose} aria-label="Close"><Icon name="x" /></button>
+                    </div>
+                </div>
+                {err && <p className="a-error">{err}</p>}
+                {!data && !err && <p className="a-muted" style={{ padding: '40px 0', textAlign: 'center' }}>Loading…</p>}
+                {data && <LeadDetail inquiry={i} statuses={data.statuses} replyTemplate={data.replyTemplate} mailLive={data.mailLive} onChanged={() => load(true)} />}
+            </div>
+        </div>
+    );
+}
+
+function ImportModal({ onClose }) {
+    const form = useForm({ file: null });
+    const input = useRef(null);
+    const submit = (e) => { e.preventDefault(); form.post('/admin/inquiries/import', { forceFormData: true, onSuccess: onClose }); };
+
+    return (
+        <div className="a-modal" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+            <form className="a-modal-box" onSubmit={submit}>
+                <div className="a-modal-head"><h2>Import leads from CSV</h2><button type="button" className="a-icon-btn" onClick={onClose}><Icon name="x" /></button></div>
+                <p className="a-muted" style={{ marginTop: 0 }}>
+                    A CSV with a header row (from Excel / Google Sheets: <em>File → Download → CSV</em>). Needed: <b>Name</b> (or First name) and <b>Phone</b>.
+                    Also read if present: Last name, Email, Type, Project, Message, Status, Notes, Received. Rows already imported are skipped.
+                </p>
+                <p className="a-muted sm">Tip: export first to get a file with the right columns.</p>
+                <label className="a-drop" onClick={() => input.current?.click()}>
+                    <Icon name="upload" size={22} />
+                    <span>{form.data.file ? form.data.file.name : 'Choose a .csv file'}</span>
+                    <input ref={input} type="file" accept=".csv,text/csv" hidden onChange={(e) => form.setData('file', e.target.files[0] || null)} />
+                </label>
+                {form.errors.file && <small className="a-error">{form.errors.file}</small>}
+                <div className="a-form-foot"><button type="button" className="a-btn ghost" onClick={onClose}>Cancel</button><button className="a-btn primary" disabled={!form.data.file || form.processing}>{form.processing ? 'Importing…' : 'Import'}</button></div>
+            </form>
+        </div>
+    );
+}
+
+const clean = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== '' && v != null));

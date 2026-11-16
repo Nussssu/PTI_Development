@@ -3,6 +3,7 @@ import { gsap } from 'gsap';
 import { Office, Pin } from '../Components/Icons';
 import { Odometer, Split, TLink } from '../Components/Site';
 import SiteLayout from '../Layouts/SiteLayout';
+import { isOn, rich, richLines, useImg, useSection } from '../lib/cms';
 import { initLuxSections } from '../lib/lux';
 import { prefersReducedMotion, ScrollTrigger } from '../lib/motion';
 import { Quote, Values } from './Home';
@@ -28,8 +29,13 @@ function doorPath(w, h, k) {
         + `C${f(w - p2[0])} ${f(p2[1])} ${f(w - c1[0])} ${f(c1[1])} ${f(w)} ${f(rise)} L${f(w)} ${f(h)} Z`;
 }
 
-function AboutHero() {
+const STORY = 'PTI Development’s journey began with a clear vision: to elevate living and working spaces in Dhaka through uncompromising quality and integrity. From our first residential project to our expansive mixed-use developments, our journey has been fueled by a commitment to our clients’ aspirations and the sustainable growth of our communities. Every project is a milestone in our legacy of excellence.';
+const STORY2 = 'Led by *Md. Ruhul Amin*, a visionary entrepreneur, we are shaping Dhaka’s skyline with projects that combine affordability, transparency, and world-class design. Every square foot we build is a commitment — to trust, to safety, and to the dreams of our clients.';
+
+function AboutHero({ c = {} }) {
     const ref = useRef(null);
+    const story = c.story ?? STORY, story2 = c.story2 ?? STORY2;
+    const img = useImg(c.image, '/images/rooftop-dusk.webp');
     useEffect(() => {
         const sec = ref.current;
         const door = sec.querySelector('.ab-door');
@@ -121,12 +127,12 @@ function AboutHero() {
             <div className="ab-stage">
                 <div className="wrap ab-measure" aria-hidden="true" />
                 <div className="ab-door">
-                    <div className="ab-door-in"><img src="/images/rooftop-dusk.webp" alt="PTI Development building rooftop at dusk" /></div>
+                    <div className="ab-door-in"><img src={img} alt={c.image_alt ?? 'PTI Development building rooftop at dusk'} /></div>
                     <div className="ab-shade" />
                 </div>
                 <div className="ab-intro">
                     <h1>
-                        {['Our Legacy of', 'Construction', <span className="serif" key="s">Excellence</span>].map((l, i) => (
+                        {richLines(c.title ?? 'Our Legacy of\nConstruction\n*Excellence*').map((l, i) => (
                             <span className="line-mask" key={i}><span>{l}</span></span>
                         ))}
                     </h1>
@@ -134,11 +140,10 @@ function AboutHero() {
                 <div className="ab-story-wrap">
                     <div className="ab-story">
                         <h2 className="h2">
-                            <span className="line-mask"><span>Shaping Dhaka's</span></span>
-                            <span className="line-mask"><span className="serif">Skyline</span></span>
+                            {richLines(c.story_title ?? "Shaping Dhaka's\n*Skyline*").map((l, i) => <span className="line-mask" key={i}><span>{l}</span></span>)}
                         </h2>
-                        <p>PTI Development’s journey began with a clear vision: to elevate living and working spaces in Dhaka through uncompromising quality and integrity. From our first residential project to our expansive mixed-use developments, our journey has been fueled by a commitment to our clients’ aspirations and the sustainable growth of our communities. Every project is a milestone in our legacy of excellence.</p>
-                        <p>Led by <span className="leader">Md. Ruhul Amin</span>, a visionary entrepreneur, we are shaping Dhaka’s skyline with projects that combine affordability, transparency, and world-class design. Every square foot we build is a commitment — to trust, to safety, and to the dreams of our clients.</p>
+                        {story && <p>{story}</p>}
+                        {story2 && <p>{rich(story2, 'leader')}</p>}
                     </div>
                 </div>
             </div>
@@ -148,15 +153,16 @@ function AboutHero() {
 
 /* The landing page's "vision" rows (same pinned, scrubbed travel from the right), on a construction photo:
    only the travelling lines are kept. Motion: the .lx-vision block in lib/lux.js. */
-function AboutVision() {
+const VISION_ROWS = ["PTI is shaping Dhaka's skyline with projects", 'that combine affordability, transparency', 'and world-class design, square foot by square foot'];
+function AboutVision({ c = {} }) {
+    const img = useImg(c.image, '/images/hd/construction.webp');
+    const rows = c.rows?.length ? c.rows : VISION_ROWS;
     return (
         <section className="lx-vision lx-vision--photo" data-tone="dark" id="vision" data-hash-offset="0.5">
-            <div className="v-photo" aria-hidden="true"><img src="/images/hd/construction.webp" alt="" loading="lazy" /></div>
+            <div className="v-photo" aria-hidden="true"><img src={img} alt="" loading="lazy" /></div>
             <div className="rows disp">
-                <div className="label micro">Our vision</div>
-                <div className="row">PTI is shaping Dhaka's skyline with projects</div>
-                <div className="row">that combine affordability, transparency</div>
-                <div className="row">and world-class design, square foot by square foot</div>
+                <div className="label micro">{c.label ?? 'Our vision'}</div>
+                {rows.map((r, i) => <div className="row" key={i}>{r}</div>)}
             </div>
         </section>
     );
@@ -168,13 +174,15 @@ function AboutVision() {
    then its list highlights and the cream arch rises; only after that does the page scroll on to the quote.
    Vision and values keep lib/lux.js's motions and scroll lengths (180%; 45% per item + 80%); the slide (110%) overlaps
    the last part of the vision rows. Phones / reduced motion: the two sections stack and lux.js animates them as before. */
-function AboutTrack({ values }) {
+function AboutTrack({ values, vision: vc, valuesC }) {
     const ref = useRef(null);
+    const showVision = isOn(vc), showValues = isOn(valuesC);
     useEffect(() => {
         const wrap = ref.current;
         const mm = gsap.matchMedia();
         mm.add({ desk: '(min-width: 861px) and (prefers-reduced-motion: no-preference)', other: '(max-width: 860px), (prefers-reduced-motion: reduce)' }, (c) => {
-            if (c.conditions.other) return initLuxSections(wrap);
+            // the sideways track needs both parts; with one switched off (admin), the other simply stacks as on phones
+            if (c.conditions.other || !showVision || !showValues) return initLuxSections(wrap);
             wrap.classList.add('ab-track-on');
             const track = wrap.querySelector('.ab-track');
             const vision = wrap.querySelector('.lx-vision');
@@ -194,7 +202,8 @@ function AboutTrack({ values }) {
             texts.forEach((t, k) => gsap.set(t, { opacity: k ? 0 : 1, position: k ? 'absolute' : 'relative', top: k ? 0 : 'auto', left: 0, right: 0 }));
             setVal(0);
 
-            const V = 1.8, S = 1.1, A = (items.length * 45 + 80) / 100; // scroll lengths in screen heights
+            // scroll lengths in screen heights (vision kept short: it moves on after about two scrolls)
+            const V = 0.7, S = 0.7, A = (items.length * 45 + 80) / 100;
             const S0 = V * 0.72;          // the slide starts while the rows are still travelling
             const A0 = S0 + S;            // values part starts when the slide is done
             const total = A0 + A;
@@ -225,13 +234,13 @@ function AboutTrack({ values }) {
             };
         });
         return () => mm.revert();
-    }, []);
+    }, [showVision, showValues]);
 
     return (
         <div className="lx ab-track-wrap" ref={ref}>
             <div className="ab-track">
-                <AboutVision />
-                <Values values={values} image="/images/hd/night-render.webp" />
+                {showVision && <AboutVision c={vc} />}
+                {showValues && <Values values={values} image="/images/hd/night-render.webp" c={valuesC} />}
             </div>
         </div>
     );
@@ -240,12 +249,15 @@ function AboutTrack({ values }) {
 export default function About({ values, stats, team, projects = [], services = [], faqs = [], homeStats = [] }) {
     /* the quote is a landing-page (lux) section: same look and scroll motion as there (vision + values: AboutTrack) */
     const quote = useRef(null);
-    useEffect(() => (quote.current ? initLuxSections(quote.current) : undefined), []);
+    // texts / images from Admin → Pages → About (numbers, values and team: Collections)
+    const S = { hero: useSection('hero'), stats: useSection('stats'), vision: useSection('vision'), values: useSection('values'), team: useSection('team'), quote: useSection('quote') };
+    const quoteOn = isOn(S.quote);
+    useEffect(() => (quote.current ? initLuxSections(quote.current) : undefined), [quoteOn]);
     return (
         <SiteLayout title="About" tower={false}>
-            <AboutHero />
+            {isOn(S.hero) && <AboutHero c={S.hero} />}
 
-            {stats.length > 0 && (
+            {isOn(S.stats) && stats.length > 0 && (
                 <section className="section lux-gold" data-theme="light" data-floor="In numbers" data-scrub-stats>
                     <div className="wrap">
                         {/* just the numbers (no cards): their digits spin with the scroll (motion.js, data-scrub-stats) */}
@@ -261,13 +273,13 @@ export default function About({ values, stats, team, projects = [], services = [
                 </section>
             )}
 
-            <AboutTrack values={values} />
+            {(isOn(S.vision) || isOn(S.values)) && <AboutTrack values={values} vision={S.vision} valuesC={S.values} />}
 
-            {team.length > 0 && (
+            {isOn(S.team) && team.length > 0 && (
                 <section className="section lux-gold" data-theme="light" data-floor="Our people">
                     <div className="wrap">
                         <div className="section-head team-head">
-                            <Split>{['Meet Our Visionaries']}</Split>
+                            <Split>{[S.team.title ?? 'Meet Our Visionaries']}</Split>
                         </div>
                         <div className="team-grid">
                             {team.map((m, i) => (
@@ -280,9 +292,9 @@ export default function About({ values, stats, team, projects = [], services = [
                                             <div className="m-info">
                                                 <b>{m.name}</b>
                                                 <span className="m-role">{m.role}</span>
-                                                <span className="m-row"><Office />Works at PTI Development</span>
-                                                <span className="m-row"><Pin />PTI Development office, Mirpur, Dhaka</span>
-                                                <TLink className="m-btn" href="/contact" tabIndex={-1}>Contact</TLink>
+                                                <span className="m-row"><Office />{S.team.works_at ?? 'Works at PTI Development'}</span>
+                                                <span className="m-row"><Pin />{S.team.office ?? 'PTI Development office, Mirpur, Dhaka'}</span>
+                                                <TLink className="m-btn" href={S.team.button?.href || '/contact'} tabIndex={-1}>{S.team.button?.label ?? 'Contact'}</TLink>
                                             </div>
                                         </div>
                                         {m.photo_url && <img src={m.photo_url} alt={m.name} loading="lazy" />}
@@ -294,9 +306,11 @@ export default function About({ values, stats, team, projects = [], services = [
                 </section>
             )}
 
-            <div className="lx" ref={quote}>
-                <Quote flower={false} sideImage="/images/about-pti-street.webp" />
-            </div>
+            {quoteOn && (
+                <div className="lx" ref={quote}>
+                    <Quote flower={false} sideImage="/images/about-pti-street.webp" c={S.quote} />
+                </div>
+            )}
         </SiteLayout>
     );
 }

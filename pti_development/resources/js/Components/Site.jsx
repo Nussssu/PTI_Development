@@ -2,6 +2,7 @@
 import { router } from '@inertiajs/react';
 import { Children, forwardRef, Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { coverCurtain, revealCurtain, ScrollTrigger } from '../lib/motion';
+import { fill, rich, useBlocks, useImg } from '../lib/cms';
 import { Arrow, Facebook, Instagram, LinkedIn, Pin, Units } from './Icons';
 
 /* ---------- shared header menu + footer: identical on the landing page and every inner page ---------- */
@@ -31,8 +32,23 @@ const FOOT_NAV = [['/', 'Home'], ['/about', 'About'], ['/services', 'Services'],
 
 /** Top-right "Menu" button; the site links open in a dropdown under it. `Link` decides how a link navigates. */
 export function MenuDropdown({ Link = TLink }) {
+    const header = useBlocks().header || {};
+    // menu items from Header & Footer in the admin (the defaults there are these same four)
+    const items = header.items?.length ? header.items.filter((m) => m.label && m.href).map((m) => [m.href, m.label]) : MENU;
     const [open, setOpen] = useState(false);
+    const [picked, setPicked] = useState(-1);
     const ref = useRef(null);
+    /* picking an item: its text rolls up and comes back round from below (gold), the others fade back; then the
+       menu closes and the page changes as usual. Modifier clicks (new tab) are left to the browser. */
+    const pick = (i, href) => (e) => {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();   // the link's own handler would navigate straight away
+        if (picked !== -1) return;
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        setPicked(i);
+        setTimeout(() => { setOpen(false); setPicked(-1); navigate(href); }, reduce ? 0 : 560);
+    };
     useEffect(() => {
         if (!open) return;
         const onDown = (e) => { if (!ref.current?.contains(e.target)) setOpen(false); };
@@ -44,13 +60,15 @@ export function MenuDropdown({ Link = TLink }) {
     return (
         <nav className={`lx-menu${open ? ' is-open' : ''}`} aria-label="Main" ref={ref}>
             <button type="button" className="lx-menu-btn" aria-expanded={open} aria-controls="lx-menu-list" onClick={() => setOpen((o) => !o)}>
-                <span className="lbl">{open ? 'Close' : 'Menu'}</span>
+                <span className="lbl">{open ? (header.close_label || 'Close') : (header.menu_label || 'Menu')}</span>
                 <span className="ico" aria-hidden="true"><i /><i /></span>
             </button>
-            <ul className="lx-menu-list" id="lx-menu-list" inert={!open} aria-hidden={!open}>
-                {MENU.map(([href, label], i) => (
-                    <li key={label} style={{ '--i': i }}>
-                        <Link className={i === 0 ? 'primary' : ''} href={href} onClick={() => setOpen(false)}>{label}</Link>
+            <ul className={`lx-menu-list${picked !== -1 ? ' has-pick' : ''}`} id="lx-menu-list" inert={!open} aria-hidden={!open}>
+                {items.map(([href, label], i) => (
+                    <li key={label} style={{ '--i': i }} className={picked === i ? 'is-picked' : ''} onClickCapture={pick(i, href)}>
+                        <Link className={i === 0 ? 'primary' : ''} href={href} onClick={() => setOpen(false)}>
+                            <span className="mi"><span data-text={label}>{label}</span></span>
+                        </Link>
                     </li>
                 ))}
             </ul>
@@ -59,36 +77,42 @@ export function MenuDropdown({ Link = TLink }) {
 }
 
 /** Site footer (logo, links, contact, big outlined name, legal + socials). */
+const SOCIAL_ICONS = { facebook: ['Facebook', Facebook], instagram: ['Instagram', Instagram], linkedin: ['LinkedIn', LinkedIn] };
+const DEFAULT_SOCIALS = [
+    { network: 'facebook', url: 'https://www.facebook.com/login/' },
+    { network: 'instagram', url: 'https://www.instagram.com/accounts/login/' },
+    { network: 'linkedin', url: 'https://www.linkedin.com/login' },
+];
+
 export function SiteFooter({ site, Link = TLink, ...rest }) {
-    // social icons under the logo + description; each opens that network's login page
-    const socials = [
-        ['https://www.facebook.com/login/', 'Facebook', <Facebook key="f" />],
-        ['https://www.instagram.com/accounts/login/', 'Instagram', <Instagram key="i" />],
-        ['https://www.linkedin.com/login', 'LinkedIn', <LinkedIn key="l" />],
-    ];
+    // everything here is edited under Header & Footer in the admin (contact details come from Settings)
+    const f = useBlocks().footer || {};
+    const socials = (f.socials || DEFAULT_SOCIALS).filter((s) => s.url && SOCIAL_ICONS[s.network])
+        .map((s) => { const [label, Ico] = SOCIAL_ICONS[s.network]; return [s.url, label, <Ico key={s.network} />]; });
+    const links = f.links?.length ? f.links.filter((l) => l.label && l.href).map((l) => [l.href, l.label]) : FOOT_NAV;
     return (
         <footer className="footer" {...rest}>
             <div className="wrap">
                 <div className="footer-grid">
                     <div>
-                        <Link className="footer-logo" href="/"><img src="/images/pti-logo-white.svg" alt="PTI Development" style={{ height: 64 }} /></Link>
-                        <p style={{ marginTop: 24, maxWidth: '34ch', opacity: 0.7 }}>Shaping Dreams into Homes. {site.tagline}</p>
+                        <Link className="footer-logo" href="/"><img src={f.logo || '/images/pti-logo-white.svg'} alt={site.company || 'PTI Development'} style={{ height: 64 }} /></Link>
+                        <p style={{ marginTop: 24, maxWidth: '34ch', opacity: 0.7 }}>{fill(f.text ?? 'Shaping Dreams into Homes. {tagline}', site)}</p>
                         <div className="socials" style={{ marginTop: 24 }}>{socials.map(([href, label, icon]) => <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label}>{icon}</a>)}</div>
                     </div>
                     <div>
-                        <h4>Links</h4>
-                        <div className="footer-links">{FOOT_NAV.map(([h, t]) => <Link key={h} href={h}>{t}</Link>)}</div>
+                        <h4>{f.links_title || 'Links'}</h4>
+                        <div className="footer-links">{links.map(([h, t]) => <Link key={h + t} href={h}>{t}</Link>)}</div>
                     </div>
                     <div className="footer-contact">
-                        <h4 style={{ marginBottom: 2 }}>Contact</h4>
-                        <div><small>Phone</small><a href={`tel:${site.phone?.replace(/\s/g, '')}`}>{site.phone}</a></div>
-                        <div><small>Email</small><a href={`mailto:${site.email}`}>{site.email}</a></div>
-                        <div><small>Address</small>{site.address}</div>
+                        <h4 style={{ marginBottom: 2 }}>{f.contact_title || 'Contact'}</h4>
+                        <div><small>{f.phone_label || 'Phone'}</small><a href={`tel:${site.phone?.replace(/\s/g, '')}`}>{site.phone}</a></div>
+                        <div><small>{f.email_label || 'Email'}</small><a href={`mailto:${site.email}`}>{site.email}</a></div>
+                        <div><small>{f.address_label || 'Address'}</small>{site.address}</div>
                     </div>
                 </div>
-                <div className="footer-big" aria-hidden="true">PTI Development</div>
+                <div className="footer-big" aria-hidden="true">{f.big_text || 'PTI Development'}</div>
                 <div className="footer-bottom">
-                    <span>© {new Date().getFullYear()} {site.company} All Rights Reserved.</span>
+                    <span>{fill(f.copyright || '© {year} {company} All Rights Reserved.', site)}</span>
                 </div>
             </div>
         </footer>
@@ -245,16 +269,20 @@ function FaqItem({ faq, n, open, onToggle }) {
 
 /** "Let's talk": laid out like the landing page's closing contact section (photo left, condensed serif + script
     title right, on lavender), with the "Book the meeting" badge taking the form's place; it opens the Contact page. */
-export function Cta() {
+export function Cta({ c = {} }) {
+    // c = the page's "cta" section from the CMS (App\Cms\Shared::cta); these fallbacks are its defaults
+    const img = useImg(c.image, '/images/lets-talk-keys.webp');
+    if (c.enabled === false) return null;
+    const badge = c.badge_text || 'Book the meeting · Book the meeting ·';
     return (
         <section className="cta" data-theme="light" data-floor="Book a meeting">
-            <div className="cta-pic" data-reveal><img src="/images/lets-talk-keys.webp" alt="A PTI agent handing the keys of a new apartment to a smiling couple" loading="lazy" /></div>
+            <div className="cta-pic" data-reveal><img src={img} alt={c.image_alt ?? 'A PTI agent handing the keys of a new apartment to a smiling couple'} loading="lazy" /></div>
             <div className="cta-main">
-                <div className="cta-eyebrow" data-reveal>Let's talk</div>
-                <h2 className="cta-title" data-reveal>Ready to build <span className="cta-script">your dream?</span></h2>
-                <p className="cta-lead" data-reveal>We will show you finished and under construction projects, introduce you to the features of the areas and tell you about the real estate market in Dhaka.</p>
-                <TLink className="cta-badge" href="/contact#contact" data-magnetic data-reveal aria-label="Book the meeting">
-                    <svg className="ring" viewBox="0 0 100 100"><defs><path id="cta-c" d="M50 50 m-38 0 a38 38 0 1 1 76 0 a38 38 0 1 1 -76 0" /></defs><text><textPath href="#cta-c">Book the meeting · Book the meeting ·</textPath></text></svg>
+                <div className="cta-eyebrow" data-reveal>{c.eyebrow ?? "Let's talk"}</div>
+                <h2 className="cta-title" data-reveal>{rich(c.title ?? 'Ready to build *your dream?*', 'cta-script')}</h2>
+                <p className="cta-lead" data-reveal>{c.lead ?? 'We will show you finished and under construction projects, introduce you to the features of the areas and tell you about the real estate market in Dhaka.'}</p>
+                <TLink className="cta-badge" href={c.href || '/contact#contact'} data-magnetic data-reveal aria-label={badge.split('·')[0].trim()}>
+                    <svg className="ring" viewBox="0 0 100 100"><defs><path id="cta-c" d="M50 50 m-38 0 a38 38 0 1 1 76 0 a38 38 0 1 1 -76 0" /></defs><text><textPath href="#cta-c">{badge}</textPath></text></svg>
                     <Arrow size={34} />
                 </TLink>
             </div>
@@ -262,7 +290,8 @@ export function Cta() {
     );
 }
 
-export function PageHero({ crumb, image, imageStyle, video, children, title, style, className = '' }) {
+export function PageHero({ crumb, image: imageValue, imageStyle, video, children, title, style, className = '' }) {
+    const image = useImg(imageValue);   // a url, or a CMS image {desktop, mobile}
     const videoRef = useRef(null);
     useEffect(() => {
         const v = videoRef.current;
