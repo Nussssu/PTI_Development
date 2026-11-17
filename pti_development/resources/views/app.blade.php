@@ -32,18 +32,18 @@
     <meta name="robots" content="noindex, nofollow" inertia="robots">
     @endif
     <meta name="theme-color" content="#06182C">
-    <link rel="icon" href="/images/pti-logo-vertical.svg">
+    @php($ptiBrand = \App\Models\Setting::brand())
+    <link rel="icon" href="{{ $ptiBrand['logo_favicon'] }}">
+    {{-- brand logos from Settings (the loading screen reads its logo from here) --}}
+    <script>window.__ptiBrand = @json(['preloader' => $ptiBrand['logo_preloader']]);</script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Poppins:wght@300;400;500;600;700&family=Libre+Caslon+Condensed:ital,wght@0,400..700;1,400..700&family=Mrs+Saint+Delafield&family=Archivo:wdth,wght@62..125,300..700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@100..800&display=swap" rel="stylesheet">
     @viteReactRefresh
     @vite('resources/js/app.jsx')
     @inertiaHead
-    {!! $customCode['head'] ?? '' !!}
 </head>
 <body>
-    {!! $customCode['body_start'] ?? '' !!}
     @inertia
-    {!! $customCode['body_end'] ?? '' !!}
 </body>
 </html>

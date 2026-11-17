@@ -24,21 +24,6 @@ class AppServiceProvider extends ServiceProvider
 
         // outgoing mail from Admin → Email & SMTP (Gmail etc.); falls back to .env when not set up
         \App\Support\MailSettings::apply();
-
-        // Admin → Custom code: snippets printed into the public pages only (empty = nothing printed)
-        \Illuminate\Support\Facades\View::composer('app', function ($view) {
-            $code = ['head' => '', 'body_start' => '', 'body_end' => ''];
-            if (! request()->is('admin', 'admin/*')) {
-                try {
-                    foreach ($code as $k => $_) {
-                        $code[$k] = (string) \App\Models\Setting::extra('code_'.$k, '');
-                    }
-                } catch (\Throwable) {
-                    // settings table missing: print nothing
-                }
-            }
-            $view->with('customCode', $code);
-        });
     }
 
     /**

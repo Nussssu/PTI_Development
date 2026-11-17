@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import '../../css/lux.css';
 import { gsap } from 'gsap';
 import { initLux } from '../lib/lux';
-import { claimPreloader, Field, MenuDropdown, navigate, SiteFooter } from '../Components/Site';
+import { brandLogo, claimPreloader, Field, MenuDropdown, navigate, SiteFooter } from '../Components/Site';
 import { fill, isOn, rich, Seo, useBlocks, useImg, useSection } from '../lib/cms';
 
 const MARK = 'M0.00454068 18.3256H0V73.5928H18.4044V92H36.827V91.9728H73.5949V55.1674V18.3619H73.6085V0H0.00908136V18.3256H0.00454068ZM18.4271 18.3619H55.195V55.1674H36.7997V73.5701H18.4271V18.3619Z';
@@ -73,7 +73,7 @@ function Preloader({ show }) {
                 <path d="M24 0 H976 L1000 24 V976 L976 1000 H24 L0 976 V24 Z" />
             </svg>
             <div className="ghost script">Shopno</div>
-            <Mark className="emblem" />
+            {brandLogo() ? <img className="emblem" src={brandLogo()} alt="" /> : <Mark className="emblem" />}
             <div className="side l spaced">Mirpur</div>
             <div className="center">
                 <div className="disp t1">PTI</div>
@@ -152,15 +152,20 @@ function Arch({ values, site, c = {} }) {
         .filter((v) => v.title);
     return (
         <section className="lx-arch" data-tone="light" data-tone-offset="screen">
-            {/* the dome uses the same pointed (gothic) door shape as the hero portal */}
+            {/* lx-round: the round dome shape (this dome and the video door below); lx-gothic: the old pointed door */}
             <svg className="gothic-defs" width="0" height="0" aria-hidden="true" focusable="false">
                 <clipPath id="lx-gothic" clipPathUnits="objectBoundingBox">
                     <path d="M0 1 L0 0.58 A0.5864 0.5864 0 0 1 0.5 0 A0.5864 0.5864 0 0 1 1 0.58 L1 1 Z" />
                 </clipPath>
+                <clipPath id="lx-round" clipPathUnits="objectBoundingBox">
+                    {/* round dome traced from the reference: an ellipse top (rx 0.3385, ry 0.3971) standing on a flat base */}
+                    <path d="M0 1 L0 0.1758 L0.2189 0.1758 A0.3385 0.3971 0 0 1 0.7811 0.1758 L1 0.1758 L1 1 Z" />
+                </clipPath>
             </svg>
-            <div className="dome" />
+            <div className="dome dome-round" />
             <svg className="curve" viewBox="0 0 1000 1000" aria-hidden="true">
-                <defs><path id="lx-arc" d="M110 522 A457 457 0 0 1 500 70 A457 457 0 0 1 890 522" /></defs>
+                {/* the title's line: the dome's ellipse, set ~75 units inside its edge (same centre 500, 397.1) */}
+                <defs><path id="lx-arc" d="M237 397.1 A263 322 0 0 1 763 397.1" /></defs>
                 <text textAnchor="middle" style={{ fontSize: 30 }}><textPath href="#lx-arc" startOffset="50%">{c.curve_text ?? 'Built On Trust'}</textPath></text>
             </svg>
             <div className="inner">
@@ -168,7 +173,7 @@ function Arch({ values, site, c = {} }) {
                 <div className="vline" />
                 <p className="micro lede">{fill(c.tagline ?? '{tagline}', site)}</p>
                 {/* the three promises, where the 01/02/03 cards used to be */}
-                <div className="lx-bslider">
+                <div className="lx-bslider" data-interval={Math.min(60, Math.max(2, Number(c.slide_interval) || 6))}>
                 <div className="b-slides">
                     {promises.map((v, i) => (
                         <article className={`b-slide${i === 0 ? ' is-active' : ''}`} key={i} aria-hidden={i !== 0}>
@@ -201,7 +206,7 @@ function Arch({ values, site, c = {} }) {
  * scene below it and the scene's top edge melts into that colour, so the picture and the page read as one
  * surface. The quote sits in that sky. Testimonials come from the admin panel. Motion lives in lib/lux.js.
  */
-/* shown when the admin panel has no real testimonials yet (placeholder "Lorem ipsum" entries are skipped) */
+/* shown only if every testimonial is removed in Pages -> Home -> What our clients say (the same three are that list's default) */
 const CLIENT_SAYS = [
     { id: 'cs1', name: 'Tanvir Ahmed', role: 'Apartment owner, PTI Dream Tower-1', photo_url: null,
       quote: 'From the first site visit to the day we got our keys, PTI kept every promise. The paperwork was clear, the handover was on time, and the building feels even better than the plans.' },
@@ -211,9 +216,9 @@ const CLIENT_SAYS = [
       quote: 'I handed over my family land with a lot of worry. PTI built with real care for quality, shared updates at every stage and delivered exactly what was agreed.' },
 ];
 
-function Says({ testimonials: fromAdmin, c = {} }) {
+function Says({ c = {} }) {
     const scene = useImg(c.image, '/images/says-scene.webp');
-    const real = fromAdmin.filter((t) => t.quote && !/lorem ipsum/i.test(t.quote));
+    const real = (c.testimonials || []).map((t, i) => ({ ...t, id: `t-${i}`, photo_url: t.photo })).filter((t) => t.quote);
     const testimonials = real.length ? real : CLIENT_SAYS;
     return (
         <section className="lx-says" data-tone="light">
@@ -282,7 +287,7 @@ function Odo({ value }) {
 }
 
 function InNumbers({ stats, c = {} }) {
-    const images = c.images?.length ? c.images.map((r) => r.image).filter(Boolean) : NUM_IMAGES;
+    const images = c.images?.length ? c.images.map((r) => r.image) : NUM_IMAGES;
     if (!stats.length) return null;
     return (
         <section className="lx-innum" data-tone="light">
@@ -472,7 +477,7 @@ function VideoDoor({ c = {} }) {
     const pics = c.pictures?.length ? c.pictures : CRAFT_PICS;
     return (
         <section className="lx-arch lx-vdoor" data-tone="light" data-tone-offset="screen">
-            <div className="dome" />
+            <div className="dome dome-round" />
             <div className="inner">
                 {/* ERA "The space to live in": a tall, condensed title inside the door with the last word in script */}
                 <h2 className="cr-title" aria-label={[...words, script].join(' ')}>
@@ -830,7 +835,7 @@ function Services({ services }) {
 function Values({ values, image = '/images/hd/rooftop.webp', c = {} }) {
     const bg = useImg(c.image, image);
     return (
-        <section className="lx-values" data-tone="dark">
+        <section className="lx-values" data-tone="dark" id="values" data-hash-offset="1.25">
             <div className="bg"><img src={bg} alt="" /></div>
             <ul className="list">{values.map((v) => <li key={v.id}>{v.title}</li>)}</ul>
             <div className="text">
@@ -913,7 +918,7 @@ function Faq({ faqs, openFirst = false, c = {} }) {
 /* The landing page's preloader is always its own door: the hero's pointed arch rising out of the navy cover
    (lib/lux.js), on every visit. The logo preloader of the inner pages never covers it, so on a fresh load here we
    only mark the load as done (the next inner page then opens without its preloader). */
-export default function Home({ projects, stats, faqs, services = [], values = [], testimonials = [] }) {
+export default function Home({ projects, stats, faqs, services = [], values = [] }) {
     const { site } = usePage().props;
     const root = useRef(null);
     // texts / images from Admin → Pages → Home (hero and arch always show: they carry the opening animation)
@@ -934,7 +939,7 @@ export default function Home({ projects, stats, faqs, services = [], values = []
             <Chrome />
             <Hero c={S.hero} />
             <Arch values={values} site={site} c={S.arch} />
-            {isOn(S.says) && <Says testimonials={testimonials} c={S.says} />}
+            {isOn(S.says) && <Says c={S.says} />}
             {isOn(S.numbers) && <InNumbers stats={stats} c={S.numbers} />}
             {isOn(S.projects) && <Showcase projects={projects} c={S.projects} />}
             {isOn(S.place) && <CloudPass projects={projects} site={site} c={S.place} />}

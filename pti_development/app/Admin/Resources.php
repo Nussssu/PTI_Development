@@ -2,13 +2,10 @@
 
 namespace App\Admin;
 
-use App\Models\CompanyValue;
-use App\Models\Faq;
 use App\Models\Project;
 use App\Models\Service;
 use App\Models\Stat;
 use App\Models\TeamMember;
-use App\Models\Testimonial;
 
 /**
  * Registry of content types editable in the admin panel.
@@ -73,19 +70,6 @@ class Resources
                     ['name' => 'sort_order', 'label' => 'Sort order', 'type' => 'number', 'rules' => 'nullable|integer|min:0', 'half' => true],
                 ],
             ],
-            'values' => [
-                'model' => CompanyValue::class,
-                'label' => 'Values',
-                'singular' => 'Value',
-                'icon' => 'star',
-                'columns' => ['image', 'title', 'text'],
-                'fields' => [
-                    ['name' => 'title', 'label' => 'Title', 'type' => 'text', 'rules' => 'required|string|max:80'],
-                    ['name' => 'text', 'label' => 'Text', 'type' => 'text', 'rules' => 'required|string|max:255'],
-                    ['name' => 'image', 'label' => 'Hover image', 'type' => 'image'],
-                    ['name' => 'sort_order', 'label' => 'Sort order', 'type' => 'number', 'rules' => 'nullable|integer|min:0'],
-                ],
-            ],
             'stats' => [
                 'model' => Stat::class,
                 'label' => 'Numbers',
@@ -99,34 +83,6 @@ class Resources
                     ['name' => 'label', 'label' => 'Label', 'type' => 'text', 'rules' => 'required|string|max:120', 'half' => true],
                     ['name' => 'image', 'label' => 'Background image', 'type' => 'image'],
                     ['name' => 'sort_order', 'label' => 'Sort order', 'type' => 'number', 'rules' => 'nullable|integer|min:0'],
-                ],
-            ],
-            'faqs' => [
-                'model' => Faq::class,
-                'label' => 'FAQ',
-                'singular' => 'Question',
-                'icon' => 'help',
-                'columns' => ['question', 'is_published', 'sort_order'],
-                'fields' => [
-                    ['name' => 'question', 'label' => 'Question', 'type' => 'text', 'rules' => 'required|string|max:255'],
-                    ['name' => 'answer', 'label' => 'Answer', 'type' => 'textarea', 'rules' => 'required|string|max:3000'],
-                    ['name' => 'is_published', 'label' => 'Published', 'type' => 'boolean', 'half' => true],
-                    ['name' => 'sort_order', 'label' => 'Sort order', 'type' => 'number', 'rules' => 'nullable|integer|min:0', 'half' => true],
-                ],
-            ],
-            'testimonials' => [
-                'model' => Testimonial::class,
-                'label' => 'Testimonials',
-                'singular' => 'Testimonial',
-                'icon' => 'quote',
-                'columns' => ['photo', 'name', 'role', 'is_published'],
-                'fields' => [
-                    ['name' => 'name', 'label' => 'Client name', 'type' => 'text', 'rules' => 'required|string|max:120', 'half' => true],
-                    ['name' => 'role', 'label' => 'Role / project', 'type' => 'text', 'rules' => 'nullable|string|max:120', 'half' => true],
-                    ['name' => 'quote', 'label' => 'Quote', 'type' => 'textarea', 'rules' => 'required|string|max:2000'],
-                    ['name' => 'photo', 'label' => 'Photo', 'type' => 'image'],
-                    ['name' => 'is_published', 'label' => 'Published', 'type' => 'boolean', 'half' => true],
-                    ['name' => 'sort_order', 'label' => 'Sort order', 'type' => 'number', 'rules' => 'nullable|integer|min:0', 'half' => true],
                 ],
             ],
         ];

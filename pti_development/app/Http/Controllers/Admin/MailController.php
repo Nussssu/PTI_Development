@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Mail\TemplateMail;
 use App\Models\EmailTemplate;
+use App\Models\EmailLog;
 use App\Models\Inquiry;
 use App\Support\Audit;
 use App\Support\MailSettings;
@@ -23,9 +24,41 @@ class MailController extends Controller
         return Inertia::render('Admin/Mail/Smtp', [
             'settings' => MailSettings::get(),
             'presets' => MailSettings::PRESETS,
-            'transport' => MailSettings::transportLabel(),
-            'live' => MailSettings::isLive(),
-            'recent' => \App\Models\AuditLog::where('action', 'like', 'mail%')->latest('created_at')->take(8)->get(['id', 'action', 'description', 'user_name', 'created_at']),
+        ]);
+    }
+
+    /** Filterable email delivery and setup activity history. */
+    public function logs(Request $request): Response
+    {
+        $status = in_array($request->query('status'), ['sent', 'failed', 'skipped', 'activity'], true) ? $request->query('status') : 'all';
+        $filters = [
+            'status' => $status,
+            'type' => trim((string) $request->query('type', '')),
+            'search' => trim((string) $request->query('search', '')),
+            'from' => trim((string) $request->query('from', '')),
+            'to' => trim((string) $request->query('to', '')),
+        ];
+        $query = EmailLog::query();
+        if ($status !== 'all') $query->where('status', $status);
+        if ($filters['type'] !== '') $query->where('type', $filters['type']);
+        if ($filters['search'] !== '') {
+            $like = '%'.$filters['search'].'%';
+            $query->where(fn ($q) => $q->where('recipient', 'like', $like)->orWhere('subject', 'like', $like)->orWhere('description', 'like', $like)->orWhere('actor', 'like', $like));
+        }
+        if ($filters['from'] && strtotime($filters['from'])) $query->where('created_at', '>=', date('Y-m-d 00:00:00', strtotime($filters['from'])));
+        if ($filters['to'] && strtotime($filters['to'])) $query->where('created_at', '<=', date('Y-m-d 23:59:59', strtotime($filters['to'])));
+
+        return Inertia::render('Admin/Mail/Logs', [
+            'logs' => $query->latest('created_at')->latest('id')->paginate(30)->withQueryString(),
+            'filters' => $filters,
+            'types' => EmailLog::query()->distinct()->orderBy('type')->pluck('type'),
+            'counts' => [
+                'all' => EmailLog::count(),
+                'sent' => EmailLog::where('status', 'sent')->count(),
+                'failed' => EmailLog::where('status', 'failed')->count(),
+                'skipped' => EmailLog::where('status', 'skipped')->count(),
+                'activity' => EmailLog::where('status', 'activity')->count(),
+            ],
         ]);
     }
 
@@ -80,6 +113,7 @@ class MailController extends Controller
             $changes['password'] = ['••••', 'changed'];
         }
         Audit::log('mail_settings', 'Updated Email & SMTP settings'.($after['enabled'] ? ' ('.$after['host'].')' : ' (SMTP off)'), null, $changes);
+        if ($changes) EmailLog::record('activity', 'SMTP settings', '', 'Email setup updated', implode(', ', array_keys($changes)), $request->user()->name);
 
         return back()->with('success', 'Email settings saved. Send a test email to check them.'.$note);
     }
@@ -97,11 +131,13 @@ class MailController extends Controller
             ));
         } catch (\Throwable $e) {
             Audit::log('mail_test_failed', 'Test email to '.$data['to'].' failed: '.mb_substr($e->getMessage(), 0, 300));
+            EmailLog::record('failed', 'SMTP test', $data['to'], 'Test email from '.$site['company'], self::explain($e->getMessage()), $request->user()->name);
 
             return back()->with('error', 'Test failed: '.self::explain($e->getMessage()));
         }
 
         Audit::log('mail_test', 'Sent a test email to '.$data['to'].' ('.MailSettings::transportLabel().')');
+        EmailLog::record(MailSettings::isLive() ? 'sent' : 'skipped', 'SMTP test', $data['to'], 'Test email from '.$site['company'], MailSettings::isLive() ? 'Test email sent.' : 'SMTP is not connected; message was not delivered.', $request->user()->name);
 
         return back()->with('success', MailSettings::isLive()
             ? 'Test email sent to '.$data['to'].'. Check the inbox (and spam folder).'
@@ -139,7 +175,7 @@ class MailController extends Controller
                 'can_disable' => $d['can_disable'],
                 'subject' => $rows[$key]->subject,
                 'body' => $rows[$key]->body,
-                'is_enabled' => $rows[$key]->is_enabled,
+                'is_enabled' => $d['can_disable'] ? $rows[$key]->is_enabled : true,
                 'is_default' => $rows[$key]->subject === $d['subject'] && $rows[$key]->body === $d['body'],
                 'updated_at' => $rows[$key]->updated_at,
                 'editor' => $rows[$key]->editor?->name,
@@ -166,6 +202,7 @@ class MailController extends Controller
         $t->is_enabled = $d['can_disable'] ? $request->boolean('is_enabled') : true;
         $t->updated_by = $request->user()->id;
         $t->save();
+        EmailLog::record('activity', 'Email template', '', $d['name'].' template', $request->boolean('reset') ? 'Reset to original.' : 'Template updated.', $request->user()->name);
 
         return back()->with('success', $request->boolean('reset') ? '"'.$d['name'].'" reset to the original text.' : '"'.$d['name'].'" saved.');
     }
@@ -177,9 +214,13 @@ class MailController extends Controller
         $lead = Inquiry::latest()->first();
         $vars = EmailTemplate::varsFor($lead, $request->user());
         $t = (new EmailTemplate(['subject' => $data['subject'] ?? '', 'body' => $data['body'] ?? '']))->fill_in($vars);
-        $quote = in_array($data['key'] ?? '', ['reply', 'lead_autoreply'], true) ? $vars['message'] : null;
+        // envelope for the preview popup's mail-client header: subject, sender and the real recipient
+        $mail = MailSettings::get();
+        $to = ($data['key'] ?? '') === 'lead_notification' ? implode(', ', MailSettings::notifyTo()) : ($lead?->email ?: 'the lead');
+        $envelope = ['subject' => $t['subject'], 'from' => trim($mail['from_name'].' <'.$mail['from_address'].'>'), 'to' => $to];
 
-        return response(TemplateMail::preview($t['subject'], $t['body'], $quote, 'Your message'))
+        return response(TemplateMail::preview($t['subject'], $t['body']))
+            ->header('X-Preview-Envelope', base64_encode(json_encode($envelope)))
             ->header('Content-Type', 'text/html; charset=utf-8')
             ->header('X-Frame-Options', 'SAMEORIGIN');
     }
@@ -192,8 +233,10 @@ class MailController extends Controller
         try {
             Mail::to($request->user()->email)->send(new TemplateMail('[Test] '.$t['subject'], $t['body']));
         } catch (\Throwable $e) {
+            EmailLog::record('failed', 'Template test', $request->user()->email, '[Test] '.$t['subject'], self::explain($e->getMessage()), $request->user()->name);
             return back()->with('error', 'Test failed: '.self::explain($e->getMessage()));
         }
+        EmailLog::record(MailSettings::isLive() ? 'sent' : 'skipped', 'Template test', $request->user()->email, '[Test] '.$t['subject'], MailSettings::isLive() ? 'Template test sent.' : 'SMTP is not connected; message was not delivered.', $request->user()->name);
         Audit::log('mail_test', 'Sent a test of "'.EmailTemplate::DEFAULTS[$key]['name'].'" to '.$request->user()->email);
 
         return back()->with('success', 'Test sent to '.$request->user()->email.'.');

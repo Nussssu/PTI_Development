@@ -3,7 +3,8 @@ import { router } from '@inertiajs/react';
 import { Children, forwardRef, Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { coverCurtain, revealCurtain, ScrollTrigger } from '../lib/motion';
 import { fill, rich, useBlocks, useImg } from '../lib/cms';
-import { Arrow, Facebook, Instagram, LinkedIn, Pin, Units } from './Icons';
+import { Arrow, Facebook, Instagram, LinkedIn, Pin, Units, WhatsApp } from './Icons';
+import OfficeMap from './OfficeMap';
 
 /* ---------- shared header menu + footer: identical on the landing page and every inner page ---------- */
 const PTI_MARK = 'M0.00454068 18.3256H0V73.5928H18.4044V92H36.827V91.9728H73.5949V55.1674V18.3619H73.6085V0H0.00908136V18.3256H0.00454068ZM18.4271 18.3619H55.195V55.1674H36.7997V73.5701H18.4271V18.3619Z';
@@ -15,12 +16,15 @@ export function claimPreloader() {
     return true;
 }
 
+/** Loading-screen logo from Settings → General (null = the PTI mark). */
+export const brandLogo = () => (typeof window !== 'undefined' && window.__ptiBrand?.preloader) || null;
+
 /** The site preloader: only the PTI logo in the middle of a navy screen, with a loading bar under it. Motion: playLoader in lib/motion.js. */
 export const LogoPreloader = forwardRef(function LogoPreloader(_, ref) {
     return (
         <div className="lx-pre-host">
             <div className="lx-pre" ref={ref} aria-hidden="true">
-                <svg className="emblem" viewBox="0 0 74 92"><path d={PTI_MARK} /></svg>
+                {brandLogo() ? <img className="emblem" src={brandLogo()} alt="" /> : <svg className="emblem" viewBox="0 0 74 92"><path d={PTI_MARK} /></svg>}
                 <div className="pre-bar"><i /></div>
             </div>
         </div>
@@ -77,7 +81,8 @@ export function MenuDropdown({ Link = TLink }) {
 }
 
 /** Site footer (logo, links, contact, big outlined name, legal + socials). */
-const SOCIAL_ICONS = { facebook: ['Facebook', Facebook], instagram: ['Instagram', Instagram], linkedin: ['LinkedIn', LinkedIn] };
+const YouTubeIcon = () => <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.3 3.6-6.3 3.6Z" /></svg>;
+const SOCIAL_ICONS = { facebook: ['Facebook', Facebook], instagram: ['Instagram', Instagram], linkedin: ['LinkedIn', LinkedIn], youtube: ['YouTube', YouTubeIcon], whatsapp: ['WhatsApp', WhatsApp] };
 const DEFAULT_SOCIALS = [
     { network: 'facebook', url: 'https://www.facebook.com/login/' },
     { network: 'instagram', url: 'https://www.instagram.com/accounts/login/' },
@@ -85,10 +90,11 @@ const DEFAULT_SOCIALS = [
 ];
 
 export function SiteFooter({ site, Link = TLink, ...rest }) {
-    // everything here is edited under Header & Footer in the admin (contact details come from Settings)
+    // footer text and links live under Header & Footer; social links are also managed in Settings.
     const f = useBlocks().footer || {};
-    const socials = (f.socials || DEFAULT_SOCIALS).filter((s) => s.url && SOCIAL_ICONS[s.network])
-        .map((s) => { const [label, Ico] = SOCIAL_ICONS[s.network]; return [s.url, label, <Ico key={s.network} />]; });
+    const socialRows = f.socials || DEFAULT_SOCIALS;
+    const socials = socialRows.filter((s) => s.enabled !== false && s.url && (SOCIAL_ICONS[s.network] || s.network === 'custom'))
+        .map((s, i) => { const [fallback, Ico] = SOCIAL_ICONS[s.network] || [s.label || 'Website', null]; return [s.url, s.label || fallback, Ico ? <Ico key={`${s.network}-${i}`} /> : <span key={`custom-${i}`} aria-hidden="true">↗</span>]; });
     const links = f.links?.length ? f.links.filter((l) => l.label && l.href).map((l) => [l.href, l.label]) : FOOT_NAV;
     return (
         <footer className="footer" {...rest}>
@@ -108,6 +114,10 @@ export function SiteFooter({ site, Link = TLink, ...rest }) {
                         <div><small>{f.phone_label || 'Phone'}</small><a href={`tel:${site.phone?.replace(/\s/g, '')}`}>{site.phone}</a></div>
                         <div><small>{f.email_label || 'Email'}</small><a href={`mailto:${site.email}`}>{site.email}</a></div>
                         <div><small>{f.address_label || 'Address'}</small>{site.address}</div>
+                    </div>
+                    <div className="footer-map">
+                        <h4>Find us</h4>
+                        <OfficeMap />
                     </div>
                 </div>
                 <div className="footer-big" aria-hidden="true">{f.big_text || 'PTI Development'}</div>

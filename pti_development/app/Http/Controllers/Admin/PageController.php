@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Cms\Cms;
 use App\Http\Controllers\Controller;
+use App\Models\CompanyValue;
 use App\Models\Page;
 use App\Models\Project;
 use App\Models\Stat;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -77,11 +79,22 @@ class PageController extends Controller
         Cms::ensureSections($page);
         $t = Cms::template($page->template);
         $rows = $page->sections()->get()->keyBy('key');
+        $sectionOrder = $page->sections()->orderBy('sort_order')->orderBy('id')->pluck('key')->all();
+        $schemaSections = collect($t['sections'])->keyBy('key');
+        $t['sections'] = collect($sectionOrder)->map(fn ($key) => $schemaSections->get($key))->filter()->concat(
+            collect($t['sections'])->reject(fn ($s) => in_array($s['key'], $sectionOrder, true))
+        )->values()->all();
         $numberPage = in_array($page->slug, ['home', 'about'], true) ? $page->slug : null;
 
         $sections = collect($t['sections'])->map(function ($s) use ($rows, $page) {
             $row = $rows->get($s['key']);
             $numbersWidget = ($page->slug === 'home' && $s['key'] === 'numbers') || ($page->slug === 'about' && $s['key'] === 'stats');
+            $content = Cms::merge($s['fields'], $row?->content);
+            if ($page->slug === 'about' && $s['key'] === 'values' && ! array_key_exists('items', $row?->content ?? [])) {
+                $content['items'] = CompanyValue::ordered()->get(['id', 'title', 'text', 'image'])
+                    ->map(fn (CompanyValue $value) => ['title' => $value->title, 'text' => $value->text])
+                    ->all();
+            }
 
             return [
                 'key' => $s['key'], 'label' => $s['label'],
@@ -89,7 +102,7 @@ class PageController extends Controller
                 'source' => $numbersWidget ? null : ($s['source'] ?? null), 'toggle' => $s['toggle'] ?? true, 'fields' => $s['fields'],
                 'is_enabled' => $row ? $row->is_enabled : true,
                 'customised' => ! empty($row?->content),
-                'content' => Cms::merge($s['fields'], $row?->content),
+                'content' => $content,
                 'defaults' => Cms::defaults($s['fields']),
                 'updated_at' => $row?->updated_at,
             ];
@@ -118,9 +131,12 @@ class PageController extends Controller
             'is_published' => 'boolean',
             'seo' => 'nullable|array',
             'sections' => 'nullable|array',
+            'section_order' => 'nullable|array',
+            'section_order.*' => ['required', 'string', Rule::in(collect($t['sections'])->pluck('key')->all())],
             'sections.*.is_enabled' => 'boolean',
             'sections.*.reset' => 'boolean',
             'sections.*.content' => 'nullable|array',
+            'sections.arch.content.slide_interval' => 'nullable|integer|min:2|max:60',
             'numbers' => 'sometimes|array',
             'numbers.*.id' => 'nullable|integer',
             'numbers.*.value' => 'required|integer|min:0',
@@ -135,10 +151,33 @@ class PageController extends Controller
                 if (! $s) {
                     continue;
                 }
+                $existing = $page->sections()->where('key', $key)->first();
+                if (! empty($in['reset'])) {
+                    $content = null;
+                } else {
+                    // Clean and apply only submitted fields. Keeping untouched stored values here avoids a partial
+                    // widget edit replacing sibling fields with their defaults or empty values.
+                    $content = $existing?->content ?? [];
+                    $incoming = is_array($in['content'] ?? null) ? $in['content'] : [];
+                    foreach ($s['fields'] as $field) {
+                        $name = $field['name'];
+                        if (array_key_exists($name, $incoming)) {
+                            $content[$name] = Cms::clean([$field], [$name => $incoming[$name]])[$name];
+                        }
+                    }
+                }
                 $page->sections()->updateOrCreate(['key' => $key], [
                     'is_enabled' => ($s['toggle'] ?? true) ? (bool) ($in['is_enabled'] ?? true) : true,
-                    'content' => ! empty($in['reset']) ? null : Cms::clean($s['fields'], $in['content'] ?? []),
+                    'content' => $content,
                 ]);
+            }
+            if (array_key_exists('section_order', $data)) {
+                $validKeys = collect($t['sections'])->pluck('key')->all();
+                $orderedKeys = array_values(array_unique(array_filter($data['section_order'], fn ($key) => in_array($key, $validKeys, true))));
+                $orderedKeys = array_merge($orderedKeys, array_values(array_diff($validKeys, $orderedKeys)));
+                foreach ($orderedKeys as $position => $key) {
+                    $page->sections()->where('key', $key)->update(['sort_order' => $position]);
+                }
             }
             $page->fill([
                 'title' => $data['title'],
@@ -173,6 +212,8 @@ class PageController extends Controller
                 Stat::where('page', $page->slug)->when($kept, fn ($q) => $q->whereNotIn('id', $kept))->when(! $kept, fn ($q) => $q)->delete();
             }
         });
+
+        Cache::forget('cms-page-'.$page->id);
 
         return back()->with('success', 'Page saved. The website is updated.');
     }

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SiteBlock;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -30,11 +31,14 @@ class BlockController extends Controller
     {
         $schema = Cms::blockSchemas()[$key];
         $data = $request->validate(['values' => 'nullable|array', 'reset' => 'boolean']);
+        $previousCacheKey = 'cms-blocks-'.strtotime((string) SiteBlock::max('updated_at'));
 
         SiteBlock::updateOrCreate(['key' => $key], [
             'content' => $request->boolean('reset') ? null : Cms::clean($schema['fields'], $data['values'] ?? []),
             'updated_by' => $request->user()->id,
         ])->touch();
+        Cache::forget($previousCacheKey);
+        Cache::forget('cms-blocks-'.strtotime((string) SiteBlock::max('updated_at')));
 
         return back()->with('success', $schema['label'].' saved. Every page now shows the change.');
     }

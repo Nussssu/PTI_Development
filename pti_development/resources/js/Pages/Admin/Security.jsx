@@ -1,9 +1,8 @@
 import { useForm } from '@inertiajs/react';
 import AdminLayout, { ago, Icon } from '../../Layouts/AdminLayout';
-import { when } from './Dashboard';
 
-/** My security: profile, password, signed-in devices and recent sign-ins. */
-export default function Security({ profile, sessions, logins }) {
+/** My security: profile, password and signed-in devices. */
+export default function Security({ profile, sessions }) {
     const me = useForm({ name: profile.name, email: profile.email, current_password: '' });
     const pw = useForm({ current_password: '', password: '', password_confirmation: '' });
     const others = useForm({ current_password: '' });
@@ -53,21 +52,6 @@ export default function Security({ profile, sessions, logins }) {
                             </div>
                             {err(others, 'current_password')}
                         </form>
-                    </div>
-
-                    <div className="a-card">
-                        <div className="a-card-head"><h2>Recent sign-ins</h2></div>
-                        {logins.length === 0 ? <p className="a-muted">Nothing yet.</p> : (
-                            <div className="a-activity">
-                                {logins.map((l) => (
-                                    <div key={l.id} className="a-activity-item">
-                                        <span className={`a-dot ${l.action === 'login_failed' ? 'act-deleted' : l.action === 'login' ? 'act-created' : ''}`} />
-                                        <span>{{ login: 'Signed in', logout: 'Signed out', login_failed: 'Failed attempt', password_changed: 'Password changed' }[l.action]}<div className="a-muted sm">{l.agent} · {l.ip}</div></span>
-                                        <small className="a-muted">{when(l.created_at)}</small>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

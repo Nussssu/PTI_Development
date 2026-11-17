@@ -101,7 +101,7 @@ class Cms
     /** What the website receives for a page: SEO + every section's content, enabled flag included. */
     public static function payload(Page $page): array
     {
-        return Cache::rememberForever('cms-page-'.$page->id.'-'.$page->updated_at?->timestamp, function () use ($page) {
+        return Cache::rememberForever('cms-page-'.$page->id, function () use ($page) {
             $t = static::template($page->template);
             $stored = $page->sections()->get()->keyBy('key');
             $sections = [];

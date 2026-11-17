@@ -12,11 +12,12 @@ import { Faq, HomeContact } from './Home';
    map on the left, phone / email / office / WhatsApp on the right (each card turns navy under the mouse). Every plain background is the landing page's
    lavender; colours and text selection follow the landing page. Texts / images: Admin → Pages → Contact; the contact
    details themselves come from Settings. */
-export default function Contact({ faqs = [] }) {
+export default function Contact() {
     const { site } = usePage().props;
     const hero = useSection('hero');
     const contact = useSection('contact');
     const faq = useSection('faq');
+    const faqs = (faq?.items || []).filter((f) => f.question && f.answer).map((f, i) => ({ ...f, id: i }));
     const office = useSection('office');
     const luxOn = isOn(contact) || isOn(faq);
     /* the landing-page (lux) sections keep their look and motion */

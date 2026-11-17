@@ -232,7 +232,9 @@ export function coverCurtain(onDone) {
     navLoader = document.createElement('div');
     navLoader.className = 'lx-pre-host is-nav';
     navLoader.setAttribute('aria-hidden', 'true');
-    navLoader.innerHTML = `<div class="lx-pre"><svg class="emblem" viewBox="0 0 74 92"><path d="${PTI_MARK}"/></svg><div class="pre-bar"><i></i></div></div>`;
+    const logo = window.__ptiBrand?.preloader;   // loading-screen logo from Settings, or the PTI mark
+    const emblem = logo ? `<img class="emblem" src="${String(logo).replace(/"/g, '&quot;')}" alt="">` : `<svg class="emblem" viewBox="0 0 74 92"><path d="${PTI_MARK}"/></svg>`;
+    navLoader.innerHTML = `<div class="lx-pre">${emblem}<div class="pre-bar"><i></i></div></div>`;
     document.body.appendChild(navLoader);
     const pre = navLoader.firstChild;
     gsap.fromTo(pre, { opacity: 0 }, { opacity: 1, duration: 0.35, ease: 'power2.out', onComplete: onDone });

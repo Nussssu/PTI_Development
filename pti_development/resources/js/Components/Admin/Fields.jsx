@@ -81,7 +81,7 @@ export function MediaPicker({ open, type = 'image', onClose, onPick }) {
 }
 
 /** One image / video slot: preview, upload, pick from library, remove, back to the default. */
-function MediaSlot({ value, def, onChange, type = 'image', label, optional }) {
+function MediaSlot({ value, def, onChange, type = 'image', label, optional, portrait, placeholder }) {
     const [picker, setPicker] = useState(false);
     const [busy, setBusy] = useState(false);
     const [err, setErr] = useState('');
@@ -95,8 +95,9 @@ function MediaSlot({ value, def, onChange, type = 'image', label, optional }) {
     return (
         <div className="a-slot">
             {label && <div className="a-slot-label">{label}</div>}
-            <div className={`a-slot-preview ${url ? '' : 'empty'}`}>
+            <div className={`a-slot-preview ${url ? '' : 'empty'} ${portrait ? 'portrait' : ''}`}>
                 {url ? (type === 'video' || isVideo(value) ? <video src={url} muted loop autoPlay playsInline /> : <img src={url} alt="" />)
+                    : placeholder ? <><img src={placeholder.src} alt="" /><em className="a-slot-ph">{placeholder.label}</em></>
                     : <span>{optional ? 'Same as desktop' : 'No file'}</span>}
                 {busy && <div className="a-slot-busy">Uploading…</div>}
             </div>
@@ -116,13 +117,13 @@ function MediaSlot({ value, def, onChange, type = 'image', label, optional }) {
 }
 
 function ImageInput({ field, value, def, onChange }) {
-    if (!field.responsive) return <MediaSlot value={value} def={def} onChange={onChange} />;
+    if (!field.responsive) return <MediaSlot value={value} def={def} onChange={onChange} placeholder={field.placeholder} />;
     const v = value || {};
     const d = def || {};
     return (
         <div className="a-slots">
             <MediaSlot label={<><Icon name="monitor" size={15} /> Desktop</>} value={v.desktop} def={d.desktop} onChange={(x) => onChange({ ...v, desktop: x })} />
-            <MediaSlot label={<><Icon name="mobile" size={15} /> Mobile <em>optional</em></>} optional value={v.mobile} def={d.mobile} onChange={(x) => onChange({ ...v, mobile: x })} />
+            <MediaSlot label={<><Icon name="mobile" size={15} /> Mobile <em>optional</em></>} optional portrait value={v.mobile} def={d.mobile} onChange={(x) => onChange({ ...v, mobile: x })} />
         </div>
     );
 }
@@ -158,7 +159,8 @@ function ListInput({ value, onChange }) {
 
 function RepeaterInput({ field, value, onChange }) {
     const rows = value || [];
-    const [open, setOpen] = useState(() => (rows.length <= 4 ? rows.map((_, i) => i) : []));
+    // field.openFirst (Menus): only the first row starts open; otherwise all rows open when there are 4 or fewer
+    const [open, setOpen] = useState(() => (field.openFirst ? (rows.length ? [0] : []) : rows.length <= 4 ? rows.map((_, i) => i) : []));
     const blank = () => Object.fromEntries(field.fields.map((f) => [f.name, f.type === 'link' ? { label: '', href: '' } : f.type === 'toggle' ? true : f.type === 'list' ? [] : f.type === 'select' ? f.default : null]));
     const set = (next) => onChange(next);
     const move = (i, d) => { const j = i + d; if (j < 0 || j >= rows.length) return; const n = [...rows]; [n[i], n[j]] = [n[j], n[i]]; set(n); };
@@ -223,14 +225,16 @@ function Input({ field, value, def, onChange }) {
 export function FieldRow({ field, value, def, onChange }) {
     const changed = def !== undefined && !same(value, def) && !['image', 'video'].includes(field.type);
     const wide = ['repeater', 'image', 'list', 'rich', 'textarea'].includes(field.type) || (field.type === 'image' && field.responsive);
+    const missing = field.warnIfEmpty && !String(value ?? '').trim();
     return (
-        <div className={`a-field ${field.half && !wide ? 'half' : ''} ${field.type === 'toggle' ? 'inline' : ''}`}>
+        <div className={`a-field ${field.half && !wide ? 'half' : ''} ${field.type === 'toggle' ? 'inline' : ''} ${missing ? 'has-missing' : ''}`}>
             <span className="a-field-label">
                 {field.label}
                 {changed && <button type="button" className="a-field-reset" onClick={() => onChange(def)} title="Back to the original">↺ default</button>}
             </span>
             <Input field={field} value={value} def={def} onChange={onChange} />
             {field.help && <small className="a-muted">{field.help}</small>}
+            {missing && <small className="a-error">Enter the round badge text to show it on the Services page.</small>}
         </div>
     );
 }

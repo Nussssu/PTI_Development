@@ -41,7 +41,9 @@ export default function PagesIndex({ pages, templates }) {
                             {pages.map((p) => {
                                 const home = p.slug === 'home';
                                 return (
-                                    <tr key={p.id} className={busy === p.id ? 'is-busy' : ''}>
+                                    <tr key={p.id} className={`a-row-link ${busy === p.id ? 'is-busy' : ''}`}
+                                        // a click anywhere on the row opens the page; the switch and action buttons keep their own job
+                                        onClick={(e) => { if (!e.target.closest('a, button, input, select, label')) router.visit(`/admin/pages/${p.id}/edit`); }}>
                                         <td>
                                             <Link className="a-strong" href={`/admin/pages/${p.id}/edit`}>{p.title}</Link>
                                             {!p.is_system && <div className="a-muted sm">Copy of the {p.template_label} design</div>}

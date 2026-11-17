@@ -35,9 +35,9 @@ class EmailTemplate extends Model
         'lead_autoreply' => [
             'name' => 'Auto-reply to the visitor',
             'to' => 'The person who wrote in (only if they gave an email)',
-            'about' => 'An instant "we got your message" email. Off until you switch it on.',
-            'can_disable' => true,
-            'enabled' => false,
+            'about' => 'Sent automatically to people who submit the contact form.',
+            'can_disable' => false,
+            'enabled' => true,
             'subject' => 'We received your message | {company}',
             'body' => "Dear {first_name},\n\nThank you for contacting {company}. We have received your {type} and a member of our team will get back to you within one working day.\n\nIf it is urgent, call us on {site_phone}.\n\nBest regards,\n{company}",
         ],

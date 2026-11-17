@@ -33,12 +33,14 @@ return [
             F::image('logo', 'Logo', '/images/pti-logo-white.svg'),
             F::textarea('text', 'Text under the logo', 'Shaping Dreams into Homes. {tagline}', 'You can use {tagline}, {company}, {phone}, {email}, {address}.'),
             F::repeater('socials', 'Social icons', [
-                F::select('network', 'Network', ['facebook' => 'Facebook', 'instagram' => 'Instagram', 'linkedin' => 'LinkedIn']),
+                F::select('network', 'Network', ['facebook' => 'Facebook', 'instagram' => 'Instagram', 'linkedin' => 'LinkedIn', 'youtube' => 'YouTube', 'whatsapp' => 'WhatsApp', 'custom' => 'Other']),
+                F::text('label', 'Display name', '', null, true),
                 F::text('url', 'Link', '', null, true),
+                F::toggle('enabled', 'Show on website', true),
             ], [
-                ['network' => 'facebook', 'url' => 'https://www.facebook.com/login/'],
-                ['network' => 'instagram', 'url' => 'https://www.instagram.com/accounts/login/'],
-                ['network' => 'linkedin', 'url' => 'https://www.linkedin.com/login'],
+                ['network' => 'facebook', 'label' => 'Facebook', 'url' => 'https://www.facebook.com/login/', 'enabled' => true],
+                ['network' => 'instagram', 'label' => 'Instagram', 'url' => 'https://www.instagram.com/accounts/login/', 'enabled' => true],
+                ['network' => 'linkedin', 'label' => 'LinkedIn', 'url' => 'https://www.linkedin.com/login', 'enabled' => true],
             ], 'network'),
             F::text('links_title', 'Links heading', 'Links', null, true),
             F::repeater('links', 'Links', [

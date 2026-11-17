@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\NewInquiry;
 use App\Mail\TemplateMail;
 use App\Models\EmailTemplate;
+use App\Models\EmailLog;
 use App\Models\Inquiry;
 use App\Models\Setting;
 use App\Support\MailSettings;
@@ -41,21 +42,31 @@ class InquiryController extends Controller
         $inquiry = Inquiry::create($data);
 
         // alert to the team + optional auto-reply (Admin → Email templates / Email & SMTP)
+        $notifyTo = MailSettings::notifyTo() ?: [Setting::all_values()['email']];
+        $notification = EmailTemplate::for('lead_notification')->fill_in(EmailTemplate::varsFor($inquiry));
         try {
             if (EmailTemplate::for('lead_notification')->is_enabled) {
-                Mail::to(MailSettings::notifyTo() ?: [Setting::all_values()['email']])->send(new NewInquiry($inquiry->load('project')));
+                Mail::to($notifyTo)->send(new NewInquiry($inquiry->load('project')));
+                EmailLog::record(MailSettings::isLive() ? 'sent' : 'skipped', 'Lead notification', implode(', ', $notifyTo), $notification['subject'], MailSettings::isLive() ? 'New lead alert sent.' : 'SMTP is not connected; message was not delivered.');
+            } else {
+                EmailLog::record('skipped', 'Lead notification', implode(', ', $notifyTo), $notification['subject'], 'The lead notification template is disabled.');
             }
         } catch (\Throwable $e) {
             Log::warning('Inquiry mail failed: '.$e->getMessage());
+            EmailLog::record('failed', 'Lead notification', implode(', ', $notifyTo), $notification['subject'], mb_substr($e->getMessage(), 0, 1000));
         }
         try {
             $auto = EmailTemplate::for('lead_autoreply');
-            if ($auto->is_enabled && $inquiry->email) {
+            if ($inquiry->source === 'contact' && $inquiry->email) {
                 $t = $auto->fill_in(EmailTemplate::varsFor($inquiry));
-                Mail::to($inquiry->email, $inquiry->full_name)->send(new TemplateMail($t['subject'], $t['body'], $inquiry->message ?: null, 'Your message'));
+                Mail::to($inquiry->email, $inquiry->full_name)->send(new TemplateMail($t['subject'], $t['body']));
+                EmailLog::record(MailSettings::isLive() ? 'sent' : 'skipped', 'Lead auto-reply', $inquiry->email, $t['subject'], MailSettings::isLive() ? 'Contact auto-reply sent.' : 'SMTP is not connected; message was not delivered.');
+            } else {
+                EmailLog::record('skipped', 'Lead auto-reply', $inquiry->email ?? '', 'Contact auto-reply', 'This inquiry does not have a contact email address.');
             }
         } catch (\Throwable $e) {
             Log::warning('Inquiry auto-reply failed: '.$e->getMessage());
+            EmailLog::record('failed', 'Lead auto-reply', $inquiry->email ?? '', 'Contact auto-reply', mb_substr($e->getMessage(), 0, 1000));
         }
 
         return back()->with('success', $siteVisit

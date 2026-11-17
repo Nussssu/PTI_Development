@@ -21,9 +21,9 @@
   --line-dark: rgba(11, 38, 68, .14);
   --line-light: rgba(255, 255, 255, .14);
 
-  --f-sans: "Poppins", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-serif: "Instrument Serif", Georgia, serif;
-  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --f-sans: "Sora", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-serif: "Sora", sans-serif;
+  --f-mono: "Sora", sans-serif;
 
   --gutter: clamp(16px, 4vw, 40px);
   --tower-space: 0px;
@@ -52,6 +52,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+body, body * { font-family: "Sora", sans-serif !important; }
 html { -webkit-text-size-adjust: 100%; }
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
@@ -610,7 +611,7 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .footer { background: var(--ink); color: var(--text-light); padding: clamp(70px, 8vw, 110px) 0 32px; border-top: 1px solid var(--line-light); position: relative; overflow: hidden; }
 /* on the landing page the footer sits inside .lx, whose tokens differ: pin the inner-page ones */
 .lx .footer { --ink: #071A30; --gold: var(--peach); --gold-soft: #F0C9A8; --ease: cubic-bezier(.22, 1, .36, 1); }
-.footer-grid { display: grid; grid-template-columns: 1.3fr 1fr 1.4fr; gap: 48px; }
+.footer-grid { display: grid; grid-template-columns: 1.15fr .8fr 1fr 1.2fr; gap: 36px; }
 .footer-logo img { height: 110px; width: auto; }
 .footer h4 { font-family: var(--f-mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); font-weight: 400; margin-bottom: 20px; }
 .footer-links a { display: block; padding: 4px 0; opacity: .8; transition: opacity .3s, transform .4s var(--ease); }
@@ -618,6 +619,8 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .footer-contact { display: grid; gap: 18px; }
 .footer-contact small { display: block; font-size: 12px; opacity: .55; }
 .footer-contact a:hover { color: var(--gold-soft); }
+.footer-map .office-map-wrap { height: 100%; min-height: 220px; }
+.footer-map .office-map { height: 100%; min-height: 220px; border-radius: 10px; }
 /* the footer spans the page (same edge spacing as the header's badge and menu), not the centred content column;
    the big "PTI Development" is sized to it so the whole name always fits */
 .footer > .wrap { container-type: inline-size; width: auto; margin: 0 clamp(20px, 3.2vw, 56px); }
@@ -626,7 +629,7 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .socials { display: flex; gap: 10px; }
 .socials a { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line-light); display: grid; place-items: center; transition: background .3s, color .3s, border-color .3s; }
 .socials a:hover { background: var(--peach); color: var(--ink); border-color: var(--peach); }
-@media (max-width: 860px) { .footer-grid { grid-template-columns: 1fr 1fr; } .footer-grid > :first-child { grid-column: 1 / -1; } }
+@media (max-width: 860px) { .footer-grid { grid-template-columns: 1fr 1fr; } .footer-grid > :first-child, .footer-map { grid-column: 1 / -1; } }
 /* phones: Links and Contact stay side by side (logo block above them, full width) */
 @media (max-width: 520px) { .footer-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 40px 20px; }
   .footer-contact { gap: 14px; font-size: 14px; }
@@ -648,14 +651,14 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .page-hero h1 { font-size: clamp(44px, 7vw, 108px); font-weight: 600; letter-spacing: -.04em; line-height: .98; text-transform: none; }
 .page-hero h1 .serif { color: var(--gold-soft); }
 .page-hero .lead { margin-top: 28px; }
-/* Services hero: video only (no tint), title centred */
+/* Services hero: video, title centred */
 .page-hero.svc-hero { align-items: center; justify-content: center; text-align: center; }
-.page-hero.svc-hero .bg::after { display: none; }
 /* Minimal full-screen page heroes (Projects, project detail, Contact): centred title only */
 .page-hero.hero-min { min-height: 100svh; align-items: center; justify-content: center; text-align: center; }
 .page-hero.hero-min .wrap { width: 100%; margin-left: 0; padding-inline: var(--gutter); }
-/* Projects hero: the photo as it is, no navy (bluish) tint over it */
-.page-hero.proj-hero .bg::after, .page-hero.ct-hero .bg::after { display: none; } /* Contact hero too */
+/* Services, Projects, Contact heroes: an even dark-navy (site theme) overlay behind the centred title */
+.page-hero.svc-hero .bg::after, .page-hero.proj-hero .bg::after, .page-hero.ct-hero .bg::after {
+  background: linear-gradient(0deg, rgba(7,26,48,.85), rgba(7,26,48,.6) 55%, rgba(7,26,48,.7)); }
 .crumbs { font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--mist); margin-bottom: 26px; display: flex; gap: 10px; }
 .crumbs a:hover { color: var(--gold); }
 
@@ -669,7 +672,7 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .ab-door-in { position: absolute; inset: 0; transform-origin: 50% 45%; }
 .ab-door img { width: 100%; height: 100%; object-fit: cover; object-position: 55% 60%; }
 .ab-shade { position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(0deg, rgba(7,26,48,.7), rgba(7,26,48,.18) 55%, rgba(7,26,48,.3)); }
+  background: linear-gradient(0deg, rgba(7,26,48,.85), rgba(7,26,48,.6) 55%, rgba(7,26,48,.7)); }
 .ab-intro { position: absolute; inset: 0; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center;
   text-align: center; color: var(--white); padding: var(--header-h) var(--gutter) 0; will-change: transform, opacity, filter; }
 .ab-intro .crumbs { justify-content: center; }
@@ -750,7 +753,16 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .team-grid { grid-template-columns: repeat(12, 1fr); }
 .team-grid .member { grid-column: span 3; }
 .team-grid .member.lead-member { grid-column: span 6; }
-.team-grid .lead-member .member-photo { aspect-ratio: 6/5; }
+.team-grid .lead-member .member-photo { aspect-ratio: 4/5; }   /* replaced by each photo's own shape when it loads (About.jsx) */
+/* wide screens: the two leads larger than the others and centred as a pair (columns 2-6 and 7-11) */
+@media (min-width: 961px) {
+  .team-grid .member.lead-member:nth-child(1) { grid-column: 2 / span 5; }
+  .team-grid .member.lead-member:nth-child(2) { grid-column: 7 / span 5; }
+}
+/* the two lead photos are portrait: show the whole photo (nothing cut), standing on the bottom of the frame;
+   the small hover avatar still fills its square */
+.team-grid .lead-member .member-photo img { object-fit: contain; object-position: 50% 100%; }
+.team-grid .lead-member:is(:hover, :focus-within) .member-photo img { object-fit: cover; object-position: top; }
 .team-grid .lead-member:is(:hover, :focus-within) .member-photo img { width: 96px; height: 96px; }
 /* the bigger lead avatar reaches further down, so push the name below it (34 + 96 + 4px ring + gap) */
 .team-grid .lead-member .m-info { padding-top: 76px; }
@@ -785,6 +797,7 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .svc-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 20px; margin: 32px 0 36px; }
 .svc-list li { display: flex; gap: 10px; align-items: flex-start; font-size: 15px; }
 .svc-list li svg { flex: none; margin-top: 4px; color: var(--gold); }
+.svc-card:not(:nth-child(2)) .svc-list li svg { color: #9A6C2F; }
 .svc-media { border-radius: 20px; overflow: hidden; min-height: 320px; }
 .svc-media img { width: 100%; height: 100%; object-fit: cover; }
 @media (max-width: 900px) { .svc-card { grid-template-columns: 1fr; position: relative; top: 0; min-height: 0; } .svc-media { min-height: 240px; order: -1; } }

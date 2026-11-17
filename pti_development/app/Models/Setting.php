@@ -25,6 +25,36 @@ class Setting extends Model
         'linkedin' => ['LinkedIn URL', ''],
     ];
 
+    /**
+     * Brand logos kept with the settings (Settings → General): key => default file. Empty = the default.
+     * The header badge logo and the footer logo live in the header / footer blocks and are edited there too.
+     */
+    public const BRAND = [
+        'logo_favicon' => '/images/pti-logo-vertical.svg',
+        'logo_preloader' => null,                     // null = the PTI mark drawn in code
+        'logo_email' => '/images/pti-mail-logo.png',
+    ];
+
+    /** The brand logos as public URLs (null = draw the built-in PTI mark). */
+    public static function brand(): array
+    {
+        $out = [];
+        foreach (self::BRAND as $key => $default) {
+            $out[$key] = \App\Support\Media::url(static::extra($key) ?: null) ?: $default;
+        }
+
+        return $out;
+    }
+
+    /** File on disk for the email logo (it is embedded in every email). */
+    public static function emailLogoFile(): string
+    {
+        $p = static::extra('logo_email') ?: self::BRAND['logo_email'];
+        $file = str_starts_with($p, '/') ? public_path(ltrim($p, '/')) : storage_path('app/public/'.ltrim($p, '/'));
+
+        return is_file($file) ? $file : public_path('images/pti-mail-logo.png');
+    }
+
     public static function all_values(): array
     {
         return Cache::rememberForever('site-settings', function () {

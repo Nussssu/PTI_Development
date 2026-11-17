@@ -100,6 +100,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             Route::controller(Admin\MailController::class)->prefix('email')->name('email.')->group(function () {
                 Route::get('/smtp', 'smtp')->name('smtp');
+                Route::get('/logs', 'logs')->name('logs');
                 Route::put('/smtp', 'saveSmtp')->name('smtp.update');
                 Route::post('/smtp/test', 'test')->middleware('throttle:10,1')->name('smtp.test');
                 Route::get('/templates', 'templates')->name('templates');
@@ -118,11 +119,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/', 'store')->name('store');
             Route::put('/{user}', 'update')->name('update');
             Route::delete('/{user}', 'destroy')->name('destroy');
-        });
-
-        Route::middleware('area:code')->group(function () {
-            Route::get('/code', [Admin\CodeController::class, 'edit'])->name('code');
-            Route::put('/code', [Admin\CodeController::class, 'update'])->name('code.update');
         });
     });
 });

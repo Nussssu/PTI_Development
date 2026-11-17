@@ -6,6 +6,10 @@ import axios from 'axios';
 import LeadDetail from '../../../Components/Admin/LeadDetail';
 
 const TONES = { all: 'ink', new: 'violet', in_progress: 'blue', replied: 'teal', archived: 'grey' };
+const messagePreview = (message, max = 120) => {
+    const text = String(message || '').trim();
+    return text.length > max ? `${text.slice(0, max).trimEnd()}…` : text || '—';
+};
 
 /** Leads inbox: status tabs with counts, search + type + date filters, bulk actions, CSV import / export. */
 export default function InquiriesIndex({ inquiries, filters, counts, unread, statuses, types }) {
@@ -13,6 +17,7 @@ export default function InquiriesIndex({ inquiries, filters, counts, unread, sta
     const [picked, setPicked] = useState([]);
     const [importing, setImporting] = useState(false);
     const [viewing, setViewing] = useState(null);
+    const [editing, setEditing] = useState(null);
     const openView = (i) => setViewing(i.id);
     const go = (params = {}) => router.get('/admin/inquiries', clean({ ...f, ...params }), { preserveState: true, replace: true, onSuccess: () => setPicked([]) });
     const setTab = (status) => { setF((x) => ({ ...x, status })); go({ status, page: undefined }); };
@@ -87,11 +92,11 @@ export default function InquiriesIndex({ inquiries, filters, counts, unread, sta
                                 <tr key={i.id} className={`${i.read_at ? '' : 'unread'} ${picked.includes(i.id) ? 'picked' : ''}`}>
                                     <td className="a-td-check"><input type="checkbox" checked={picked.includes(i.id)} onChange={() => setPicked((p) => (p.includes(i.id) ? p.filter((x) => x !== i.id) : [...p, i.id]))} aria-label={`Select ${i.first_name}`} /></td>
                                     <td>
-                                        <Link className="a-strong" href={`/admin/inquiries/${i.id}`}>{i.first_name} {i.last_name}</Link>
+                                        <Link className="a-strong" href={`/admin/inquiries/${i.id}`} onClick={(e) => { e.preventDefault(); openView(i); }}>{i.first_name} {i.last_name}</Link>
                                         <div className="a-muted sm">{i.phone}{i.email ? ` · ${i.email}` : ''}</div>
                                     </td>
                                     <td><span className={`a-pill ${i.source}`}>{types[i.source] || i.source}</span>{i.project && <div className="a-muted sm">{i.project.name}</div>}</td>
-                                    <td><span className="a-clip">{i.message || '—'}</span></td>
+                                    <td><span className="a-clip">{messagePreview(i.message)}</span></td>
                                     <td>
                                         <span className={`a-pill st-${i.status}`}>{statuses[i.status] || i.status}</span>
                                         {i.replies_count > 0 && <div className="a-muted sm">↩ {i.replies_count} repl{i.replies_count > 1 ? 'ies' : 'y'}</div>}
@@ -100,8 +105,7 @@ export default function InquiriesIndex({ inquiries, filters, counts, unread, sta
                                     <td className="a-row-actions">
                                         <div className="a-ibtns">
                                             <IconBtn icon="eye" label="View message" onClick={() => openView(i)} />
-                                            <IconBtn icon="reply" label={i.email ? 'Reply by email' : 'No email address (call instead)'} href={`/admin/inquiries/${i.id}#reply`} disabled={!i.email} />
-                                            <IconBtn icon="edit" label="Edit" href={`/admin/inquiries/${i.id}/edit`} />
+                                            <IconBtn icon="reply" label={i.email ? 'Reply by email' : 'No email address (call instead)'} onClick={() => openView(i)} disabled={!i.email} />
                                             <IconBtn icon="trash" tone="danger" label="Delete" onClick={() => remove(i)} />
                                         </div>
                                     </td>
@@ -119,14 +123,15 @@ export default function InquiriesIndex({ inquiries, filters, counts, unread, sta
             )}
 
             {importing && <ImportModal onClose={() => setImporting(false)} />}
-            {viewing && <ViewModal id={viewing} types={types} onClose={() => setViewing(null)} />}
+            {viewing && <ViewModal id={viewing} types={types} onClose={() => setViewing(null)} onEdit={() => { const id = viewing; setViewing(null); setEditing(id); }} />}
+            {editing && <EditModal id={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); router.reload({ only: ['inquiries', 'counts', 'unread', 'admin'] }); }} />}
             </div>
         </AdminLayout>
     );
 }
 
 /** The whole lead (message, reply box, replies sent, details, status) in a pop-up over the list. */
-function ViewModal({ id, types, onClose }) {
+function ViewModal({ id, types, onClose, onEdit }) {
     const [data, setData] = useState(null);
     const [err, setErr] = useState('');
     const load = (refresh = true) => axios.get(`/admin/inquiries/${id}`, { params: refresh ? { refresh: 1 } : {}, headers: { Accept: 'application/json' } })
@@ -155,7 +160,7 @@ function ViewModal({ id, types, onClose }) {
                         )}
                     </div>
                     <div className="a-ibtns">
-                        {i && <IconBtn icon="edit" label="Edit" href={`/admin/inquiries/${id}/edit`} />}
+                        {i && <IconBtn icon="edit" label="Edit" onClick={onEdit} />}
                         {i && <IconBtn icon="trash" tone="danger" label="Delete" onClick={remove} />}
                         <button type="button" className="a-icon-btn" onClick={onClose} aria-label="Close"><Icon name="x" /></button>
                     </div>
@@ -166,6 +171,51 @@ function ViewModal({ id, types, onClose }) {
             </div>
         </div>
     );
+}
+
+function EditModal({ id, onClose, onSaved }) {
+    const [data, setData] = useState(null);
+    const [err, setErr] = useState('');
+    const form = useForm({ first_name: '', last_name: '', email: '', phone: '', message: '', source: 'contact', project_id: '', status: 'new', notes: '' });
+    useEffect(() => {
+        axios.get(`/admin/inquiries/${id}/edit`, { headers: { Accept: 'application/json' } })
+            .then(({ data: result }) => {
+                setData(result);
+                const i = result.inquiry;
+                form.setData({ first_name: i.first_name || '', last_name: i.last_name || '', email: i.email || '', phone: i.phone || '', message: i.message || '', source: i.source, project_id: i.project_id || '', status: i.status || 'new', notes: i.notes || '' });
+            }).catch(() => setErr('Could not load this lead for editing.'));
+        const esc = (e) => e.key === 'Escape' && onClose();
+        addEventListener('keydown', esc);
+        return () => removeEventListener('keydown', esc);
+    }, [id]);
+    const submit = async (e) => {
+        e.preventDefault();
+        form.clearErrors();
+        form.setProcessing(true);
+        try {
+            await axios.put(`/admin/inquiries/${id}`, form.data, { headers: { Accept: 'application/json' } });
+            onSaved();
+        } catch (error) {
+            if (error.response?.status === 422) form.setError(error.response.data.errors || {});
+            else setErr('Could not save these changes.');
+        } finally { form.setProcessing(false); }
+    };
+    const field = (key, label, type = 'text', half = true) => <label className={`a-field ${half ? 'half' : ''}`}><span>{label}</span><input type={type} value={form.data[key]} onChange={(e) => form.setData(key, e.target.value)} />{form.errors[key] && <small className="a-error">{form.errors[key]}</small>}</label>;
+    return <div className="a-modal" onMouseDown={(e) => e.target === e.currentTarget && onClose()}><form className="a-modal-box a-leads" onSubmit={submit}>
+        <div className="a-modal-head"><h2>Edit message</h2><button type="button" className="a-icon-btn" onClick={onClose} aria-label="Close"><Icon name="x" /></button></div>
+        {err && <p className="a-error">{err}</p>}
+        {!data && !err ? <p className="a-muted">Loading…</p> : data && <>
+            <div className="a-form-grid">
+                {field('first_name', 'First name')}{field('last_name', 'Last name')}{field('email', 'Email', 'email')}{field('phone', 'Phone')}
+                <label className="a-field half"><span>Type</span><select value={form.data.source} onChange={(e) => form.setData('source', e.target.value)}><option value="contact">Contact message</option><option value="site_visit">Site visit request</option></select></label>
+                <label className="a-field half"><span>Project</span><select value={form.data.project_id} onChange={(e) => form.setData('project_id', e.target.value)}><option value="">—</option>{data.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+                <label className="a-field half"><span>Status</span><select value={form.data.status} onChange={(e) => form.setData('status', e.target.value)}>{Object.entries(data.statuses).map(([k, label]) => <option key={k} value={k}>{label}</option>)}</select></label>
+                <label className="a-field"><span>Message</span><textarea rows={5} value={form.data.message} onChange={(e) => form.setData('message', e.target.value)} />{form.errors.message && <small className="a-error">{form.errors.message}</small>}</label>
+                <label className="a-field"><span>Internal note</span><textarea rows={4} value={form.data.notes} onChange={(e) => form.setData('notes', e.target.value)} />{form.errors.notes && <small className="a-error">{form.errors.notes}</small>}</label>
+            </div>
+            <div className="a-form-foot"><button type="button" className="a-btn ghost" onClick={onClose}>Cancel</button><button className="a-btn primary" disabled={form.processing}>{form.processing ? 'Saving…' : 'Save changes'}</button></div>
+        </>}
+    </form></div>;
 }
 
 function ImportModal({ onClose }) {

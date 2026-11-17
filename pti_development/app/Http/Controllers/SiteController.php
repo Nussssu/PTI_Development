@@ -10,7 +10,6 @@ use App\Models\Project;
 use App\Models\Service;
 use App\Models\Stat;
 use App\Models\TeamMember;
-use App\Models\Testimonial;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -88,14 +87,13 @@ class SiteController extends Controller
             'home' => [
                 'projects' => Project::published()->where('is_featured', true)->ordered()->get(),
                 'stats' => Stat::where('page', 'home')->ordered()->get(),
-                'testimonials' => Testimonial::where('is_published', true)->ordered()->get(),
                 'faqs' => Faq::where('is_published', true)->ordered()->get(),
                 'projectCount' => Project::published()->count(),
                 'services' => Service::ordered()->get(),
-                'values' => CompanyValue::ordered()->get(),
+                'values' => $this->values(),
             ],
             'about' => [
-                'values' => CompanyValue::ordered()->get(),
+                'values' => $this->values(),
                 'stats' => Stat::where('page', 'about')->ordered()->get(),
                 'team' => TeamMember::where('is_published', true)->ordered()->get(),
                 'projects' => Project::published()->where('is_featured', true)->ordered()->get(),
@@ -105,8 +103,24 @@ class SiteController extends Controller
             ],
             'services' => ['services' => Service::ordered()->get()],
             'projects' => ['projects' => Project::published()->ordered()->get()],
-            'contact' => ['faqs' => Faq::where('is_published', true)->ordered()->get()],
             default => [],
         };
+    }
+
+    /** Values are managed with the About page section and shared with the home page. */
+    private function values(): array
+    {
+        $about = Cms::system('about');
+        $stored = $about->sections()->where('key', 'values')->first()?->content ?? [];
+        if (array_key_exists('items', $stored)) {
+            $items = Cms::payload($about)['sections']['values']['items'] ?? [];
+            return collect($items)->values()->map(fn ($value, $i) => [
+                'id' => 'about-value-'.$i,
+                'title' => $value['title'] ?? '',
+                'text' => $value['text'] ?? '',
+            ])->all();
+        }
+
+        return CompanyValue::ordered()->get()->all();
     }
 }

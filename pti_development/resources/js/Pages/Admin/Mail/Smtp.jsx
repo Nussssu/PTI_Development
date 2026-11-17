@@ -1,9 +1,9 @@
-import { Link, useForm, usePage } from '@inertiajs/react';
-import AdminLayout, { ago, Icon, Switch } from '../../../Layouts/AdminLayout';
+import { useForm, usePage } from '@inertiajs/react';
+import AdminLayout, { Icon, Switch } from '../../../Layouts/AdminLayout';
 import EmailTabs from './EmailTabs';
 
 /** Email & SMTP: connect Gmail (or any SMTP server), who gets lead alerts, and a test button. */
-export default function Smtp({ settings, presets, transport, live, recent }) {
+export default function Smtp({ settings, presets }) {
     const { auth } = usePage().props;
     const form = useForm({ ...settings, password: '' });
     const test = useForm({ to: auth.user.email });
@@ -19,10 +19,6 @@ export default function Smtp({ settings, presets, transport, live, recent }) {
     return (
         <AdminLayout title="Email & SMTP">
             <EmailTabs />
-            <div className={`a-status-bar ${live ? 'ok' : 'warn'}`}>
-                <Icon name={live ? 'check' : 'mail'} />
-                <span><b>{live ? 'Email is working through ' : 'Email is not set up. '}</b>{live ? transport.replace('SMTP: ', '') : 'Lead alerts and replies are only written to the log file until you connect an account below.'}</span>
-            </div>
 
             <div className="a-split wide">
                 <form className="a-card a-form" onSubmit={save}>
@@ -72,17 +68,6 @@ export default function Smtp({ settings, presets, transport, live, recent }) {
                         </div>
                         {test.errors.to && <small className="a-error">{test.errors.to}</small>}
                     </form>
-
-                    {recent.length > 0 && (
-                        <div className="a-card">
-                            <div className="a-card-head"><h2>Recent email activity</h2><Link href="/admin/audit?action=mail_test">All →</Link></div>
-                            <div className="a-activity">
-                                {recent.map((r) => (
-                                    <div key={r.id} className="a-activity-item"><span className={`a-dot ${r.action.includes('failed') ? 'act-deleted' : 'act-created'}`} /><span>{r.description}</span><small className="a-muted">{ago(r.created_at)}</small></div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
             </div>
         </AdminLayout>

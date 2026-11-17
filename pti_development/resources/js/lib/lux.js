@@ -256,18 +256,23 @@ export function initLux(root, { skipIntro = false } = {}) {
         }
         /* ---------- arch: dome rises, curved text slides along it; then the promises slider (ported from ERA) ---------- */
         const arch = $('.lx-arch', root);
-        gsap.fromTo($('.lx-arch .dome', root), { scaleX: 0.78 }, { scaleX: 1, ease: 'none', scrollTrigger: { trigger: arch, start: 'top top', end: '+=100%', scrub: true } });
-        gsap.fromTo($('.lx-arch .curve', root), { scaleX: 0.78 }, { scaleX: 1, ease: 'none', scrollTrigger: { trigger: arch, start: 'top top', end: '+=100%', scrub: true } });
-        gsap.fromTo($('.lx-arch textPath', root), { attr: { startOffset: '12%' } }, { attr: { startOffset: '50%' }, ease: 'none', scrollTrigger: { trigger: arch, start: 'top top', end: '+=100%', scrub: true } });
-        gsap.fromTo($('.lx-arch .curve text', root), { opacity: 0 }, { opacity: 1, ease: 'none', scrollTrigger: { trigger: arch, start: '20% top', end: '+=60%', scrub: true } });
+        // all of it lands together when the dome's top reaches 8.5% from the top of the screen: the dome at full
+        // width, whole on screen, with "Built On Trust" centred on its curve
+        const archDome = $('.lx-arch .dome', root);
+        const archST = () => ({ trigger: arch, start: 'top top', endTrigger: archDome, end: 'top 8.5%', scrub: true });
+        gsap.fromTo(archDome, { scaleX: 0.78 }, { scaleX: 1, ease: 'none', scrollTrigger: archST() });
+        gsap.fromTo($('.lx-arch .curve', root), { scaleX: 0.78 }, { scaleX: 1, ease: 'none', scrollTrigger: archST() });
+        gsap.fromTo($('.lx-arch textPath', root), { attr: { startOffset: '12%' } }, { attr: { startOffset: '50%' }, ease: 'none', scrollTrigger: archST() });
+        gsap.fromTo($('.lx-arch .curve text', root), { opacity: 0 }, { opacity: 1, ease: 'none', scrollTrigger: { trigger: archDome, start: 'top 70%', end: 'top 20%', scrub: true } });
         gsap.fromTo($('.lx-arch .vline', root), { scaleY: 0 }, { scaleY: 1, ease: 'none', scrollTrigger: { trigger: $('.lx-arch .vline', root), start: 'top 85%', end: 'top 45%', scrub: true } });
         reveal($$('.lx-arch .crest, .lx-arch .lede', root));
         {
             CustomEase.create('eraOut', '0.25,1,0.5,1');
             CustomEase.create('eraIn', '0.5,0,0.75,0');
             CustomEase.create('eraInOut', '0.75,0,0.25,1');
-            const DS = 0.4, DM = 0.8, DL = 1.2, ST = 0.1, AUTO = 6;
+            const DS = 0.4, DM = 0.8, DL = 1.2, ST = 0.1;
             const sl = $('.lx-bslider', root);
+            const AUTO = () => Math.min(60, Math.max(2, Number(sl?.dataset.interval) || 6));
             const slides = $$('.b-slide', sl);
             const pager = $('.b-pager', sl);
             const cur = $('.cur', sl), nxt = $('.nxt', sl), bar = $('.bar i', sl);
@@ -308,9 +313,12 @@ export function initLux(root, { skipIntro = false } = {}) {
             let index = 0, busy = false, timer = null, started = false;
             const n = parts.length;
             const labels = () => { cur.textContent = index + 1; nxt.textContent = index === n - 1 ? 1 : index + 2; };
-            const runBar = () => { gsap.killTweensOf(bar); gsap.fromTo(bar, { width: '0%' }, { width: '100%', duration: AUTO, ease: 'none' }); };
-            const schedule = () => { clearInterval(timer); if (n > 1) { runBar(); timer = setInterval(() => { if (!document.hidden) go(index + 1, true); }, AUTO * 1000); } };
+            const runBar = () => { gsap.killTweensOf(bar); gsap.fromTo(bar, { width: '0%' }, { width: '100%', duration: AUTO(), ease: 'none' }); };
+            const schedule = () => { clearInterval(timer); if (n > 1) { runBar(); timer = setInterval(() => { if (!document.hidden) go(index + 1, true); }, AUTO() * 1000); } };
             cleanups.push(() => clearInterval(timer));
+            const intervalObserver = new MutationObserver(schedule);
+            intervalObserver.observe(sl, { attributes: true, attributeFilter: ['data-interval'] });
+            cleanups.push(() => intervalObserver.disconnect());
 
             /* ERA slide change: old texts out + old image wipes out while the new image wipes in;
                after DM the new title (chars) and lines rise in */

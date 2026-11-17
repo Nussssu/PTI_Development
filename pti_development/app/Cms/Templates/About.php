@@ -36,7 +36,14 @@ return [
             F::image('image', 'Background photo', '/images/hd/construction.webp', true),
         ], 'The big lines on the construction photo; on desktop it slides into "What we stand for".'),
 
-        Shared::values('/images/hd/night-render.webp'),
+        F::section('values', 'What we stand for', [
+            F::text('eyebrow', 'Small heading', 'What we stand for'),
+            F::image('image', 'Background photo', '/images/hd/night-render.webp', true),
+            F::repeater('items', 'Values', [
+                F::text('title', 'Title', ''),
+                F::textarea('text', 'Text', ''),
+            ], [], 'title', 'These values and descriptions are shown together on the About page.'),
+        ], 'The list of values and their sentences, with the section background photo.'),
 
         F::section('team', 'Meet our visionaries', [
             F::text('title', 'Heading', 'Meet Our Visionaries'),

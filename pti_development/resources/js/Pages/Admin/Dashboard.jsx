@@ -1,6 +1,5 @@
 import { Link } from '@inertiajs/react';
 import AdminLayout, { Icon } from '../../Layouts/AdminLayout';
-import VisitsChart from '../../Components/Admin/VisitsChart';
 
 export const when = (d) => new Date(d).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
@@ -22,8 +21,6 @@ export default function Dashboard({ counts, latest, visits }) {
                 ))}
             </div>
 
-            {visits && <VisitsChart visits={visits} />}
-
             <div className="a-card">
                     <div className="a-card-head"><h2>Latest leads</h2><Link href="/admin/inquiries">View all →</Link></div>
                     {latest.length === 0 ? (
@@ -34,7 +31,7 @@ export default function Dashboard({ counts, latest, visits }) {
                             <tbody>
                                 {latest.map((q) => (
                                     <tr key={q.id} className={q.read_at ? '' : 'unread'}>
-                                        <td><Link href={`/admin/inquiries/${q.id}`}>{q.first_name} {q.last_name}</Link></td>
+                                        <td>{q.first_name} {q.last_name}</td>
                                         <td><span className={`a-pill ${q.source}`}>{q.source === 'site_visit' ? `Site visit${q.project ? ' · ' + q.project.name : ''}` : 'Contact'}</span></td>
                                         <td>{q.phone}</td>
                                         <td className="a-muted">{when(q.created_at)}</td>

@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const ICONS = {
     home: 'M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6H9v6H4a1 1 0 01-1-1z',
@@ -116,10 +116,15 @@ export const ago = (d) => {
     return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
+/* the sidebar's scroll position, kept across page changes (every admin page mounts its own layout) */
+let sideScroll = 0;
+
 export default function AdminLayout({ title, actions, children, wide = false }) {
     const { auth, admin, flash, url } = { ...usePage().props, url: usePage().url };
     const [toast, setToast] = useState(null);
     const [navOpen, setNavOpen] = useState(false);
+    const sideRef = useRef(null);
+    useLayoutEffect(() => { if (sideRef.current) sideRef.current.scrollTop = sideScroll; }, []);
 
     useEffect(() => {
         const t = flash?.error ? { text: flash.error, bad: true } : flash?.success ? { text: flash.success } : null;
@@ -149,7 +154,7 @@ export default function AdminLayout({ title, actions, children, wide = false }) 
     return (
         <div className={`admin ${navOpen ? 'nav-open' : ''}`}>
             <Head title={title ? `${title} · Admin` : 'Admin'} />
-            <aside className="a-side">
+            <aside className="a-side" ref={sideRef} onScroll={(e) => { sideScroll = e.currentTarget.scrollTop; }}>
                 <Link href="/admin" className="a-brand"><img src="/images/pti-logo-horizontal-white.svg" alt="PTI" /><span>Admin</span></Link>
                 <nav className="a-nav">
                     <div className="a-nav-label">Overview</div>
@@ -165,7 +170,7 @@ export default function AdminLayout({ title, actions, children, wide = false }) 
                         {item('/admin/media', 'Media library', 'image')}
                         {item('/admin/layout', 'Menus', 'layout')}
                     </>}
-                    {(can.system || can.users || can.code) && <div className="a-nav-label">System &amp; administration</div>}
+                    <div className="a-nav-label">System &amp; administration</div>
                     {can.users && item('/admin/users', 'User management', 'users')}
                     {can.system && <>
                         <Link key="/admin/email" href="/admin/email/smtp" className={`a-nav-link ${path.startsWith('/admin/email/') ? 'is-active' : ''}`} onClick={() => setNavOpen(false)}>
@@ -173,14 +178,13 @@ export default function AdminLayout({ title, actions, children, wide = false }) 
                         </Link>
                         {item('/admin/settings', 'Settings', 'settings')}
                     </>}
-                    {can.code && item('/admin/code', 'Custom code', 'code')}
                     {can.system && item('/admin/audit', 'Audit log', 'shield')}
+                    {item('/admin/security', 'My security', 'lock')}
                 </nav>
                 <div className="a-user">
                     <div className="a-user-row">
                         <div className="a-avatar">{auth.user?.name?.[0] || 'A'}</div>
                         <div className="a-user-meta"><b>{auth.user?.name}</b><small>{auth.user?.role_label}</small></div>
-                        <Link href="/admin/security" className={`a-user-sec ${path === '/admin/security' ? 'is-active' : ''}`} title="Profile, password and devices">My security</Link>
                     </div>
                     <div className="a-user-btns">
                         <a className="a-side-btn" href="/" target="_blank" rel="noopener">View site <Icon name="external" size={13} /></a>

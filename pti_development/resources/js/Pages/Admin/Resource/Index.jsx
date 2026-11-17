@@ -23,6 +23,9 @@ export default function ResourceIndex({ resource, items, stats = [], tabs }) {
     const [tab, setTab] = useState('');
     const [busy, setBusy] = useState(null);
     const [adding, setAdding] = useState(false);
+    const [editing, setEditing] = useState(null);   // team: Edit opens in a popup
+    const popupEdit = resource.slug === 'team';
+    const edit = (item) => (e) => { if (popupEdit) { e?.preventDefault?.(); setEditing(item); } };
     const columns = resource.columns.filter((c) => fields[c]?.type !== 'image' && fields[c]?.type !== 'boolean');
     const switches = resource.columns.filter((c) => fields[c]?.type === 'boolean');
     const img = resource.columns.find((c) => fields[c]?.type === 'image');
@@ -80,7 +83,7 @@ export default function ResourceIndex({ resource, items, stats = [], tabs }) {
                                         {columns.map((c) => (
                                             <td key={c}>
                                                 {c === first ? (
-                                                    <Link className="a-name-cell" href={`${base}/${item.id}/edit`}>
+                                                    <Link className="a-name-cell" href={`${base}/${item.id}/edit`} onClick={edit(item)}>
                                                         {img && <Cell field={fields[img]} item={item} />}
                                                         <span className="a-strong">{item[c] ?? '—'}</span>
                                                     </Link>
@@ -97,7 +100,7 @@ export default function ResourceIndex({ resource, items, stats = [], tabs }) {
                                         ))}
                                         <td className="a-row-actions">
                                             <div className="a-ibtns">
-                                                <IconBtn icon="edit" label="Edit" href={`${base}/${item.id}/edit`} />
+                                                {popupEdit ? <IconBtn icon="edit" label="Edit" onClick={edit(item)} /> : <IconBtn icon="edit" label="Edit" href={`${base}/${item.id}/edit`} />}
                                                 {resource.view && <IconBtn icon="eye" label={item.is_published === false ? 'Hidden: publish it to view on the site' : 'View on the website'} href={viewUrl(item)} external disabled={item.is_published === false} />}
                                                 <IconBtn icon="copy" label="Duplicate" onClick={() => duplicate(item)} />
                                                 <IconBtn icon="trash" tone="danger" label="Delete" onClick={() => remove(item)} />
@@ -111,6 +114,7 @@ export default function ResourceIndex({ resource, items, stats = [], tabs }) {
                 )}
             </div>
             {adding && <ResourceForm resource={resource} modal onCancel={() => setAdding(false)} />}
+            {editing && <ResourceForm key={editing.id} resource={resource} item={editing} modal onCancel={() => setEditing(null)} />}
         </AdminLayout>
     );
 }

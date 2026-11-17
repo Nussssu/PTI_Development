@@ -297,7 +297,9 @@ export default function About({ values, stats, team, projects = [], services = [
                                                 <TLink className="m-btn" href={S.team.button?.href || '/contact'} tabIndex={-1}>{S.team.button?.label ?? 'Contact'}</TLink>
                                             </div>
                                         </div>
-                                        {m.photo_url && <img src={m.photo_url} alt={m.name} loading="lazy" />}
+                                        {m.photo_url && <img src={m.photo_url} alt={m.name} loading="lazy"
+                                            // the two leads: the frame takes the photo's own shape, so the whole photo shows
+                                            onLoad={i < 2 ? (e) => { const im = e.currentTarget; if (im.naturalWidth) im.parentElement.style.aspectRatio = `${im.naturalWidth} / ${im.naturalHeight}`; } : undefined} />}
                                     </div>
                                 </div>
                             ))}

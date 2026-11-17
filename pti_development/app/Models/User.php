@@ -35,7 +35,6 @@ class User extends Authenticatable
         'content' => ['super_admin', 'admin', 'editor'],
         'system' => ['super_admin', 'admin'],   // settings, email & SMTP, email templates, audit log
         'users' => ['super_admin'],
-        'code' => ['super_admin'],              // custom code can run scripts on the site
     ];
 
     protected $fillable = ['name', 'email', 'password', 'role', 'is_active', 'last_login_at', 'last_login_ip'];

@@ -26,7 +26,7 @@ class Shared
             F::image('image', 'Photo', $image, true),
             F::text('image_alt', 'Photo description (alt text)', 'A PTI agent handing the keys of a new home to a couple'),
             F::text('eyebrow', 'Small heading', 'Get in touch', null, true),
-            F::rich('title', 'Title', 'Let’s build *your home*', 'Words in *asterisks* get the handwritten style.'),
+            F::rich('title', 'Title', 'Letâ€™s build *your home*', 'Words in *asterisks* get the handwritten style.'),
             F::text('label_first', 'First name label', 'First Name', null, true),
             F::text('label_last', 'Last name label', 'Last Name', null, true),
             F::text('label_email', 'Email label', 'Email Address', null, true),
@@ -36,7 +36,7 @@ class Shared
             F::text('sent_title', 'After sending: title', 'Message sent.', null, true),
             F::text('again', 'After sending: button', 'Send another message', null, true),
             F::textarea('sent_text', 'After sending: text', 'Thank you for reaching out. Our team will get back to you shortly.'),
-        ], 'The photo with the "Let’s build your home" form. Messages arrive under Messages.');
+        ], 'The photo with the "Letâ€™s build your home" form. Messages arrive under Messages.');
     }
 
     /** "Questions, answered" (Pages/Home.jsx Faq). */
@@ -44,8 +44,17 @@ class Shared
     {
         return F::section('faq', 'Questions, answered', [
             F::textarea('title', 'Heading', "Questions,\nanswered", 'Press Enter for a new line.'),
-        ], 'The questions and answers themselves are edited under Collections → FAQ.',
-            ['label' => 'Manage FAQ', 'href' => '/admin/content/faqs']);
+            F::repeater('items', 'Questions', [
+                F::text('question', 'Question', ''),
+                F::textarea('answer', 'Answer', ''),
+            ], [
+                ['question' => 'What services does PTI Development offer?', 'answer' => 'We deliver end-to-end solutions for Dhaka\'s real estate market: property development of residential and commercial projects, land share purchase, and full legal & compliance support.'],
+                ['question' => 'Is investing with PTI halal?', 'answer' => 'Yes. We follow ethical practices, offering safe and halal ownership, with an ethical investment model behind every land share.'],
+                ['question' => 'How do you make sure land titles are safe?', 'answer' => 'Every land share comes with verified land titles and clear ownership documents. Our compliance team handles detailed contract reviews, proper documentation and compliance with government requirements, with no hidden fees.'],
+                ['question' => 'Where are your projects located?', 'answer' => 'Our projects are in strategic Dhaka locations, minutes from ECB Chattar and the Kalshi Flyover, as well as Kawla and Manikdi Bazar.'],
+                ['question' => 'Will my home be handed over on time?', 'answer' => 'We commit to handovers as promised, ensuring timely delivery, and share transparent project updates throughout construction.'],
+            ], 'question', 'The first question opens by default on the Contact page.'),
+        ], 'The heading and the questions & answers shown on the Contact page.');
     }
 
     /** "What we stand for" (Pages/Home.jsx Values). */
@@ -54,8 +63,7 @@ class Shared
         return F::section('values', 'What we stand for', [
             F::text('eyebrow', 'Small heading', 'What we stand for'),
             F::image('image', 'Background photo', $image, true),
-        ], 'The list of values and their sentences are edited under Collections → Values.',
-            ['label' => 'Manage values', 'href' => '/admin/content/values']);
+        ], 'Manage values and their images under Pages → About → What we stand for.');
     }
 
     /** The chairman's quote band (Pages/Home.jsx Quote). */
@@ -78,7 +86,7 @@ class Shared
             F::text('eyebrow', 'Small heading', "Let's talk", null, true),
             F::rich('title', 'Title', 'Ready to build *your dream?*', 'Words in *asterisks* get the handwritten style.'),
             F::textarea('lead', 'Text', 'We will show you finished and under construction projects, introduce you to the features of the areas and tell you about the real estate market in Dhaka.'),
-            F::text('badge_text', 'Round badge text', 'Book the meeting · Book the meeting ·', null, true),
+            F::text('badge_text', 'Round badge text', 'Book the meeting Â· Book the meeting Â·', null, true),
             F::text('href', 'Badge link', '/contact#contact', null, true),
         ], 'The closing block with the photo and the round "Book the meeting" badge.');
     }

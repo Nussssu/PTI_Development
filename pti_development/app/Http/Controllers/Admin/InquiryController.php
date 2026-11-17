@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Mail\InquiryReplyMail;
 use App\Models\EmailTemplate;
+use App\Models\EmailLog;
 use App\Models\Inquiry;
 use App\Models\Project;
 use App\Support\Audit;
@@ -241,16 +242,20 @@ class InquiryController extends Controller
         return Inertia::render('Admin/Inquiries/Show', $props);
     }
 
-    public function edit(Inquiry $inquiry): Response
+    public function edit(Request $request, Inquiry $inquiry): Response|\Illuminate\Http\JsonResponse
     {
-        return Inertia::render('Admin/Inquiries/Edit', [
+        $props = [
             'inquiry' => $inquiry->load('project:id,name'),
             'statuses' => self::STATUSES,
             'projects' => Project::orderBy('name')->get(['id', 'name']),
-        ]);
+        ];
+
+        return $request->wantsJson() && ! $request->header('X-Inertia')
+            ? response()->json($props)
+            : Inertia::render('Admin/Inquiries/Edit', $props);
     }
 
-    public function update(Request $request, Inquiry $inquiry): RedirectResponse
+    public function update(Request $request, Inquiry $inquiry): RedirectResponse|\Illuminate\Http\JsonResponse
     {
         $inquiry->update($request->validate([
             'first_name' => 'required|string|max:80',
@@ -264,7 +269,9 @@ class InquiryController extends Controller
             'notes' => 'nullable|string|max:5000',
         ]));
 
-        return redirect()->route('admin.inquiries.show', $inquiry)->with('success', 'Message updated.');
+        return $request->wantsJson() && ! $request->header('X-Inertia')
+            ? response()->json(['success' => true])
+            : redirect()->route('admin.inquiries.show', $inquiry)->with('success', 'Message updated.');
     }
 
     /** Send an email reply and keep it in the message's history. */
@@ -282,6 +289,7 @@ class InquiryController extends Controller
             $error = mb_substr($e->getMessage(), 0, 250);
             Log::warning('Inquiry reply failed: '.$e->getMessage());
         }
+        EmailLog::record($error ? 'failed' : (MailSettings::isLive() ? 'sent' : 'skipped'), 'Inbox reply', $inquiry->email, $data['subject'], $error ?: (MailSettings::isLive() ? 'Email reply sent.' : 'SMTP is not connected; message was not delivered.'), $request->user()->name);
 
         $inquiry->replies()->create([
             'user_id' => $request->user()->id, 'to' => $inquiry->email, 'subject' => $data['subject'], 'body' => $data['body'],

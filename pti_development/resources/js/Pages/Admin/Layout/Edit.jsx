@@ -41,7 +41,7 @@ export default function LayoutEdit({ blocks }) {
                     <div><h2>{b.label}</h2>{b.description && <p className="a-muted" style={{ margin: '4px 0 0' }}>{b.description}</p>}</div>
                     <span className="a-muted sm">{b.updated_at ? `Saved ${ago(b.updated_at)}${b.editor ? ` by ${b.editor}` : ''}` : 'Showing the original'}</span>
                 </div>
-                <FieldList fields={b.fields} values={values[tab]} defaults={b.defaults} onChange={(k, v) => setValues((s) => ({ ...s, [tab]: { ...s[tab], [k]: v } }))} />
+                <FieldList fields={b.fields.map((f) => (f.type === 'repeater' ? { ...f, openFirst: true } : f))} values={values[tab]} defaults={b.defaults} onChange={(k, v) => setValues((s) => ({ ...s, [tab]: { ...s[tab], [k]: v } }))} />
                 <div className="a-form-foot">
                     <button type="button" className="a-btn ghost" onClick={() => confirm(`Put the ${b.label.toLowerCase()} back to the original?`) && save(true)}><Icon name="reset" size={15} /> Reset to original</button>
                     <button className="a-btn primary" disabled={!dirtyOf(tab) || saving} onClick={() => save(false)}>{saving ? 'Saving…' : `Save ${b.label.toLowerCase()}`}</button>

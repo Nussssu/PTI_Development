@@ -31,6 +31,7 @@ return [
             F::text('tagline', 'Line under the crest', '{tagline}', 'Use {tagline} for the tagline from Settings.', true),
             F::text('crest_left', 'Crest, left word', 'Mirpur', null, true),
             F::text('crest_right', 'Crest, right word', 'Dhaka', null, true),
+            F::number('slide_interval', 'Seconds per image', 6, 'Choose 2–60 seconds before the slider advances automatically.'),
             F::repeater('promises', 'Promises slider', [
                 F::text('title', 'Title', '', null, true),
                 F::image('image', 'Photo'),
@@ -46,8 +47,17 @@ return [
             F::text('eyebrow', 'Small heading', 'What our clients say'),
             F::image('image', 'Photo under the quotes', '/images/says-scene.webp', true),
             F::text('image_alt', 'Photo description (alt text)', 'PTI residences at dusk: glass building, flowering gardens and a lit pool'),
-        ], 'The quotes come from Collections → Testimonials (three sample quotes show while it is empty).',
-            ['label' => 'Manage testimonials', 'href' => '/admin/content/testimonials']),
+            F::repeater('testimonials', 'Testimonials', [
+                F::text('name', 'Client name', ''),
+                F::text('role', 'Role / project', ''),
+                F::textarea('quote', 'Quote', ''),
+                F::image('photo', 'Photo'),
+            ], [
+                ['name' => 'Tanvir Ahmed', 'role' => 'Apartment owner, PTI Dream Tower-1', 'quote' => 'From the first site visit to the day we got our keys, PTI kept every promise. The paperwork was clear, the handover was on time, and the building feels even better than the plans.', 'photo' => null],
+                ['name' => 'Farhana Rahman', 'role' => 'Homeowner, Mirpur', 'quote' => 'What we valued most was the honesty. Every cost was explained up front, and the team was always there to answer our questions. Our family finally has a home we are proud of.', 'photo' => null],
+                ['name' => 'Mahmudul Hasan', 'role' => 'Land owner & joint-venture partner', 'quote' => 'I handed over my family land with a lot of worry. PTI built with real care for quality, shared updates at every stage and delivered exactly what was agreed.', 'photo' => null],
+            ], 'name'),
+        ], 'Edit the client quotes, names, roles and photos shown on the home page.'),
 
         F::section('numbers', 'We are in numbers', [
             F::text('title', 'Heading', 'We are in numbers'),

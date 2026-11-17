@@ -87,8 +87,10 @@ export default function SiteLayout({ title, children, tower: withTower = false }
             const el = id && document.getElementById(id);
             if (!el) return;
             ScrollTrigger.refresh();
-            const box = el.closest('.pin-spacer') || el;
-            const y = box.getBoundingClientRect().top + window.scrollY + (+el.dataset.hashOffset || 0) * window.innerHeight;
+            const pin = el.closest('.pin-spacer');
+            const box = pin || el;
+            // the offset is a distance into a pinned stage, so it only applies while the section is pinned
+            const y = box.getBoundingClientRect().top + window.scrollY + (pin ? +el.dataset.hashOffset || 0 : 0) * window.innerHeight;
             if (motion.lenis) motion.lenis.scrollTo(y, { duration: 1.8 });
             else window.scrollTo({ top: y, behavior: 'smooth' });
         };

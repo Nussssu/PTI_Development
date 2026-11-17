@@ -9,10 +9,10 @@
   --mist: #CDD6DD;
   --flame: #B8955A;   /* was red; the site uses no red */
   --gold: #B8955A;
-  --f-disp: "Libre Caslon Condensed", "Instrument Serif", Georgia, serif;
-  --f-script: "Mrs Saint Delafield", cursive;
-  --f-micro: "Archivo", "Poppins", sans-serif;
-  --f-body: "Poppins", system-ui, sans-serif;
+  --f-disp: "Sora", sans-serif;
+  --f-script: "Sora", sans-serif;
+  --f-micro: "Sora", sans-serif;
+  --f-body: "Sora", sans-serif;
   --ease: cubic-bezier(.19, 1, .22, 1);
   --pad: clamp(20px, 7vw, 150px);
   background: var(--cream);
@@ -118,7 +118,9 @@
 .lx-arch .gothic-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .lx-arch > * { pointer-events: auto; }
 .lx-arch .dome { position: absolute; left: 50%; top: 100svh; width: 150vw; height: 150vw; max-height: none; transform: translate(-50%, 0); background: var(--lav); clip-path: url(#lx-gothic); }
-.lx-arch .curve { position: absolute; left: 50%; top: 100svh; width: 150vw; height: 150vw; transform: translateX(-50%); overflow: visible; pointer-events: none; }
+.lx-arch .dome.dome-round { clip-path: url(#lx-round); }   /* round top: the dome under the hero and the video door */
+/* centred with left (not translateX(-50%): gsap's scaleX on this <svg> resolved -50% against the wrong width) */
+.lx-arch .curve { position: absolute; left: calc(50% - 75vw); top: 100svh; width: 150vw; height: 150vw; overflow: visible; pointer-events: none; }
 .lx-arch .curve text { font-family: var(--f-disp); font-weight: 500; font-size: 64px; letter-spacing: .02em; fill: var(--ink); text-transform: uppercase; }
 .lx-arch .inner { position: relative; padding: 30vh var(--pad) 18vh; text-align: center; min-height: 100svh; background: linear-gradient(transparent 0, transparent 50vh, var(--lav) 50vh); }
 .lx-arch .crest { display: flex; align-items: center; justify-content: center; gap: 26px; margin-bottom: 24px; }
@@ -277,7 +279,7 @@
   background: var(--sky); }   /* same colour as section 2 and as the scene's (recoloured) sky */
 .lx-says .s-band { position: absolute; z-index: 3; left: var(--pad); bottom: 9vh; width: min(42vw, 720px); color: #fff; text-shadow: 0 2px 22px rgba(6, 14, 28, .35); }
 .lx-says .s-head { display: flex; align-items: center; gap: 18px; margin-bottom: 26px; }
-.lx-says .s-eyebrow { letter-spacing: .26em; }
+.lx-says .s-eyebrow { letter-spacing: normal; text-transform: none; }
 .lx-says .s-ico { display: block; width: 34px; fill: var(--flame); }
 .lx-says .s-quotes { display: grid; }
 .lx-says .s-quote { grid-area: 1 / 1; margin: 0; visibility: hidden; }
@@ -725,6 +727,8 @@
   .lx-clouds .cl-place .head .disp, .lx-clouds .cl-place .head .script { color: #fff; text-shadow: 0 4px 24px rgba(7, 26, 48, .45); }
   /* the two parts below (text, then route) at a normal, even spacing */
   .lx-clouds .cl-place .lower { margin-top: 0; gap: 40px; }
+  .lx-clouds .cl-place .lower > div:first-child { grid-row: 1; position: relative; z-index: 1; color: var(--ink); }
+  .lx-clouds .cl-place .lower > .lx-route { grid-row: 2; }
   .lx-clouds .cl-place .lower h3 { margin-bottom: 12px; }
   .lx-clouds .cl-place .lx-route { height: 320px; }
 
@@ -735,4 +739,13 @@
   .lx-place .lx-stop:last-child { transform: translate(calc(-100% + 4px), -100%); text-align: right; }
   .lx-place .lx-stop:last-child i { margin-right: 0; margin-left: auto; }
   .lx-place .lx-stop:last-child b, .lx-place .lx-stop:last-child small { margin-left: auto; }
+
+  /* Mobile location stops become a stacked list so their labels never overlap. */
+  .lx-clouds .cl-place .lx-route { display: grid; height: auto; gap: 18px; padding: 8px 0 0 18px; }
+  .lx-clouds .cl-place .lx-route svg { display: none; }
+  .lx-clouds .cl-place .lx-route::before { content: ""; position: absolute; left: 23px; top: 15px; bottom: 15px; border-left: 1px solid rgba(11,38,68,.22); }
+  .lx-clouds .cl-place .lx-route .lx-stop { position: relative; inset: auto; left: auto !important; top: auto !important; transform: none; display: grid; grid-template-columns: 10px minmax(0, 1fr); grid-template-rows: auto auto; gap: 3px 12px; align-items: center; text-align: left; white-space: normal; }
+  .lx-clouds .cl-place .lx-route .lx-stop b { grid-column: 2; grid-row: 1; max-width: none; }
+  .lx-clouds .cl-place .lx-route .lx-stop small { grid-column: 2; grid-row: 2; max-width: none; margin: 0; }
+  .lx-clouds .cl-place .lx-route .lx-stop i { grid-column: 1; grid-row: 1 / span 2; width: 8px; height: 8px; margin: 0; }
 }
