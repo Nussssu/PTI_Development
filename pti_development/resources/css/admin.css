@@ -800,3 +800,9 @@ button.a-set-head { cursor: pointer; }
 /* only the email itself scrolls in the preview popup (no second scrollbar on the frame around it) */
 .a-mailwin-body.a-preview-viewport { overflow: hidden; }
 .a-mailwin-body .a-preview-frame { display: block; }
+
+/* Sidebar: "My security" with the admin's name, a full-width button above View site / Log out, lit when open */
+.admin .a-sec-btn { grid-column: 1 / -1; }
+.admin .a-sec-btn.is-active { background: rgba(217,165,91,.14); border-color: rgba(217,165,91,.4); color: var(--a-gold); }
+/* Dashboard: the figure cards are not links, so they do not lift on hover */
+div.a-stat:hover { transform: none; box-shadow: none; }

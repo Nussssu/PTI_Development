@@ -273,27 +273,18 @@ function Journey({ c = {} }) {
                 light(0);
                 return () => { sec.classList.remove('is-live'); steps.forEach((st) => st.classList.remove('is-on')); };
             });
-            mm.add('(max-width: 860px)', () => {
-                gsap.fromTo(img, { x: 0 }, { x: pan, ease: 'none', scrollTrigger: { trigger: sec, start: 'top bottom', end: 'bottom top', scrub: true, invalidateOnRefresh: true } });
-            });
-            /* phones: vertical timeline. The gold line grows from the first dot down to the last one as the steps
-               scroll up through the screen, and each dot lights when the line reaches it */
+            /* phones: the panorama stays still (no sideways drift on scroll) */
+            /* phones: vertical timeline, shown as it is (no scroll animation): the gold line already runs from the
+               first dot to the last one and every dot is lit */
             mm.add('(max-width: 620px)', () => {
                 const proc = sec.querySelector('.process');
                 const last = steps[steps.length - 1];
-                const span = () => Math.max(1, last.offsetTop);              // first dot -> last dot
-                const setSpan = () => proc.style.setProperty('--jr-h', span() + 'px');
+                const setSpan = () => proc.style.setProperty('--jr-h', Math.max(1, last.offsetTop) + 'px');   // first dot -> last dot
                 setSpan();
-                const light = (p) => steps.forEach((st) => st.classList.toggle('is-on', p * span() >= st.offsetTop - 1));
-                const tw = gsap.fromTo(fill, { scaleY: 0 }, {
-                    scaleY: 1, ease: 'none',
-                    scrollTrigger: {
-                        trigger: proc, start: 'top 65%', end: () => '+=' + span(), scrub: 0.4, invalidateOnRefresh: true,
-                        onRefresh: setSpan, onUpdate: (st) => light(st.progress),
-                    },
-                });
-                light(0);
-                return () => { tw.scrollTrigger && tw.scrollTrigger.kill(); proc.style.removeProperty('--jr-h'); steps.forEach((st) => st.classList.remove('is-on')); };
+                gsap.set(fill, { scaleY: 1 });
+                steps.forEach((st) => st.classList.add('is-on'));
+                addEventListener('resize', setSpan);
+                return () => { removeEventListener('resize', setSpan); gsap.set(fill, { clearProps: 'transform' }); proc.style.removeProperty('--jr-h'); steps.forEach((st) => st.classList.remove('is-on')); };
             });
             ScrollTrigger.refresh();
         };

@@ -47,6 +47,7 @@ class SettingsController extends Controller
             'values' => [...Setting::all_values(), ...$logos],
             'logoDefaults' => $logoDefaults,
             'socials' => $socials,
+            'whatsappMore' => Setting::whatsappMore(),
         ]);
     }
 
@@ -61,12 +62,19 @@ class SettingsController extends Controller
         $rules['socials.*.label'] = 'nullable|string|max:80';
         $rules['socials.*.url'] = 'nullable|url|max:500';
         $rules['socials.*.enabled'] = 'required|boolean';
+        $rules['whatsapp_more'] = 'nullable|array|max:10';
+        $rules['whatsapp_more.*.label'] = 'nullable|string|max:60';
+        $rules['whatsapp_more.*.number'] = 'required|regex:/^[0-9]{8,15}$/';
         foreach ([...array_keys(self::BLOCK_LOGOS), ...array_keys(Setting::BRAND)] as $logo) {
             $rules[$logo] = 'nullable|string|max:500';
         }
 
         $before = Setting::all_values();
-        $data = $request->validate($rules, ['whatsapp.regex' => 'Digits only, with country code (e.g. 8801608770711).']);
+        $data = $request->validate($rules, [
+            'whatsapp.regex' => 'Digits only, with country code (e.g. 8801608770711).',
+            'whatsapp_more.*.number.regex' => 'Digits only, with country code (e.g. 8801608770711).',
+            'whatsapp_more.*.number.required' => 'Enter the number, or remove this row.',
+        ]);
         Setting::put(array_intersect_key($data, Setting::FIELDS));
 
         $changes = [];
@@ -87,6 +95,16 @@ class SettingsController extends Controller
         }
         if ($brand) {
             Setting::putExtra($brand);
+        }
+
+        // more WhatsApp numbers (besides the main one)
+        if (array_key_exists('whatsapp_more', $data)) {
+            $more = array_values(array_map(fn ($r) => ['label' => trim((string) ($r['label'] ?? '')), 'number' => $r['number']], $data['whatsapp_more'] ?? []));
+            $previous = Setting::whatsappMore();
+            if (json_encode($previous) !== json_encode($more)) {
+                Setting::putExtra(['whatsapp_more' => json_encode($more)]);
+                $changes['whatsapp_more'] = [$previous, $more];
+            }
         }
 
         $blocksChanged = false;

@@ -53,6 +53,10 @@ export default function Contact() {
                                 {site.whatsapp && (
                                     <a className="c-card wa" href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener" data-reveal><span className="ico"><WhatsApp /></span><span><small>{office.whatsapp_label ?? 'WhatsApp'}</small><b>{office.whatsapp_text ?? 'Message us anytime'}</b></span></a>
                                 )}
+                                {/* more WhatsApp numbers (Admin → Settings → Social links) */}
+                                {(site.whatsapp_more || []).map((w) => (
+                                    <a className="c-card wa" key={w.number} href={`https://wa.me/${w.number}`} target="_blank" rel="noopener" data-reveal><span className="ico"><WhatsApp /></span><span><small>{w.label || (office.whatsapp_label ?? 'WhatsApp')}</small><b>+{w.number}</b></span></a>
+                                ))}
                             </div>
                         </div>
                     </div>

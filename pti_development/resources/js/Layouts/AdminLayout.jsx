@@ -179,7 +179,6 @@ export default function AdminLayout({ title, actions, children, wide = false }) 
                         {item('/admin/settings', 'Settings', 'settings')}
                     </>}
                     {can.system && item('/admin/audit', 'Audit log', 'shield')}
-                    {item('/admin/security', 'My security', 'lock')}
                 </nav>
                 <div className="a-user">
                     <div className="a-user-row">
@@ -187,6 +186,8 @@ export default function AdminLayout({ title, actions, children, wide = false }) 
                         <div className="a-user-meta"><b>{auth.user?.name}</b><small>{auth.user?.role_label}</small></div>
                     </div>
                     <div className="a-user-btns">
+                        {/* "My security" (profile, password, signed-in devices) sits with the admin's name */}
+                        <Link href="/admin/security" className={`a-side-btn a-sec-btn ${path.startsWith('/admin/security') ? 'is-active' : ''}`} onClick={() => setNavOpen(false)}><Icon name="lock" size={13} /> My security</Link>
                         <a className="a-side-btn" href="/" target="_blank" rel="noopener">View site <Icon name="external" size={13} /></a>
                         <button className="a-side-btn" onClick={() => router.post('/admin/logout')}>Log out</button>
                     </div>

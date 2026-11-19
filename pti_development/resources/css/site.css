@@ -21,9 +21,9 @@
   --line-dark: rgba(11, 38, 68, .14);
   --line-light: rgba(255, 255, 255, .14);
 
-  --f-sans: "Sora", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --f-serif: "Sora", sans-serif;
-  --f-mono: "Sora", sans-serif;
+  --f-sans: "Jost", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-serif: "Jost", sans-serif;
+  --f-mono: "Jost", sans-serif;
 
   --gutter: clamp(16px, 4vw, 40px);
   --tower-space: 0px;
@@ -52,7 +52,7 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-body, body * { font-family: "Sora", sans-serif !important; }
+body, body * { font-family: "Jost", sans-serif !important; }
 html { -webkit-text-size-adjust: 100%; }
 html.lenis, html.lenis body { height: auto; }
 .lenis.lenis-smooth { scroll-behavior: auto !important; }
@@ -779,6 +779,20 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
   .team-grid .member:not(.lead-member) .m-role { font-size: 12px; padding-bottom: 6px; }
   .team-grid .member:not(.lead-member) .m-row { display: none; }
   .team-grid .member:not(.lead-member) .m-btn { padding: 7px 14px; font-size: 12px; } }
+@media (max-width: 620px) {
+  .team-grid .member-photo { display: flex; flex-direction: column; height: auto; aspect-ratio: auto !important; overflow: visible; background: none; }
+  .team-grid .member-photo img { position: relative; order: 0; top: auto; left: auto; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; filter: none; box-shadow: none; transition: none; }
+  .team-grid .lead-member .member-photo img { height: auto; aspect-ratio: auto; object-fit: contain; object-position: 50% 100%; }
+  .team-grid .member .m-profile { position: relative; order: 1; inset: auto; display: flex; opacity: 1; transition: none; background: none; }
+  .team-grid .member .m-cover { display: none; }
+  .team-grid .member .m-info, .team-grid .member.lead-member .m-info { gap: 6px; padding: 12px 0 0; }
+  .team-grid .member .m-info > * { opacity: 1; transform: none; transition: none; }
+  .team-grid .member .m-info b { font-size: 15px; }
+  .team-grid .member .m-role { font-size: 12px; padding-bottom: 6px; }
+  .team-grid .member .m-row { display: flex; font-size: 12px; }
+  .team-grid .member .m-btn { margin-top: 6px; padding: 7px 14px; font-size: 12px; }
+  .team-grid .member-photo::after { display: none; }
+}
 
 /* Services stack */
 .svc-stack { display: grid; gap: 28px; }
@@ -1159,3 +1173,73 @@ a[href], button:not(:disabled), summary, label[for], [role="button"], .tw-floor 
 .pd-thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .pd-thumbs img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 14px; }
 @media (max-width: 560px) { .pd-features dl, .pd-thumbs { grid-template-columns: 1fr 1fr; } }
+
+/* =========================================================
+   PHONES: one standard line height everywhere (headings 1.2, body text 1.6) and no text past the screen edge
+   ========================================================= */
+@media (max-width: 860px) {
+  .display, .h2, .h3, .statement-text, .p-card-body h3, .video-caption h2, .cta-title, .cta-script,
+  .page-hero h1, .ab-intro h1, .svc-card h2, .svc-morph .sm-head, .pj-title, .pj-h2, .k-sent-title,
+  .ct-find .section-head .h2, .mobile-menu a.big, .lx-menu-list a.primary, .m-info b, .member h3, .story-media .stamp { line-height: 1.2; }
+  body, .lead, .stat-plain p, .cta-lead, .ab-story p, .pj-text, .pj-team p, .k-sent-text, .quote-text { line-height: 1.6; }
+
+  /* About hero title: long words ("Construction Excellence") stay inside the screen */
+  .ab-intro h1 { font-size: clamp(26px, 8vw, 44px); max-width: 100%; }
+  .ab-intro h1 .line-mask > span { white-space: normal; overflow-wrap: break-word; }
+  /* big outlined "PTI Development" in the footer fits the footer width */
+  .footer-big { font-size: 11.3cqi; }
+}
+
+/* PHONES: "Meet Our Visionaries": tapping a card changes nothing (the photo stays a normal photo, no profile
+   avatar); under the photo only the name and the designation */
+@media (max-width: 620px) {
+  .team-grid .member:not(.lead-member):is(:hover, :focus-within) .member-photo img,
+  .team-grid .member.lead-member:is(:hover, :focus-within) .member-photo img { top: auto; left: auto; width: 100%; filter: none; box-shadow: none; }
+  .team-grid .member:not(.lead-member):is(:hover, :focus-within) .member-photo img { height: auto; aspect-ratio: 4 / 5; object-fit: cover; object-position: top; }
+  .team-grid .member.lead-member:is(:hover, :focus-within) .member-photo img { height: auto; aspect-ratio: auto; object-fit: contain; object-position: 50% 100%; }
+  .team-grid .member .m-row, .team-grid .member .m-btn { display: none; }
+  .team-grid .member .m-role { padding-bottom: 0; border-bottom: 0; }
+  .team-grid .member:not(.lead-member) .m-info { padding: 12px 0 0; }
+}
+
+/* PHONES, Services page: darker check icons in the three services' lists, and the "Book the meeting" badge centred */
+@media (max-width: 860px) {
+  :is(.svc-hero, .svc-morph) ~ .cta .cta-badge { margin-left: auto; margin-right: auto; }
+}
+/* Services page (mobile + desktop): darker check icons, and darker text beside them */
+.svc-morph .sm-list li svg, .svc-morph .svc-card:not(:nth-child(2)) .sm-list li svg { color: #7A5220; }
+.svc-morph .sm-list { color: var(--navy); }
+
+/* PHONES, project detail page: one standard line height (headings 1.2, short labels/values 1.4, paragraphs 1.6) */
+@media (max-width: 860px) {
+  .pj-facts-head h2, .pj-team h3, .pj-title, .pj-h2 { line-height: 1.2; }
+  .pj-facts-head span, .pj-pill, .pj-cell small, .pj-cell b, .pj-figures small, .pj-figures div span, .pj-share small,
+  .pj-status, .pj-addr, .pj-phone, .pj-tile, .pj-toc a, .pj-ph b, .pj-ph small { line-height: 1.4; }
+  .pj-text, .pj-team p { line-height: 1.6; }
+  :is(.pj, .pj-sec) .btn span, .pj-team > a,
+  .pj-sec ~ section .link-arrow, .pj-sec ~ section .p-card-media .status, .pj-sec ~ section .p-facts span { line-height: 1.4; }
+}
+/* PHONES, Projects page: the "Book the meeting" badge centred */
+@media (max-width: 860px) {
+  .pj-list-cta .cta .cta-badge { margin-left: auto; margin-right: auto; }
+}
+
+/* =========================================================
+   404 page (Pages/NotFound.jsx): a plain, centred block on the lavender background
+   ========================================================= */
+.nf { min-height: 100svh; display: grid; place-items: center; padding: calc(var(--header-h) + 40px) var(--gutter) 80px;
+  background: var(--paper); color: var(--navy); text-align: center; }
+.nf-box { width: 100%; max-width: 560px; }
+.nf-code { font-size: clamp(96px, 14vw, 170px); font-weight: 700; letter-spacing: -.04em; line-height: 1; color: var(--navy); }
+.nf-title { margin: 18px 0 0; font-size: clamp(26px, 2.6vw, 36px); font-weight: 600; letter-spacing: -.02em; line-height: 1.2; }
+.nf-text { margin: 14px auto 0; max-width: 44ch; font-size: 16px; line-height: 1.6; opacity: .75; }
+.nf-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 32px; }
+@media (max-width: 620px) {
+  .nf-code { font-size: 28vw; }
+  .nf-actions { flex-direction: column; align-items: stretch; max-width: 300px; margin-left: auto; margin-right: auto; }
+}
+/* About page (mobile + desktop): the two opening paragraphs justified */
+.ab-story p { text-align: justify; }
+
+/* menu: no underline under the first item ("Our Projects") */
+.lx-menu-list a.primary, .lx-menu-list a.primary:hover { background: none; }

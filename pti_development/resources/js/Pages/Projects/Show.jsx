@@ -60,7 +60,8 @@ export default function ProjectShow({ project: raw, related }) {
             tiles.forEach((t, i) => {
                 const img = t.querySelector('img');
                 // the photo's CSS hover zoom is paused while GSAP drives it, then handed back
-                if (img) tl.fromTo(img, { scale: 1.25, transition: 'none' }, { scale: 1, duration: 1.8, ease: 'expo.out', clearProps: 'transform,transition' }, i * 0.09 + 0.2);
+                // phones: no zoom on the photos, they just appear
+                if (img) { if (window.matchMedia('(min-width: 861px)').matches) tl.fromTo(img, { scale: 1.25, transition: 'none' }, { scale: 1, duration: 1.8, ease: 'expo.out', clearProps: 'transform,transition' }, i * 0.09 + 0.2); }
                 else tl.fromTo(t.children, { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.9, ease: 'expo.out', stagger: 0.06 }, i * 0.09 + 0.45);
             });
         }, el);
@@ -217,6 +218,8 @@ export default function ProjectShow({ project: raw, related }) {
                             <p>{t(team.text, 'Interested in {name}? We will walk you through the units, pricing and paperwork.')}</p>
                             {site.phone && <a href={tel}><Phone />{site.phone}</a>}
                             {site.whatsapp && <a href={`https://wa.me/${site.whatsapp}`} target="_blank" rel="noopener noreferrer"><WhatsApp />{team.whatsapp_label ?? 'Chat on WhatsApp'}</a>}
+                            {/* more WhatsApp numbers (Admin → Settings → Social links) */}
+                            {(site.whatsapp_more || []).map((w) => <a key={w.number} href={`https://wa.me/${w.number}`} target="_blank" rel="noopener noreferrer"><WhatsApp />{w.label ? `${w.label} · +${w.number}` : `+${w.number}`}</a>)}
                             <Btn href={team.button?.href || '/contact'}>{t(team.button?.label, 'Book a Site Visit')}</Btn>
                         </div>
                     </aside>}

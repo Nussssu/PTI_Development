@@ -48,6 +48,9 @@ class PageController extends Controller
         if ($page->slug === 'home') {
             return back()->with('error', 'The home page is always published.');
         }
+        if ($page->slug === 'not-found') {
+            return back()->with('error', 'The 404 page is always published: it is shown for every address that does not exist.');
+        }
         $page->is_published = ! $page->is_published;
         $page->updated_by = $request->user()->id;
         $page->save();
@@ -181,7 +184,7 @@ class PageController extends Controller
             }
             $page->fill([
                 'title' => $data['title'],
-                'is_published' => $page->slug === 'home' ? true : (bool) ($data['is_published'] ?? $page->is_published),
+                'is_published' => in_array($page->slug, ['home', 'not-found'], true) ? true : (bool) ($data['is_published'] ?? $page->is_published),
                 'seo' => Cms::clean(Cms::seoFields(), $data['seo'] ?? []),
                 'updated_by' => $request->user()->id,
             ]);

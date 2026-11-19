@@ -54,8 +54,9 @@ function SiteChrome() {
     );
 }
 
-/** The Rising Tower is off across the site; `tower` (true) would bring it back and reserve its right-hand lane. */
-export default function SiteLayout({ title, children, tower: withTower = false }) {
+/** The Rising Tower is off across the site; `tower` (true) would bring it back and reserve its right-hand lane.
+ *  `footer` (false) leaves the site footer out (the 404 page). */
+export default function SiteLayout({ title, children, tower: withTower = false, footer = true }) {
     const page = usePage();
     const site = page.props.site || {};
     const url = page.url;
@@ -179,7 +180,7 @@ export default function SiteLayout({ title, children, tower: withTower = false }
 
                 <main ref={mainRef}>{children}</main>
 
-                <SiteFooter site={site} />
+                {footer && <SiteFooter site={site} />}
 
                 <div className={`modal ${video ? 'is-open' : ''}`} onClick={(e) => e.target === e.currentTarget && setVideo(null)}>
                     <button className="modal-close" aria-label="Close video" onClick={() => setVideo(null)}>✕</button>

@@ -51,8 +51,8 @@ function LogoGrid({ items, form, defaults }) {
     );
 }
 
-export default function Settings({ fields, values, logoDefaults = {}, socials = [] }) {
-    const form = useForm({ ...values, socials });
+export default function Settings({ fields, values, logoDefaults = {}, socials = [], whatsappMore = [] }) {
+    const form = useForm({ ...values, socials, whatsapp_more: whatsappMore });
     const [tab, setTab] = useState(() => {
         const h = typeof window !== 'undefined' ? window.location.hash.slice(1) : '';
         return TABS.some(([k]) => k === h) ? h : 'general';
@@ -63,7 +63,7 @@ export default function Settings({ fields, values, logoDefaults = {}, socials = 
     useEffect(() => {
         const keys = Object.keys(form.errors);
         if (!keys.length) return;
-        if (keys.some((k) => LEGACY_SOCIAL.includes(k) || k.startsWith('socials.'))) setTab('social');
+        if (keys.some((k) => LEGACY_SOCIAL.includes(k) || k.startsWith('socials.') || k.startsWith('whatsapp_more'))) setTab('social');
         else setTab('general');
         setOpen((o) => ({
             info: o.info || keys.some((k) => fields.some((f) => f.name === k) && !LEGACY_SOCIAL.includes(k)),
@@ -120,7 +120,7 @@ export default function Settings({ fields, values, logoDefaults = {}, socials = 
                                 <span className="a-set-ico"><Icon name="link" size={18} /></span>
                                 <span className="a-set-titles">
                                     <span className="a-set-title">Social links</span>
-                                    <span className="a-set-text">Profiles and the WhatsApp number used across the site.</span>
+                                    <span className="a-set-text">Profiles and the WhatsApp numbers used across the site.</span>
                                 </span>
                             </div>
                             <div className="a-set-body">
@@ -140,6 +140,22 @@ export default function Settings({ fields, values, logoDefaults = {}, socials = 
                                     {form.errors.socials && <small className="a-error">{form.errors.socials}</small>}
                                 </div>
                                 <div className="a-form-grid" style={{ marginTop: 20 }}>{fields.filter((f) => f.name === 'whatsapp').map(input)}</div>
+                                {/* more WhatsApp numbers: each one shows on the website next to the main number */}
+                                <div className="a-social-list" style={{ marginTop: 16 }}>
+                                    {(form.data.whatsapp_more || []).map((item, index) => (
+                                        <div className="a-social-row" key={index}>
+                                            <div className="a-social-fields">
+                                                <label className="a-field"><span>Label</span><input value={item.label || ''} onChange={(e) => form.setData('whatsapp_more', form.data.whatsapp_more.map((x, i) => i === index ? { ...x, label: e.target.value } : x))} placeholder="e.g. Sales" />{form.errors[`whatsapp_more.${index}.label`] && <small className="a-error">{form.errors[`whatsapp_more.${index}.label`]}</small>}</label>
+                                                <label className="a-field"><span>WhatsApp number (digits only)</span><input inputMode="numeric" value={item.number || ''} onChange={(e) => form.setData('whatsapp_more', form.data.whatsapp_more.map((x, i) => i === index ? { ...x, number: e.target.value.replace(/\D/g, '') } : x))} placeholder="8801XXXXXXXXX" />{form.errors[`whatsapp_more.${index}.number`] && <small className="a-error">{form.errors[`whatsapp_more.${index}.number`]}</small>}</label>
+                                            </div>
+                                            <button type="button" className="a-icon-btn danger" aria-label="Remove WhatsApp number" title="Remove" onClick={() => form.setData('whatsapp_more', form.data.whatsapp_more.filter((_, i) => i !== index))}><Icon name="trash" size={15} /></button>
+                                        </div>
+                                    ))}
+                                    {(form.data.whatsapp_more || []).length < 10 && (
+                                        <button type="button" className="a-btn ghost sm" onClick={() => form.setData('whatsapp_more', [...(form.data.whatsapp_more || []), { label: '', number: '' }])}><Icon name="plus" size={15} /> Add WhatsApp number</button>
+                                    )}
+                                    {form.errors.whatsapp_more && <small className="a-error">{form.errors.whatsapp_more}</small>}
+                                </div>
                             </div>
                         </section>
                     </div>

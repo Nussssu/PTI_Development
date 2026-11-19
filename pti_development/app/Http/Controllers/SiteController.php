@@ -10,8 +10,10 @@ use App\Models\Project;
 use App\Models\Service;
 use App\Models\Stat;
 use App\Models\TeamMember;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
  * The public website. Every page is a CMS page (App\Cms): its template decides the design and the collections
@@ -63,6 +65,33 @@ class SiteController extends Controller
         $page = Page::where('slug', $slug)->where('is_system', false)->firstOrFail();
 
         return $this->render($page);
+    }
+
+    /** /404 (the admin's "View" link) and every address that matches no route. */
+    public function notFound(Request $request): SymfonyResponse
+    {
+        abort_unless(static::showsNotFoundPage($request), 404);   // admin / files: Laravel's plain 404
+
+        return static::notFoundPage($request);
+    }
+
+    /** Only the public website gets the designed 404 page; the admin panel, files and JSON calls do not. */
+    public static function showsNotFoundPage(Request $request): bool
+    {
+        return ! $request->is('admin', 'admin/*', 'storage/*', 'build/*', 'images/*', 'videos/*', 'uploads/*', 'up')
+            && ! ($request->expectsJson() && ! $request->header('X-Inertia'));
+    }
+
+    /**
+     * The "page not found" page (Admin → Pages → 404 page), sent with the 404 status. Also used by the exception
+     * handler (bootstrap/app.php) for missing projects, hidden pages and the like. Always shown, never indexed.
+     */
+    public static function notFoundPage(Request $request): SymfonyResponse
+    {
+        $cms = Cms::payload(Cms::system('not-found'));
+        $cms['seo']['noindex'] = true;
+
+        return Inertia::render('NotFound', ['cms' => $cms])->toResponse($request)->setStatusCode(404);
     }
 
     /** @param array $tokens {name}-style values filled into the SEO texts */

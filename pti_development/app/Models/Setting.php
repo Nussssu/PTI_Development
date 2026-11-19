@@ -55,6 +55,17 @@ class Setting extends Model
         return is_file($file) ? $file : public_path('images/pti-mail-logo.png');
     }
 
+    /**
+     * More WhatsApp numbers (Settings → Social links), besides the main one: [['label' => 'Sales', 'number' => '880...'], ...].
+     * Shown on the website next to the main number (Contact page cards, project "Talk to our team").
+     */
+    public static function whatsappMore(): array
+    {
+        $rows = json_decode((string) static::extra('whatsapp_more', '[]'), true);
+
+        return array_values(array_filter(is_array($rows) ? $rows : [], fn ($r) => is_array($r) && ! empty($r['number'])));
+    }
+
     public static function all_values(): array
     {
         return Cache::rememberForever('site-settings', function () {

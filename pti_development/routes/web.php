@@ -13,6 +13,7 @@ Route::controller(SiteController::class)->group(function () {
     Route::get('/projects', 'projects')->name('projects');
     Route::get('/projects/{project:slug}', 'project')->name('projects.show');
     Route::get('/contact', 'contact')->name('contact');
+    Route::get('/404', 'notFound')->name('not-found');   // the 404 page itself (Admin → Pages → 404 page → View)
 });
 
 Route::post('/inquiries', [InquiryController::class, 'store'])
@@ -127,3 +128,6 @@ Route::prefix('admin')->name('admin.')->group(function () {
 Route::get('/{slug}', [SiteController::class, 'page'])
     ->where('slug', '[a-z0-9]+(?:-[a-z0-9]+)*')
     ->name('page');
+
+/* ---------------- Any other address: the 404 page (Admin → Pages → 404 page) ---------------- */
+Route::fallback([SiteController::class, 'notFound']);

@@ -40,6 +40,7 @@ export default function PagesIndex({ pages, templates }) {
                         <tbody>
                             {pages.map((p) => {
                                 const home = p.slug === 'home';
+                                const notFound = p.slug === 'not-found';   // the 404 page is always published too
                                 return (
                                     <tr key={p.id} className={`a-row-link ${busy === p.id ? 'is-busy' : ''}`}
                                         // a click anywhere on the row opens the page; the switch and action buttons keep their own job
@@ -52,8 +53,8 @@ export default function PagesIndex({ pages, templates }) {
                                         <td><span className="a-sec-count" title={`${p.enabled} of ${p.sections} sections switched on`}>{p.enabled}{p.enabled !== p.sections && <em> / {p.sections}</em>}</span></td>
                                         <td><span className={`a-status ${p.is_published ? 'pub' : 'hid'}`}>{p.is_published ? 'Published' : 'Hidden'}</span></td>
                                         <td>
-                                            <Switch on={p.is_published} disabled={home || busy === p.id}
-                                                label={home ? 'The home page is always published' : p.is_published ? 'Published (click to hide)' : 'Hidden (click to publish)'}
+                                            <Switch on={p.is_published} disabled={home || notFound || busy === p.id}
+                                                label={home ? 'The home page is always published' : notFound ? 'The 404 page is always published' : p.is_published ? 'Published (click to hide)' : 'Hidden (click to publish)'}
                                                 onClick={() => toggle(p)} />
                                         </td>
                                         <td className="a-row-actions">

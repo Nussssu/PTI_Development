@@ -23,5 +23,16 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectUsersTo(fn () => route('admin.dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        /* public website: a "not found" (missing project, hidden page...) shows the site's own 404 page, edited in
+           Admin → Pages → 404 page. The admin panel, files and JSON requests keep Laravel's plain response. */
+        $exceptions->respond(function (\Symfony\Component\HttpFoundation\Response $response, \Throwable $e, \Illuminate\Http\Request $request) {
+            if ($response->getStatusCode() !== 404 || ! \App\Http\Controllers\SiteController::showsNotFoundPage($request)) {
+                return $response;
+            }
+            try {
+                return \App\Http\Controllers\SiteController::notFoundPage($request);
+            } catch (\Throwable) {
+                return $response;   // never let the 404 page itself break the response
+            }
+        });
     })->create();

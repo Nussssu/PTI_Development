@@ -13,6 +13,8 @@ export const prefersReducedMotion = () =>
 
 const $$ = (s, c) => Array.from(c.querySelectorAll(s));
 const $ = (s, c) => c.querySelector(s);
+/* phones: no simple scroll effects on images (parallax drift, zoom on scroll); the photos just sit still */
+const PHONE = () => window.matchMedia('(max-width: 860px)').matches;
 
 export function initMotion(root) {
     const tickers = [];
@@ -55,11 +57,11 @@ export function initMotion(root) {
         $$('[data-clip]', root).forEach((m) => {
             gsap.fromTo(m, { clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)', duration: 1.4, ease: 'expo.inOut', scrollTrigger: { trigger: m, start: 'top 80%' } });
             const img = $('img', m);
-            if (img) gsap.fromTo(img, { scale: 1.3 }, { scale: 1, duration: 2, ease: 'expo.out', scrollTrigger: { trigger: m, start: 'top 80%' } });
+            if (img && !PHONE()) gsap.fromTo(img, { scale: 1.3 }, { scale: 1, duration: 2, ease: 'expo.out', scrollTrigger: { trigger: m, start: 'top 80%' } });
         });
 
         // parallax
-        $$('[data-parallax]', root).forEach((p) => {
+        if (!PHONE()) $$('[data-parallax]', root).forEach((p) => {
             const amt = +p.dataset.parallax || 10;
             gsap.fromTo(p, { yPercent: -amt }, { yPercent: amt, ease: 'none', scrollTrigger: { trigger: p.parentElement, start: 'top bottom', end: 'bottom top', scrub: true } });
         });
@@ -124,7 +126,7 @@ export function initMotion(root) {
         // video frame opens up
         $$('.video-frame', root).forEach((v) => {
             gsap.fromTo(v, { clipPath: 'inset(14% 16% 14% 16% round 28px)' }, { clipPath: 'inset(0% 0% 0% 0% round 22px)', ease: 'none', scrollTrigger: { trigger: v, start: 'top 95%', end: 'center 55%', scrub: true } });
-            gsap.fromTo($('img', v), { scale: 1.35 }, { scale: 1, ease: 'none', scrollTrigger: { trigger: v, start: 'top bottom', end: 'bottom top', scrub: true } });
+            if (!PHONE()) gsap.fromTo($('img', v), { scale: 1.35 }, { scale: 1, ease: 'none', scrollTrigger: { trigger: v, start: 'top bottom', end: 'bottom top', scrub: true } });
         });
 
         // process steps
@@ -202,7 +204,7 @@ function buildIntro(root) {
             .to($$('h1 .line-mask > span', hero), { yPercent: 0, duration: 1.3, stagger: 0.1, ease: 'expo.out' }, 0.9)
             .to($$('[data-hero-in]', hero), { y: 0, opacity: 1, duration: 1, stagger: 0.08, ease: 'expo.out' }, 1.3);
 
-        gsap.to($('.hero-media', hero), { yPercent: 18, scale: 1.05, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true } });
+        if (!PHONE()) gsap.to($('.hero-media', hero), { yPercent: 18, scale: 1.05, ease: 'none', scrollTrigger: { trigger: hero, start: 'top top', end: 'bottom top', scrub: true } });
         gsap.to($('.hero-content', hero), { yPercent: -20, opacity: 0.2, ease: 'none', scrollTrigger: { trigger: hero, start: '40% top', end: 'bottom top', scrub: true } });
         return tl;
     }
@@ -217,7 +219,7 @@ function buildIntro(root) {
             .fromTo(img, { scale: 1.3 }, { scale: 1, duration: 2, ease: 'expo.out' }, 0.2)
             .to($$('h1 .line-mask > span', ph), { yPercent: 0, duration: 1.2, stagger: 0.1, ease: 'expo.out' }, 0.6)
             .to($$('[data-hero-in]', ph), { y: 0, opacity: 1, duration: 1, stagger: 0.08, ease: 'expo.out' }, 0.9);
-        if (img) gsap.to(img, { yPercent: -12, ease: 'none', scrollTrigger: { trigger: ph, start: 'top top', end: 'bottom top', scrub: true } });
+        if (img && !PHONE()) gsap.to(img, { yPercent: -12, ease: 'none', scrollTrigger: { trigger: ph, start: 'top top', end: 'bottom top', scrub: true } });
     }
     return tl;
 }

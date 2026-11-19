@@ -5,19 +5,20 @@ export const when = (d) => new Date(d).toLocaleString('en-GB', { day: 'numeric',
 
 export default function Dashboard({ counts, latest, visits }) {
     const cards = [
-        ['Unread leads', counts.unread, 'inbox', '/admin/inquiries?status=unread', true],
-        ['New leads', counts.open, 'mail', '/admin/inquiries?status=new'],
-        ['Site visit requests', counts.siteVisits, 'building', '/admin/inquiries?type=site_visit'],
+        ['Unread leads', counts.unread, 'inbox', true],
+        ['New leads', counts.open, 'mail'],
+        ['Site visit requests', counts.siteVisits, 'building'],
     ];
     return (
         <AdminLayout title="Dashboard" actions={<a className="a-btn ghost" href="/" target="_blank" rel="noopener"><Icon name="eye" /> View website</a>}>
             <div className="a-stats">
-                {cards.map(([label, value, icon, href, hot]) => (
-                    <Link key={label} href={href} className={`a-stat ${hot && value ? 'hot' : ''}`}>
+                {/* the figures only: a click on a card opens no page */}
+                {cards.map(([label, value, icon, hot]) => (
+                    <div key={label} className={`a-stat ${hot && value ? 'hot' : ''}`}>
                         <span className="a-stat-ico"><Icon name={icon} /></span>
                         <b>{value}</b>
                         <small>{label}</small>
-                    </Link>
+                    </div>
                 ))}
             </div>
 

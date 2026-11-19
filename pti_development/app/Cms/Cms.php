@@ -16,7 +16,7 @@ use Illuminate\Support\Str;
 class Cms
 {
     /** URL slugs a copied page may not take (they belong to the site's own routes). */
-    public const RESERVED = ['home', 'about', 'services', 'projects', 'contact', 'admin', 'storage', 'inquiries', 'up', 'login', 'build', 'images', 'videos'];
+    public const RESERVED = ['home', 'about', 'services', 'projects', 'contact', 'admin', 'storage', 'inquiries', 'up', 'login', 'build', 'images', 'videos', '404', 'not-found'];
 
     private static ?array $templates = null;
 
@@ -27,7 +27,7 @@ class Cms
     {
         if (static::$templates === null) {
             static::$templates = [];
-            foreach (['home', 'about', 'services', 'projects', 'project', 'contact'] as $key) {
+            foreach (['home', 'about', 'services', 'projects', 'project', 'contact', 'not-found'] as $key) {
                 static::$templates[$key] = require __DIR__.'/Templates/'.Str::studly($key).'.php';
             }
         }

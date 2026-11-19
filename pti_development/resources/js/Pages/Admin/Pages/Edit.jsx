@@ -172,8 +172,8 @@ export default function PageEdit({ page, sections, seo, numbers = [] }) {
                         </label>
                         <div className="a-field half inline">
                             <span>Published</span>
-                            <button type="button" role="switch" aria-checked={data.is_published} disabled={page.slug === 'home'} className={`a-switch ${data.is_published ? 'on' : ''}`} onClick={() => setData((d) => ({ ...d, is_published: !d.is_published }))}><i /></button>
-                            <small className="a-muted">{page.slug === 'home' ? 'The home page is always published.' : 'Drafts are only visible to signed-in admins.'}</small>
+                            <button type="button" role="switch" aria-checked={data.is_published} disabled={page.slug === 'home' || page.slug === 'not-found'} className={`a-switch ${data.is_published ? 'on' : ''}`} onClick={() => setData((d) => ({ ...d, is_published: !d.is_published }))}><i /></button>
+                            <small className="a-muted">{page.slug === 'home' ? 'The home page is always published.' : page.slug === 'not-found' ? 'The 404 page is always published: it is shown for every address that does not exist.' : 'Drafts are only visible to signed-in admins.'}</small>
                         </div>
                         <div className="a-field half"><span>Design</span><input value={page.template_label} disabled /><small className="a-muted">Copies keep the design of the page they were made from.</small></div>
                     </div>

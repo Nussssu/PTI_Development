@@ -9,10 +9,10 @@
   --mist: #CDD6DD;
   --flame: #B8955A;   /* was red; the site uses no red */
   --gold: #B8955A;
-  --f-disp: "Sora", sans-serif;
-  --f-script: "Sora", sans-serif;
-  --f-micro: "Sora", sans-serif;
-  --f-body: "Sora", sans-serif;
+  --f-disp: "Jost", sans-serif;
+  --f-script: "Jost", sans-serif;
+  --f-micro: "Jost", sans-serif;
+  --f-body: "Jost", sans-serif;
   --ease: cubic-bezier(.19, 1, .22, 1);
   --pad: clamp(20px, 7vw, 150px);
   background: var(--cream);
@@ -104,7 +104,7 @@
 .lx-hero .t-main .ln { display: flex; justify-content: center; column-gap: .24em; white-space: nowrap; }
 .lx-hero .t-sub { container-type: inline-size; width: 0; min-width: 100%; display: flex; flex-wrap: nowrap; justify-content: space-between; margin: 26px 0 0;
   line-height: 1.55; white-space: nowrap; }
-.lx-hero .t-sub > .w { font-size: 3.7cqi; }
+.lx-hero .t-sub > .w { font-size: 4.35cqi; } /* sized for Jost so the words fill the line with normal word spacing */
 .lx-hero .hero-title .w { display: inline-block; overflow: hidden; padding: .08em .03em .03em; }
 .lx-hero .hero-title .char, .lx-hero .hero-title .word { display: inline-block; opacity: 0; } /* rise offset set by JS */
 @media (max-width: 760px) {
@@ -266,7 +266,8 @@
 .lx-bslider .b-pager .bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: currentColor; }
 @media (max-width: 860px) { .lx-arch .curve text { font-size: 90px; } }
 @media (max-width: 760px) {
-  .lx-bslider .b-title { white-space: normal; font-size: clamp(36px, 11vw, 60px); }
+  .lx-bslider .b-title { white-space: normal; font-size: clamp(36px, 11vw, 60px); line-height: 1.12; word-spacing: 0.35em; }
+  .lx-bslider .b-title .split-word:not(:last-child) { margin-right: 0.35em; }
   .lx-bslider .b-img { width: 100%; }
   .lx-bslider .b-descs { width: 100%; }
   .lx-bslider .b-pager .bar { width: 120px; }
@@ -284,7 +285,7 @@
 .lx-says .s-quotes { display: grid; }
 .lx-says .s-quote { grid-area: 1 / 1; margin: 0; visibility: hidden; }
 .lx-says .s-quote.is-active, .lx-says .s-quote.is-leaving { visibility: visible; }
-.lx-says .s-text { margin: 0; font-size: clamp(22px, 2.1vw, 38px); line-height: 1.1; }
+.lx-says .s-text { margin: 0; font-size: clamp(22px, 2.1vw, 38px); line-height: 1.1; text-transform: none; }
 .lx-says .red-line { float: left; width: 64px; height: 3px; margin: .5em 18px 0 0; background: var(--flame); }
 .lx-says .s-author { display: flex; align-items: center; gap: 18px; margin-top: 4vh; }
 .lx-says .s-who { display: flex; flex-direction: column; gap: 6px; }
@@ -292,8 +293,8 @@
   border: 1px solid rgba(255, 255, 255, .55); box-shadow: 0 6px 20px rgba(6, 14, 28, .35); background: rgba(255, 255, 255, .12); }
 .lx-says .s-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .lx-says .s-avatar b { font-family: var(--f-disp); font-weight: 500; font-size: 22px; }
-.lx-says .s-name { letter-spacing: .2em; font-weight: 600; }
-.lx-says .s-role { letter-spacing: .16em; opacity: .8; }
+.lx-says .s-name { letter-spacing: .2em; font-weight: 600; text-transform: none; }
+.lx-says .s-role { letter-spacing: .16em; opacity: .8; text-transform: none; }
 .lx-says .split-line-mask { overflow: hidden; }
 .lx-says .s-pager { grid-area: 2 / 1; display: flex; align-items: center; gap: 14px; margin-top: 3vh; }
 .lx-says .s-pager button { background: none; border: 0; color: inherit; cursor: pointer; padding: 6px 10px; font-size: 20px; line-height: 1; }
@@ -748,4 +749,132 @@
   .lx-clouds .cl-place .lx-route .lx-stop b { grid-column: 2; grid-row: 1; max-width: none; }
   .lx-clouds .cl-place .lx-route .lx-stop small { grid-column: 2; grid-row: 2; max-width: none; margin: 0; }
   .lx-clouds .cl-place .lx-route .lx-stop i { grid-column: 1; grid-row: 1 / span 2; width: 8px; height: 8px; margin: 0; }
+}
+
+/* =========================================================
+   PHONES: one standard line height everywhere (headings 1.2, body text 1.6)
+   ========================================================= */
+@media (max-width: 860px) {
+  .lx .disp, .lx .script, .lx-hero .t-main, .lx-vdoor .cr-line, .lx-merge .m-head, .lx-contact .k-title,
+  .lx-bslider .b-title, .lx-says .s-text, .lx-innum .n-title, .lx-innum .n-label, .lx-aerial .a-title,
+  .lx-hscroll .h-title, .lx-hscroll .h-head, .lx-portal .reveal .disp, .lx-quote blockquote .disp,
+  .lx-vision .row, .lx-vision--photo .row, .lx-place .lower h3, .lx-values .list li, .lx-values .text .disp,
+  .lx-split .copy .disp, .lx-gallery .card h3, .lx-faq summary { line-height: 1.2; }
+  .lx .body, .lx-vdoor .cr-txt p, .lx-merge .m-desc, .lx-bslider .b-desc, .lx-hscroll .h-text,
+  .lx-collection .lead, .lx-foot .cols a, .lx-foot .cols p { line-height: 1.6; }
+
+  /* "Our Projects" slider: each project name on ONE line (never broken over two); JS in Home.jsx shrinks it to fit */
+  .lx-hscroll .h-title { width: 100%; flex-direction: row; flex-wrap: nowrap; column-gap: .25em; white-space: nowrap; font-size: clamp(22px, 8vw, 40px); }
+  .lx-hscroll .h-line, .lx-hscroll .h-line.l1, .lx-hscroll .h-line.l2, .lx-hscroll .h-line.l3 { margin-left: 0; white-space: nowrap; }
+}
+
+/* PHONES: the values slider ("Transparency" ...) stays inside the screen: a slide never grows wider than the column,
+   and a long one-word title shrinks to fit (image and text follow the column width) */
+@media (max-width: 760px) {
+  .lx-bslider .b-slides { grid-template-columns: minmax(0, 1fr); }
+  .lx-bslider .b-slide { min-width: 0; }
+  .lx-bslider .b-title { font-size: clamp(26px, 9vw, 60px); }
+}
+
+/* LAPTOP + DESKTOP: a soft, see-through panel behind the testimonial (quote, name, pager) so the white text reads
+   clearly over the photo */
+@media (min-width: 861px) {
+  .lx-says .s-band { isolation: isolate; }
+  .lx-says .s-band::before { content: ""; position: absolute; z-index: -1; inset: -28% -30% -26% -40%; pointer-events: none;
+    background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(7, 26, 48, .72) 0%, rgba(7, 26, 48, .6) 38%, rgba(7, 26, 48, .3) 68%, rgba(7, 26, 48, .1) 86%, rgba(7, 26, 48, 0) 100%); }
+}
+
+/* PHONES: the same soft shade behind the testimonial (heading, quote, name, pager), kept within the screen width */
+@media (max-width: 860px) {
+  .lx-says .s-band { isolation: isolate; }
+  .lx-says .s-band::before { content: ""; position: absolute; z-index: -1; inset: -22% -6vw -16% -6vw; pointer-events: none;
+    background: radial-gradient(ellipse 50% 50% at 50% 50%, rgba(7, 26, 48, .72) 0%, rgba(7, 26, 48, .6) 38%, rgba(7, 26, 48, .3) 68%, rgba(7, 26, 48, .1) 86%, rgba(7, 26, 48, 0) 100%); }
+}
+
+/* PHONES: the big "Our Projects" title over the aerial photo stays inside the screen ("Projects" was wider than it) */
+@media (max-width: 860px) {
+  .lx-aerial .a-title { font-size: 17vw; }
+}
+
+/* PHONES: "Architecture" and "Living space" pictures run edge to edge (both sides flush with the screen) */
+@media (max-width: 860px) {
+  .lx-vdoor .cr-pic.arch .cr-img, .lx-vdoor .cr-pic.living .cr-img { align-self: auto; width: 100vw; max-width: none; margin: 0 0 0 calc(50% - 50vw); }
+}
+
+/* HERO (mobile + desktop): one even, light shade over the whole photo, so the title reads clearly and the photo
+   still shows through */
+.lx-hero .tower-grade { background: rgba(6, 18, 40, .42); }
+
+/* About page (mobile + desktop): "Our vision" lines and the closing quote (+ its author) in normal case, as written */
+.lx-vision--photo .row, .lx-quote--side blockquote .disp, .lx-quote--side blockquote .micro { text-transform: none; }
+/* About page (mobile + desktop): "What we stand for" list and its texts in normal case, as written */
+.lx-values .list li, .lx-values .text .disp { text-transform: none; }
+
+/* PHONES: "View all projects" circle: more room between its two lines */
+@media (max-width: 860px) {
+  .lx-hscroll .h-cta .micro { line-height: 1.9; }
+}
+/* About page (mobile + desktop): the closing quote justified */
+.lx-quote--side blockquote .disp { text-align: justify; }
+/* the quote is split into one block per line (for its reveal), so each line except the last is stretched itself */
+.lx-quote--side blockquote .disp .split-line { text-align: justify; text-align-last: justify; }
+.lx-quote--side blockquote .disp > :last-child .split-line, .lx-quote--side blockquote .disp > .split-line:last-child { text-align-last: auto; }
+/* Landing page (mobile + desktop): no short line before the testimonial quote */
+.lx-says .red-line { display: none; }
+
+/* PHONES: the "Our Projects" aerial photo (with its title) is a square, as wide as the screen */
+@media (max-width: 860px) {
+  .lx-aerial { height: auto; aspect-ratio: 1 / 1; }
+}
+/* PHONES: a light, soft shade over the lower part of the "Our Projects" aerial photo */
+@media (max-width: 860px) {
+  .lx-aerial .a-img::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 60%; pointer-events: none;
+    background: linear-gradient(180deg, rgba(7, 26, 48, 0) 0%, rgba(7, 26, 48, .3) 50%, rgba(7, 26, 48, .6) 100%); }
+}
+/* Landing page (mobile + desktop): a standard gap between "Living space" and the section under it */
+.lx-vdoor .inner { padding-bottom: 64px; }
+/* PHONES: "Pallabi office" sits right beside its dot, like the other stops (not pushed to the right) */
+@media (max-width: 860px) {
+  .lx-clouds .cl-place .lx-route .lx-stop:last-child b { margin-left: 0; }
+}
+/* LAPTOP + DESKTOP: "you'll" no longer touches "The city" or "Call home": a little more room between the two lines,
+   with the script word centred in it */
+@media (min-width: 861px) {
+  .lx-clouds .cl-place .head .l2 { margin-top: .9em; }
+  .lx-clouds .cl-place .head .s1 { top: 34.5%; }
+}
+/* LAPTOP + DESKTOP: the same space above "you'll" (to "The city") as below it (to "Call home"): "you'll" and
+   "Call home" move up together */
+@media (min-width: 861px) {
+  .lx-clouds .cl-place .head .l2 { margin-top: .795em; }
+  .lx-clouds .cl-place .head .s1 { margin-top: -.72vw; }
+}
+/* PHONES: a light, even shade over the whole "Our Projects" aerial photo so the title reads clearly */
+@media (max-width: 860px) {
+  .lx-aerial .a-img::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: rgba(7, 26, 48, .28); }
+}
+/* LAPTOP + DESKTOP: a light, soft shade just behind the "Our Projects" title (near the top, ~22% down) */
+@media (min-width: 861px) {
+  .lx-aerial .a-img::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+    background: radial-gradient(ellipse 62% 28% at 50% 22%, rgba(7, 26, 48, .5) 0%, rgba(7, 26, 48, .32) 55%, rgba(7, 26, 48, 0) 100%); }
+}
+/* PHONES: "Architecture" text sits in the middle between its picture and the "Living space" picture, and the
+   "Living space" text has the same space above (to its picture) and below (to the next section) */
+@media (max-width: 860px) {
+  .lx-vdoor .cr-pics, .lx-vdoor .cr-pic { gap: 0; }
+  .lx-vdoor .cr-pic { margin-top: 0; margin-bottom: 0; }
+  .lx-vdoor .cr-pic .cr-txt, .lx-vdoor .cr-pic.living .cr-txt { padding: 56px 0; margin-top: 0; }
+  .lx-vdoor .inner { padding-bottom: 0; }
+}
+
+/* phones: smaller gap between the promises slider (2nd section) and "What our clients say" (3rd section) */
+@media (max-width: 860px) {
+  .lx-arch:not(.lx-vdoor) .inner { padding-bottom: 40px; }
+  .lx-says { padding-top: 0; }
+  .lx-says .s-scene img { margin-top: -10svh; } /* trims the empty sky at the top of the picture; the picture itself is not resized */
+}
+
+/* phones: "Crafted for everyday living" sits higher inside its rounded top; the film and pictures below move up with it */
+@media (max-width: 860px) {
+  .lx-vdoor .inner { padding-top: 18vh; }
 }

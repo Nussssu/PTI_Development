@@ -24,7 +24,7 @@ class HandleInertiaRequests extends Middleware
 
         return [
             ...parent::share($request),
-            'site' => fn () => Setting::all_values(),
+            'site' => fn () => [...Setting::all_values(), 'whatsapp_more' => Setting::whatsappMore()],
             // header + footer (edited under Header & Footer); the admin panel does not need them
             'blocks' => fn () => $request->is('admin*') ? null : Cms::blocks(),
             'flash' => [

@@ -412,6 +412,21 @@ function Showcase({ projects: all, c = {} }) {
             el.removeEventListener('dragstart', noDrag);
         };
     }, []);
+    /* phones: each project name sits on one line; shrink its font until the whole name fits the card width */
+    useEffect(() => {
+        const el = slides.current;
+        if (!el) return undefined;
+        const mq = window.matchMedia('(max-width: 860px)');
+        const fit = () => mq.matches && el.querySelectorAll('.h-title').forEach((t) => {
+            t.style.fontSize = '';
+            const box = t.parentElement.clientWidth;
+            if (t.scrollWidth > box) t.style.fontSize = `${Math.floor(parseFloat(getComputedStyle(t).fontSize) * box / t.scrollWidth * 10) / 10}px`;
+        });
+        fit();
+        document.fonts?.ready.then(fit);
+        window.addEventListener('resize', fit);
+        return () => window.removeEventListener('resize', fit);
+    }, []);
     return (
         <div className="lx-hscroll" data-tone="light">
             <div className="h-track">

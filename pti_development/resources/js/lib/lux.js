@@ -375,8 +375,8 @@ export function initLux(root, { skipIntro = false } = {}) {
                 });
                 /* the scene drifts slower than the page (ERA "img-out"), staying inside its frame */
                 const img = $('.s-scene img', says);
-                gsap.set(img, { scale: 1.12, transformOrigin: '50% 100%' });
-                gsap.fromTo(img, { yPercent: -6 }, { yPercent: 6, ease: 'none', scrollTrigger: { trigger: $('.s-scene', says), start: 'top bottom', end: 'bottom top', scrub: 0.5 } });
+                if (isDesktop()) gsap.set(img, { scale: 1.12, transformOrigin: '50% 100%' });
+                if (isDesktop()) gsap.fromTo(img, { yPercent: -6 }, { yPercent: 6, ease: 'none', scrollTrigger: { trigger: $('.s-scene', says), start: 'top bottom', end: 'bottom top', scrub: 0.5 } });
                 /* more than one testimonial: rotate every 8s, arrows switch immediately */
                 if (quotes.length > 1) {
                     let i = 0, busy = false;
@@ -387,9 +387,14 @@ export function initLux(root, { skipIntro = false } = {}) {
                         busy = true;
                         const a = quotes[i], b = quotes[to];
                         out(a.lines);
+                        /* the old quote (text, name and avatar) fades away before the new one rises in, so the two never overlap */
+                        gsap.to(a.el, { opacity: 0, duration: 0.4, ease: 'eraIn', overwrite: true });
                         a.el.classList.add('is-leaving'); a.el.classList.remove('is-active'); a.el.setAttribute('aria-hidden', 'true');
                         b.el.classList.add('is-active'); b.el.removeAttribute('aria-hidden');
+                        gsap.set(b.el, { opacity: 1, overwrite: true });
                         b.lines.forEach((l) => gsap.set(l, { yPercent: 110 }));
+                        const av = $('.s-avatar', b.el);
+                        if (av) gsap.fromTo(av, { opacity: 0 }, { opacity: 1, duration: 0.8, delay: 0.45, ease: 'eraOut', overwrite: true });
                         up(b.lines, 0.45);
                         i = to; cur.textContent = i + 1;
                         gsap.delayedCall(0.6, () => { a.el.classList.remove('is-leaving'); busy = false; });
@@ -589,7 +594,8 @@ export function initLux(root, { skipIntro = false } = {}) {
                     gsap.set($('.lx-route path', cpin), { strokeDasharray: '4 6', strokeDashoffset: 0 });
                     hold.fromTo(draw, { strokeDasharray: L, strokeDashoffset: L }, { strokeDashoffset: 0, ease: 'none', duration: D }, 0);
                     const stops = $$('.lx-stop', cpin);
-                    stops.forEach((s, i) => hold.fromTo(s, { opacity: 0, y: 20 }, { opacity: 1, y: 0, ease: 'none', duration: D * 0.12 }, D * 0.88 * (i / Math.max(1, stops.length - 1))));
+                    /* phones: the stops (ECB Chattar ... Pallabi) are simply there, no scroll animation */
+                    if (isDesktop()) stops.forEach((s, i) => hold.fromTo(s, { opacity: 0, y: 20 }, { opacity: 1, y: 0, ease: 'none', duration: D * 0.12 }, D * 0.88 * (i / Math.max(1, stops.length - 1))));
                 }
                 hold.to({}, { duration: 1 }, D);
                 const dST = { trigger: vdoor, start: 'top top', end: '+=100%', scrub: true };
@@ -612,8 +618,8 @@ export function initLux(root, { skipIntro = false } = {}) {
                     });
                     $$('.cr-pic', vdoor).forEach((fig) => {
                         const box = $('.cr-img', fig), img = $('img', fig), cap = $('figcaption', fig);
-                        gsap.fromTo(box, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', ease: 'none', scrollTrigger: { trigger: box, start: 'top 92%', end: 'top 45%', scrub: 0.6 } });
-                        gsap.fromTo(img, { scale: 1.3, yPercent: -8 }, { scale: 1.05, yPercent: 6, ease: 'none', scrollTrigger: { trigger: box, start: 'top bottom', end: 'bottom top', scrub: 0.6 } });
+                        if (isDesktop()) gsap.fromTo(box, { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', ease: 'none', scrollTrigger: { trigger: box, start: 'top 92%', end: 'top 45%', scrub: 0.6 } });
+                        if (isDesktop()) gsap.fromTo(img, { scale: 1.3, yPercent: -8 }, { scale: 1.05, yPercent: 6, ease: 'none', scrollTrigger: { trigger: box, start: 'top bottom', end: 'bottom top', scrub: 0.6 } });
                         gsap.fromTo(cap, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: 1, ease: 'eraOut', scrollTrigger: { trigger: cap, start: 'top 92%', once: true } });
                     });
                 }
@@ -627,7 +633,8 @@ export function initLux(root, { skipIntro = false } = {}) {
             /* each stop appears in turn as the line reaches it, scrubbed with the scroll */
             $$('.lx-stop', place).forEach((s, i, arr) => gsap.fromTo(s, { opacity: 0, y: 20 }, { opacity: 1, y: 0, ease: 'none', scrollTrigger: { trigger: $('.lx-route', place), start: `top+=${(i / arr.length) * 70}% 85%`, end: `top+=${(i / arr.length) * 70}% 65%`, scrub: 0.6 } }));
         }
-        $$('.lx-place .lower > div:first-child', place).forEach((el) => gsap.fromTo(el, { opacity: 0, y: 40 }, { opacity: 1, y: 0, ease: 'none', scrollTrigger: { trigger: el, start: 'top 95%', end: 'top 60%', scrub: 0.6 } }));
+        /* phones: the text beside the route is simply there too (no scroll fade-in) */
+        if (isDesktop()) $$('.lx-place .lower > div:first-child', place).forEach((el) => gsap.fromTo(el, { opacity: 0, y: 40 }, { opacity: 1, y: 0, ease: 'none', scrollTrigger: { trigger: el, start: 'top 95%', end: 'top 60%', scrub: 0.6 } }));
         }
         /* ---------- split picture -> "Contact" (scroll-scrubbed split-panel merge + fullscreen zoom, after ERA): pinned and
            scrubbed. One full-screen photo is drawn as two layers, each clipped to one half (they overlap by 1px, so no seam
@@ -817,12 +824,12 @@ export function initLuxSections(root) {
         if ($('.lx-slider', root)) gsap.fromTo($('.lx-slider .frame', root), { clipPath: 'inset(100% 0% 0% 0%)' }, { clipPath: 'inset(0% 0% 0% 0%)', duration: 1.8, ease: 'luxInOut', scrollTrigger: { trigger: $('.lx-slider', root), start: 'top 80%' } });
 
         /* ---------- quote band ---------- */
-        if ($('.lx-quote .bg', root)) gsap.fromTo($('.lx-quote .bg', root), { yPercent: -10 }, { yPercent: 10, ease: 'none', scrollTrigger: { trigger: $('.lx-quote', root), start: 'top bottom', end: 'bottom top', scrub: true } });
+        if ($('.lx-quote .bg', root) && isDesktop()) gsap.fromTo($('.lx-quote .bg', root), { yPercent: -10 }, { yPercent: 10, ease: 'none', scrollTrigger: { trigger: $('.lx-quote', root), start: 'top bottom', end: 'bottom top', scrub: true } });
         /* side-image version (About): the photo wipes open from the left and settles */
         const qImg = $('.lx-quote .q-img', root);
         if (qImg) {
             gsap.fromTo(qImg, { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.4, ease: 'luxInOut', scrollTrigger: { trigger: qImg, start: 'top 80%' } });
-            gsap.fromTo($('img', qImg), { scale: 1.25 }, { scale: 1, duration: 1.8, ease: 'lux', scrollTrigger: { trigger: qImg, start: 'top 80%' } });
+            if (isDesktop()) gsap.fromTo($('img', qImg), { scale: 1.25 }, { scale: 1, duration: 1.8, ease: 'lux', scrollTrigger: { trigger: qImg, start: 'top 80%' } });
         }
         linesUp($$('.lx-quote blockquote .disp', root), 0.08);
         reveal($$('.lx-quote blockquote .micro', root));
@@ -862,7 +869,7 @@ export function initLuxSections(root) {
         const placeSec = $('section.lx-place', root);
         if (placeSec) {
         reveal($$('.cta', placeSec));
-        gsap.fromTo($('.peek img', placeSec), { xPercent: 0 }, { xPercent: -30, ease: 'none', scrollTrigger: { trigger: placeSec, start: 'top bottom', end: 'bottom top', scrub: true } });
+        if (isDesktop()) gsap.fromTo($('.peek img', placeSec), { xPercent: 0 }, { xPercent: -30, ease: 'none', scrollTrigger: { trigger: placeSec, start: 'top bottom', end: 'bottom top', scrub: true } });
         }
 
         /* ---------- sky: clouds part over the city ---------- */
@@ -948,7 +955,7 @@ export function initLuxSections(root) {
         /* ---------- split: numbers ---------- */
         const split = $('.lx-split', root);
         if (split) {
-        gsap.fromTo($('.lx-split .photo img', split), { yPercent: -8 }, { yPercent: 0, ease: 'none', scrollTrigger: { trigger: split, start: 'top bottom', end: 'bottom top', scrub: true } });
+        if (isDesktop()) gsap.fromTo($('.lx-split .photo img', split), { yPercent: -8 }, { yPercent: 0, ease: 'none', scrollTrigger: { trigger: split, start: 'top bottom', end: 'bottom top', scrub: true } });
         gsap.fromTo($('.lx-split .photo', split), { clipPath: 'inset(100% 0 0 0)' }, { clipPath: 'inset(0% 0 0 0)', duration: 1.8, ease: 'luxInOut', scrollTrigger: { trigger: split, start: 'top 70%' } });
         linesUp($$('.lx-split .copy .disp', split), 0.07);
         $$('.lx-stat', split).forEach((s, i) => {
